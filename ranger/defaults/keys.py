@@ -50,6 +50,10 @@ def _vimlike_aliases(map):
 	alias(KEY_HOME, 'gg')
 	alias(KEY_END, 'G')
 
+	# I like to move quickly with J/K
+	alias(ctrl('d'), 'J')
+	alias(ctrl('u'), 'K')
+
 def initialize_commands(map):
 	"""Initialize the commands for the main user interface"""
 
@@ -185,7 +189,7 @@ def initialize_commands(map):
 
 	# ---------------------------------------------------------- custom
 	# This is useful to track watched episode of a series.
-	@bind(']')
+	@map(']')
 	def tag_next_and_run(arg):
 		fm = arg.fm
 		fm.tag_remove()
