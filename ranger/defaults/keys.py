@@ -183,6 +183,18 @@ def initialize_commands(map):
 	map('?', KEY_F1, fm.display_help())
 	map('w', lambda arg: arg.fm.ui.open_taskview())
 
+	# ---------------------------------------------------------- custom
+	# This is useful to track watched episode of a series.
+	@bind(']')
+	def tag_next_and_run(arg):
+		fm = arg.fm
+		fm.tag_remove()
+		fm.tag_remove(movedown=False)
+		fm.tag_toggle()
+		fm.move_pointer(relative=-2)
+		fm.move_right()
+		fm.move_pointer(relative=1)
+
 	# ------------------------------------------------ system functions
 	_system_functions(map)
 	map('ZZ', fm.exit())
