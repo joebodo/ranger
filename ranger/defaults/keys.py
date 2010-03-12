@@ -199,6 +199,9 @@ def initialize_commands(map):
 		fm.move_right()
 		fm.move_pointer(relative=1)
 
+	# "enter" = shortcut for "1l"
+	map(KEY_ENTER, ctrl('j'), fm.move_right(mode=1))
+
 	# ------------------------------------------------ system functions
 	_system_functions(map)
 	map('ZZ', fm.exit())
