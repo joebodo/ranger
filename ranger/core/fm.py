@@ -21,6 +21,7 @@ from time import time
 from collections import deque
 
 import ranger
+from ranger.core.signal import SignalContainer
 from ranger.core.actions import Actions
 from ranger.container import Bookmarks
 from ranger.core.runner import Runner
@@ -44,8 +45,17 @@ class FM(Actions):
 		self.bookmarks = bookmarks
 		self.tags = tags
 		self.loader = Loader()
+		self.signals = SignalContainer()
 		self._executables = None
 		self.apps = self.settings.apps.CustomApplications()
+
+		@self.signals.register('throbber')
+		def throbber_function(signal):
+			if hasattr(signal.fm.ui, 'throbber'):
+				if signal.fm.loader.has_work():
+					signal.fm.ui.throbber(signal.fm.loader.status)
+				else:
+					signal.fm.ui.throbber(remove=True)
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)
@@ -54,6 +64,9 @@ class FM(Actions):
 
 		from ranger.shared import FileManagerAware
 		FileManagerAware.fm = self
+	
+	def emit(self, name):
+		self.signals.emit(name, fm=self)
 
 	@property
 	def executables(self):
@@ -118,11 +131,7 @@ class FM(Actions):
 			while True:
 				bookmarks.update_if_outdated()
 				loader.work()
-				if has_throbber:
-					if loader.has_work():
-						throbber(loader.status)
-					else:
-						throbber(remove=True)
+				self.emit('throbber')
 
 				ui.redraw()
 
