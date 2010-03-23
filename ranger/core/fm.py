@@ -23,7 +23,7 @@ from collections import deque
 import ranger
 from ranger.core.signal import SignalContainer
 from ranger.core.actions import Actions
-from ranger.container import Bookmarks
+from ranger.core.plug import install_plugins, Library
 from ranger.core.runner import Runner
 from ranger import relpath_conf
 from ranger.ext.get_executables import get_executables
@@ -37,25 +37,18 @@ class FM(Actions):
 	input_blocked = False
 	input_blocked_until = 0
 	stderr_to_out = False
-	def __init__(self, ui=None, bookmarks=None, tags=None):
+	def __init__(self, ui=None, tags=None):
 		"""Initialize FM."""
 		Actions.__init__(self)
 		self.ui = ui
 		self.log = deque(maxlen=20)
-		self.bookmarks = bookmarks
 		self.tags = tags
 		self.loader = Loader()
 		self.signals = SignalContainer()
+		self.lib = Library(self)
 		self._executables = None
 		self.apps = self.settings.apps.CustomApplications()
-
-		@self.signals.register('throbber')
-		def throbber_function(signal):
-			if hasattr(signal.fm.ui, 'throbber'):
-				if signal.fm.loader.has_work():
-					signal.fm.ui.throbber(signal.fm.loader.status)
-				else:
-					signal.fm.ui.throbber(remove=True)
+		install_plugins(fm=self, env=self.env, ui=self.ui, signals=self.signals)
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)
@@ -66,7 +59,7 @@ class FM(Actions):
 		FileManagerAware.fm = self
 	
 	def emit(self, name):
-		self.signals.emit(name, fm=self)
+		self.signals.emit(name, fm=self, arg=ranger.arg)
 
 	@property
 	def executables(self):
@@ -75,22 +68,10 @@ class FM(Actions):
 		return self._executables
 
 	def initialize(self):
-		"""If ui/bookmarks are None, they will be initialized here."""
+		"""If ui is None, it will be initialized here."""
 		from ranger.fsobject.directory import Directory
 
-		if self.bookmarks is None:
-			if ranger.arg.clean:
-				bookmarkfile = None
-			else:
-				bookmarkfile = relpath_conf('bookmarks')
-			self.bookmarks = Bookmarks(
-					bookmarkfile=bookmarkfile,
-					bookmarktype=Directory,
-					autosave=self.settings.autosave_bookmarks)
-			self.bookmarks.load()
-
-		else:
-			self.bookmarks = bookmarks
+		self.emit('initialize')
 
 		from ranger.container.tags import Tags
 		if not ranger.arg.clean and self.tags is None:
@@ -122,16 +103,13 @@ class FM(Actions):
 		# for faster lookup:
 		ui = self.ui
 		throbber = ui.throbber
-		bookmarks = self.bookmarks
 		loader = self.loader
 		env = self.env
-		has_throbber = hasattr(ui, 'throbber')
 
 		try:
 			while True:
-				bookmarks.update_if_outdated()
 				loader.work()
-				self.emit('throbber')
+				self.emit('loop_start')
 
 				ui.redraw()
 
@@ -152,5 +130,4 @@ class FM(Actions):
 					env.garbage_collect()
 
 		finally:
-			bookmarks.remember(env.cwd)
-			bookmarks.save()
+			self.emit('terminate')

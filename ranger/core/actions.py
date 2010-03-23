@@ -129,25 +129,6 @@ class Actions(EnvironmentAware, SettingsAware):
 		if hasattr(self.ui, 'redraw_main_column'):
 			self.ui.redraw_main_column()
 
-	def enter_bookmark(self, key):
-		"""Enter the bookmark with the name <key>"""
-		try:
-			destination = self.bookmarks[key]
-			cwd = self.env.cwd
-			if destination.path != cwd.path:
-				self.bookmarks.enter(key)
-				self.bookmarks.remember(cwd)
-		except KeyError:
-			pass
-
-	def set_bookmark(self, key):
-		"""Set the bookmark with the name <key> to the current directory"""
-		self.bookmarks[key] = self.env.cwd
-
-	def unset_bookmark(self, key):
-		"""Delete the bookmark with the name <key>"""
-		self.bookmarks.delete(key)
-
 	def move_left(self, narg=1):
 		"""Enter the parent directory"""
 		try:
