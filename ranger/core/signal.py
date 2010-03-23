@@ -25,7 +25,7 @@ class Signal(dict):
 		self.name = name
 
 	def propagate(self):
-		for function in self.propagation_order:
+		for function, rules in self.propagation_order:
 			function(self)
 			if self.stop:
 				return False
@@ -35,33 +35,62 @@ class Signal(dict):
 		self.stop = True
 #		self.propagation_order = []
 
+class Handler(dict):
+	def __init__(self, dct):
+		self.__dict__ = dct
+
 class SignalContainer(object):
+	# self.signals = {
+	#     'loop_start': {
+	#         'sorted': True,
+	#         'handlers': [
+	#             (function1, rules1),
+	#             (function2, rules2)
+	#         ]
+	#     }
+	# }
+	#
+	# Rules are:
+	#     run_before: Try to run this handler before the given handler
+	#     run_after: Try to run it after that one.
+	#     name: Identifier for "run_before" and "run_after" rules
+	# special names: everything
 	def __init__(self):
 		self.signals = {}
 
-	def register(self, name, function=None):
+	def register(self, signal, function=None, **rules):
 		if function is None:
-			if inspect.isfunction(name):
-				function = name
-				name = function.__name__
+			if inspect.isfunction(signal):
+				function = signal
+				signal = function.__name__
 			else:
 				def moo(fnc):
-					self.register(name, fnc)
+					self.register(signal, fnc, **rules)
 					return fnc
 				return moo
 		try:
-			lst = self.signals[name]
+			dct = self.signals[signal]
 		except:
 			lst = []
-			self.signals[name] = lst
-		lst.append(function)
+			dct = {'sorted':False, 'handlers': lst}
+			self.signals[signal] = dct
+		else:
+			lst = dct['handlers']
 
-	def emit(self, name, *__args, **__kws):
+		lst.append((function, rules))
+
+	def emit(self, signal_name, *__args, **__kws):
 		try:
-			lst = self.signals[name]
+			signal_data = self.signals[signal_name]
 		except:
 			return
-		signal = Signal(name, *__args, **__kws)
+		lst = signal_data['handlers']
+
+		if not signal_data['sorted']:
+			# TODO: sort the signals by topology
+			signal_data['sorted'] = True
+
+		signal = Signal(signal_name, *__args, **__kws)
 		signal.propagation_order = lst
 		try:
 			return signal.propagate()

@@ -61,7 +61,7 @@ class Wrapper(object):
 # bind('gg', lambda arg: narg(arg.n, arg.fm.move_pointer, absolute=0))
 
 fm = Wrapper('fm')
-cmd = Wrapper('fm', 'commands')
+func = Wrapper('fm', 'functions')
 wdg = Wrapper('wdg')
 
 

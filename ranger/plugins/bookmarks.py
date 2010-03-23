@@ -20,7 +20,6 @@ __author__ = 'Roman Zimbelmann'
 __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 
-from ranger import log
 from ranger.container import Bookmarks
 from ranger import relpath_conf
 from ranger.fsobject.directory import Directory
@@ -89,17 +88,20 @@ def unset_bookmark(fm, key):
 
 def set_bookmark(fm, key):
 	"""Set the bookmark with the name <key> to the current directory"""
-	log(fm.bookmarks.dct.keys())
-	log(key)
 	fm.bookmarks[key] = fm.env.cwd
-	log(fm.bookmarks.dct.keys())
 
 def __install__(fm):
-	fm.signals.register(loop_start)
-	fm.signals.register(terminate)
-	fm.signals.register(initialize)
-	fm.signals.register(draw)
+	def combine(d1, **d2):
+		result = d1.copy()
+		result.update(d2)
+		return result
 
-	fm.commands.register(enter_bookmark)
-	fm.commands.register(set_bookmark)
-	fm.commands.register(unset_bookmark)
+	rules = {'name': 'bookmarks'}
+	fm.signals.register(loop_start, **rules)
+	fm.signals.register(terminate, **rules)
+	fm.signals.register(initialize, **rules)
+	fm.signals.register(draw, **rules)
+
+	fm.functions.register(enter_bookmark)
+	fm.functions.register(set_bookmark)
+	fm.functions.register(unset_bookmark)

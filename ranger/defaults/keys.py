@@ -176,9 +176,9 @@ def initialize_commands(map):
 
 	# ------------------------------------------------------- bookmarks
 	for key in ALLOWED_BOOKMARK_KEYS:
-		map("`" + key, "'" + key, cmd.enter_bookmark(key))
-		map("m" + key, cmd.set_bookmark(key))
-		map("um" + key, cmd.unset_bookmark(key))
+		map("`" + key, "'" + key, func.enter_bookmark(key))
+		map("m" + key, func.set_bookmark(key))
+		map("um" + key, func.unset_bookmark(key))
 	map("`", "'", "m", draw_bookmarks=True)
 
 	# ---------------------------------------------------- change views

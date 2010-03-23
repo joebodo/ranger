@@ -46,7 +46,7 @@ class FM(Actions):
 		self.tags = tags
 		self.loader = Loader()
 		self.signals = SignalContainer()
-		self.commands = Library(self)
+		self.functions = Library(self)
 		self._executables = None
 		self.apps = self.settings.apps.CustomApplications()
 		install_plugins(fm=self, env=self.env, ui=self.ui, signals=self.signals)

@@ -13,6 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Specification for plugins:
+
+fm.functions: semi global functions which can be registered from
+inside your plugin so they are accessible outside, for example so you
+can assign keybindings to them or call them from other modules.
+Avoid dependencies though!
+
+
+fm.signals: 
+"""
+
 import ranger
 from ranger import relpath, relpath_conf
 from os.path import exists
