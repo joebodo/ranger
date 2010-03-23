@@ -64,7 +64,7 @@ class BrowserView(Widget, DisplayableContainer):
 		self.add_child(self.pager)
 
 	def draw(self):
-		if self.emit('draw'):
+		if not self.emit('draw'):
 			if self.old_cf != self.env.cf:
 				self.need_clear = True
 			if self.settings.draw_borders:

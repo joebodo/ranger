@@ -28,8 +28,8 @@ class Signal(dict):
 		for function, rules in self.propagation_order:
 			function(self)
 			if self.stop:
-				return False
-		return True
+				return True
+		return False
 
 	def stop_propagation(self):
 		self.stop = True

@@ -39,14 +39,12 @@ def _find_plugin(name):
 		return 'ranger.plugins'
 	raise Exception('Plugin not found!')
 
-plugins = ['throbber', 'bookmarks']
-
-def install_plugins(**keywords):
+def install_plugins(plugins, **keywords):
 	for plugin in plugins:
 		path = _find_plugin(plugin)
 		module = __import__(path, fromlist=[plugin])
 		installfunc = getattr(module, plugin).__install__
 		install_keywords = dict(
-				[arg, keywords[arg] if arg in keywords else None] \
+				(arg, keywords[arg] if arg in keywords else None) \
 				for arg in getargspec(installfunc).args)
 		installfunc(**install_keywords)

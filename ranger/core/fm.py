@@ -49,7 +49,7 @@ class FM(Actions):
 		self.functions = Library(self)
 		self._executables = None
 		self.apps = self.settings.apps.CustomApplications()
-		install_plugins(fm=self, env=self.env, ui=self.ui, signals=self.signals)
+		install_plugins(plugins=self.settings.plugins, fm=self, env=self.env, ui=self.ui, signals=self.signals)
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)

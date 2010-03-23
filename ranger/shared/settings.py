@@ -21,6 +21,7 @@ from ranger.ext.openstruct import OpenStruct
 from ranger.gui.colorscheme import ColorScheme
 
 ALLOWED_SETTINGS = {
+	'plugins': (tuple, list),
 	'show_hidden': bool,
 	'show_cursor': bool,
 	'autosave_bookmarks': bool,
