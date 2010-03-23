@@ -23,8 +23,8 @@ from ranger.gui.widgets import console_mode as cmode
 from ranger.container.bookmarks import ALLOWED_KEYS as ALLOWED_BOOKMARK_KEYS
 
 class Wrapper(object):
-	def __init__(self, firstattr):
-		self.__firstattr__ = firstattr
+	def __init__(self, *attrs):
+		self.__attrs__ = attrs
 
 	def __getattr__(self, attr):
 		if attr.startswith('_'):
@@ -33,7 +33,9 @@ class Wrapper(object):
 			def function(command_argument):
 				args, kws = real_args, real_keywords
 				number = command_argument.n
-				obj = getattr(command_argument, self.__firstattr__)
+				obj = command_argument
+				for attr_ in self.__attrs__:
+					obj = getattr(obj, attr_)
 				fnc = getattr(obj, attr)
 				if number is not None:
 					args, kws = replace_narg(number, fnc, args, kws)
@@ -59,6 +61,7 @@ class Wrapper(object):
 # bind('gg', lambda arg: narg(arg.n, arg.fm.move_pointer, absolute=0))
 
 fm = Wrapper('fm')
+cmd = Wrapper('fm', 'commands')
 wdg = Wrapper('wdg')
 
 

@@ -176,11 +176,9 @@ def initialize_commands(map):
 
 	# ------------------------------------------------------- bookmarks
 	for key in ALLOWED_BOOKMARK_KEYS:
-		def map_plx(key):
-			map("`" + key, "'" + key, lambda a: a.fm.lib.enter_bookmark(key))
-			map("m" + key, lambda a: a.fm.lib.set_bookmark(key))
-			map("um" + key, lambda a: a.fm.lib.unset_bookmark(key))
-		map_plx(key)
+		map("`" + key, "'" + key, cmd.enter_bookmark(key))
+		map("m" + key, cmd.set_bookmark(key))
+		map("um" + key, cmd.unset_bookmark(key))
 	map("`", "'", "m", draw_bookmarks=True)
 
 	# ---------------------------------------------------- change views

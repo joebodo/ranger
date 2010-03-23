@@ -23,7 +23,8 @@ from collections import deque
 import ranger
 from ranger.core.signal import SignalContainer
 from ranger.core.actions import Actions
-from ranger.core.plug import install_plugins, Library
+from ranger.core.plug import install_plugins
+from ranger.container.library import Library
 from ranger.core.runner import Runner
 from ranger import relpath_conf
 from ranger.ext.get_executables import get_executables
@@ -45,7 +46,7 @@ class FM(Actions):
 		self.tags = tags
 		self.loader = Loader()
 		self.signals = SignalContainer()
-		self.lib = Library(self)
+		self.commands = Library(self)
 		self._executables = None
 		self.apps = self.settings.apps.CustomApplications()
 		install_plugins(fm=self, env=self.env, ui=self.ui, signals=self.signals)
@@ -102,7 +103,6 @@ class FM(Actions):
 
 		# for faster lookup:
 		ui = self.ui
-		throbber = ui.throbber
 		loader = self.loader
 		env = self.env
 
