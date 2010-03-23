@@ -89,11 +89,12 @@ def main():
 	from locale import getdefaultlocale, setlocale, LC_ALL
 
 	import ranger
+	import ranger.core.settings
 	from ranger.ext import curses_interrupt_handler
 	from ranger.core.fm import FM
+	from ranger.core.plug import install_plugins
 	from ranger.core.environment import Environment
 	from ranger.shared.settings import SettingsAware
-	from ranger.gui.defaultui import DefaultUI as UI
 	from ranger.fsobject.file import File
 
 	# Ensure that a utf8 locale is set.
@@ -104,13 +105,21 @@ def main():
 	else:
 		setlocale(LC_ALL, '')
 
+
+	fm = FM()
+
 	arg = parse_arguments()
 	ranger.arg = arg
+
+	settings = ranger.core.settings.Settings(fm)
+	SettingsAware.settings = settings
 
 	if not ranger.arg.debug:
 		curses_interrupt_handler.install_interrupt_handler()
 
-	SettingsAware._setup()
+#	SettingsAware._setup()
+
+	install_plugins(plugins=settings.plugins, fm=fm, env=fm.env, signals=fm.signals)
 
 	# Initialize objects
 	if arg.targets:
@@ -129,21 +138,15 @@ def main():
 
 	Environment(path)
 
+	fm.stderr_to_out = arg.cd_after_exit
 	try:
-		my_ui = UI()
-		my_fm = FM(ui=my_ui)
-		my_fm.stderr_to_out = arg.cd_after_exit
-
-		# Run the file manager
-		my_fm.initialize()
-		my_ui.initialize()
-		my_fm.loop()
+		fm.initialize()
+		fm.loop()
 	finally:
-		# Finish, clean up
-		if 'my_ui' in vars():
-			my_ui.destroy()
+		if fm.ui:
+			fm.ui.destroy()
 		if arg.cd_after_exit:
-			try: sys.__stderr__.write(my_fm.env.cwd.path)
+			try: sys.__stderr__.write(fm.env.cwd.path)
 			except: pass
 
 if __name__ == '__main__':

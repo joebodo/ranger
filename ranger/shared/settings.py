@@ -44,7 +44,7 @@ ALLOWED_SETTINGS = {
 
 # -- globalize the settings --
 class SettingsAware(object):
-	settings = OpenStruct()
+	settings2 = OpenStruct()
 
 	@staticmethod
 	def _setup():

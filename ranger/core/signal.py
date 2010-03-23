@@ -17,46 +17,37 @@ import inspect
 
 class Signal(dict):
 	propagation_order = []
+	_stop = False
 
 	def __init__(self, name, *args, **__keywords):
 		dict.__init__(self, **__keywords)
 		self.__dict__ = self
-		self.stop = False
+		self._stop = False
 		self.name = name
 
 	def propagate(self):
-		for function, rules in self.propagation_order:
-			function(self)
-			if self.stop:
+		for handler in self.propagation_order:
+			handler.function(self)
+			if self._stop:
 				return True
 		return False
 
 	def stop_propagation(self):
-		self.stop = True
-#		self.propagation_order = []
+		self._stop = True
 
 class Handler(dict):
 	def __init__(self, dct):
 		self.__dict__ = dct
 
 class SignalContainer(object):
-	# self.signals = {
-	#     'loop_start': {
-	#         'sorted': True,
-	#         'handlers': [
-	#             (function1, rules1),
-	#             (function2, rules2)
-	#         ]
-	#     }
-	# }
-	#
 	# Rules are:
 	#     run_before: Try to run this handler before the given handler
 	#     run_after: Try to run it after that one.
 	#     name: Identifier for "run_before" and "run_after" rules
 	# special names: everything
-	def __init__(self):
-		self.signals = {}
+	def __init__(self, logfunc=None):
+		self._logfunc = logfunc
+		self._signals = {}
 
 	def register(self, signal, function=None, **rules):
 		if function is None:
@@ -69,19 +60,21 @@ class SignalContainer(object):
 					return fnc
 				return moo
 		try:
-			dct = self.signals[signal]
+			dct = self._signals[signal]
 		except:
 			lst = []
 			dct = {'sorted':False, 'handlers': lst}
-			self.signals[signal] = dct
+			self._signals[signal] = dct
 		else:
+			dct['sorted'] = False
 			lst = dct['handlers']
 
-		lst.append((function, rules))
+		handler = Handler(dict(rules, function=function))
+		lst.append(handler)
 
-	def emit(self, signal_name, *__args, **__kws):
+	def emit(self, signal_name, vital=False, *__args, **__kws):
 		try:
-			signal_data = self.signals[signal_name]
+			signal_data = self._signals[signal_name]
 		except:
 			return
 		lst = signal_data['handlers']
@@ -94,5 +87,10 @@ class SignalContainer(object):
 		signal.propagation_order = lst
 		try:
 			return signal.propagate()
-		except:
-			return False
+		except BaseException as e:
+			if vital:
+				raise
+			else:
+				if self._logfunc:
+					self._logfunc(e)
+				return False

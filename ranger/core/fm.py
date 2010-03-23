@@ -23,7 +23,6 @@ from collections import deque
 import ranger
 from ranger.core.signal import SignalContainer
 from ranger.core.actions import Actions
-from ranger.core.plug import install_plugins
 from ranger.container.library import Library
 from ranger.core.runner import Runner
 from ranger import relpath_conf
@@ -38,29 +37,22 @@ class FM(Actions):
 	input_blocked = False
 	input_blocked_until = 0
 	stderr_to_out = False
-	def __init__(self, ui=None, tags=None):
+	def __init__(self):
 		"""Initialize FM."""
 		Actions.__init__(self)
-		self.ui = ui
+		self.ui = None
 		self.log = deque(maxlen=20)
-		self.tags = tags
+		self.tags = None
 		self.loader = Loader()
 		self.signals = SignalContainer()
 		self.functions = Library(self)
 		self._executables = None
-		self.apps = self.settings.apps.CustomApplications()
-		install_plugins(plugins=self.settings.plugins, fm=self, env=self.env, ui=self.ui, signals=self.signals)
-
-		def mylogfunc(text):
-			self.notify(text, bad=True)
-		self.run = Runner(ui=self.ui, apps=self.apps,
-				logfunc=mylogfunc)
 
 		from ranger.shared import FileManagerAware
 		FileManagerAware.fm = self
 	
-	def emit(self, name):
-		return self.signals.emit(name, fm=self, arg=ranger.arg, target=None)
+	def emit(self, name, **kw):
+		return self.signals.emit(name, fm=self, target=None, **kw)
 
 	@property
 	def executables(self):
@@ -72,7 +64,7 @@ class FM(Actions):
 		"""If ui is None, it will be initialized here."""
 		from ranger.fsobject.directory import Directory
 
-		self.emit('initialize')
+		self.emit('initialize', vital=True)
 
 		from ranger.container.tags import Tags
 		if not ranger.arg.clean and self.tags is None:
@@ -82,6 +74,13 @@ class FM(Actions):
 			from ranger.gui.defaultui import DefaultUI
 			self.ui = DefaultUI()
 			self.ui.initialize()
+
+		self.apps = self.settings.apps.CustomApplications()
+
+		def mylogfunc(text):
+			self.notify(text, bad=True)
+		self.run = Runner(ui=self.ui, apps=self.apps,
+				logfunc=mylogfunc)
 
 	def block_input(self, sec=0):
 		self.input_blocked = sec != 0
@@ -105,25 +104,21 @@ class FM(Actions):
 		ui = self.ui
 		loader = self.loader
 		env = self.env
+		emit = self.emit
 
 		try:
 			while True:
 				loader.work()
-				self.emit('loop_start')
-
+				emit('loop_start')
 				ui.redraw()
-
 				ui.set_load_mode(loader.has_work())
-
 				key = ui.get_next_key()
-
 				if key > 0:
 					if self.input_blocked and \
 							time() > self.input_blocked_until:
 						self.input_blocked = False
 					if not self.input_blocked:
 						ui.handle_key(key)
-
 				gc_tick += 1
 				if gc_tick > TICKS_BEFORE_COLLECTING_GARBAGE:
 					gc_tick = 0
@@ -135,4 +130,4 @@ class FM(Actions):
 			raise SystemExit  
 
 		finally:
-			self.emit('terminate')
+			emit('terminate')

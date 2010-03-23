@@ -291,8 +291,8 @@ class Actions(EnvironmentAware, SettingsAware):
 
 	def toggle_boolean_option(self, string):
 		"""Toggle a boolean option named <string>"""
-		if isinstance(self.env.settings[string], bool):
-			self.env.settings[string] ^= True
+		if isinstance(self.settings[string], bool):
+			self.settings[string] ^= True
 
 	def sort(self, func=None, reverse=None):
 		if reverse is not None:

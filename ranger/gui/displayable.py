@@ -101,9 +101,9 @@ class Displayable(EnvironmentAware, FileManagerAware, CursesShortcuts):
 
 		return self.contains_point(y, x)
 
-	def emit(self, name):
+	def emit(self, name, **__kw):
 		import ranger
-		return self.fm.signals.emit(name, fm=self.fm, arg=ranger.arg, target=self)
+		return self.fm.signals.emit(name, fm=self.fm, arg=ranger.arg, target=self, **__kw)
 
 	def draw(self):
 		"""

@@ -105,3 +105,5 @@ def __install__(fm):
 	fm.functions.register(enter_bookmark)
 	fm.functions.register(set_bookmark)
 	fm.functions.register(unset_bookmark)
+
+	fm.settings.register('autosave_bookmarks', default=True, type=bool)
