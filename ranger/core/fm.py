@@ -129,5 +129,10 @@ class FM(Actions):
 					gc_tick = 0
 					env.garbage_collect()
 
+		except KeyboardInterrupt:
+			# this only happens in --debug mode. By default, interrupts
+			# are caught in curses_interrupt_handler
+			raise SystemExit  
+
 		finally:
 			self.emit('terminate')
