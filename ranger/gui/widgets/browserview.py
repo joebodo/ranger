@@ -64,10 +64,7 @@ class BrowserView(Widget, DisplayableContainer):
 		self.add_child(self.pager)
 
 	def draw(self):
-		try:
-			if self.env.cmd.show_obj.draw_bookmarks:
-				self._draw_bookmarks()
-		except AttributeError:
+		if self.emit('draw'):
 			if self.old_cf != self.env.cf:
 				self.need_clear = True
 			if self.settings.draw_borders:
@@ -100,26 +97,6 @@ class BrowserView(Widget, DisplayableContainer):
 				self.fm.ui.win.move(y, x)
 			except:
 				pass
-
-	def _draw_bookmarks(self):
-		self.need_clear = True
-
-		sorted_bookmarks = sorted(item for item in self.fm.bookmarks \
-				if '/.' not in item[1].path)
-
-		def generator():
-			return zip(range(self.hei), sorted_bookmarks)
-
-		try:
-			maxlen = max(len(item[1].path) for i, item in generator())
-		except ValueError:
-			return
-		maxlen = min(maxlen + 5, self.wid)
-
-		for line, items in generator():
-			key, mark = items
-			string = " " + key + ": " + mark.path
-			self.addnstr(line, 0, string.ljust(maxlen), self.wid)
 
 	def _draw_borders(self):
 		win = self.win

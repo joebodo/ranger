@@ -59,7 +59,7 @@ class FM(Actions):
 		FileManagerAware.fm = self
 	
 	def emit(self, name):
-		self.signals.emit(name, fm=self, arg=ranger.arg)
+		return self.signals.emit(name, fm=self, arg=ranger.arg, target=None)
 
 	@property
 	def executables(self):

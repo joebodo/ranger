@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import inspect
 
 class Signal(dict):
 	propagation_order = []
@@ -20,14 +21,19 @@ class Signal(dict):
 	def __init__(self, name, *args, **__keywords):
 		dict.__init__(self, **__keywords)
 		self.__dict__ = self
+		self.stop = False
 		self.name = name
 
 	def propagate(self):
 		for function in self.propagation_order:
 			function(self)
+			if self.stop:
+				return False
+		return True
 
 	def stop_propagation(self):
-		self.propagation_order = []
+		self.stop = True
+#		self.propagation_order = []
 
 class SignalContainer(object):
 	def __init__(self):
@@ -35,10 +41,14 @@ class SignalContainer(object):
 
 	def register(self, name, function=None):
 		if function is None:
-			def moo(fnc):
-				self.register(name, fnc)
-				return fnc
-			return moo
+			if inspect.isfunction(name):
+				function = name
+				name = function.__name__
+			else:
+				def moo(fnc):
+					self.register(name, fnc)
+					return fnc
+				return moo
 		try:
 			lst = self.signals[name]
 		except:
@@ -53,4 +63,7 @@ class SignalContainer(object):
 			return
 		signal = Signal(name, *__args, **__kws)
 		signal.propagation_order = lst
-		signal.propagate()
+		try:
+			return signal.propagate()
+		except:
+			return False

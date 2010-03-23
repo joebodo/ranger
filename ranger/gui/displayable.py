@@ -101,6 +101,10 @@ class Displayable(EnvironmentAware, FileManagerAware, CursesShortcuts):
 
 		return self.contains_point(y, x)
 
+	def emit(self, name):
+		import ranger
+		return self.fm.signals.emit(name, fm=self.fm, arg=ranger.arg, target=self)
+
 	def draw(self):
 		"""
 		Draw the object. Called on every main iteration if visible.
