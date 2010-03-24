@@ -23,7 +23,7 @@ import os
 import time
 
 class TestPlugins(unittest.TestCase):
-	def test_topological_sort(self):
+	def test_topological_dependency_sort(self):
 		table = {
 			'motivation': [],
 			'shoes': ['socks', 'jeans'],
@@ -36,7 +36,7 @@ class TestPlugins(unittest.TestCase):
 			'get_out_of_bed': ['motivation'],
 			'ready_to_go!': ['sunglasses', 'bag', 'mantle', 'shoes'],
 			'bag': ['mantle', 'jeans'],
-			'shave': ['motivation', 'underpants'],
+			'shave': ['motivation', 'underpants', 'get_out_of_bed'],
 			'socks': ['get_out_of_bed'],
 			'mantle': ['shirt', 'jeans', 'shoes'],
 			'scarf': ['mantle'],
@@ -49,7 +49,7 @@ class TestPlugins(unittest.TestCase):
 			return OpenStruct(__dependencies__=table[name],
 					__install__=install(name), name=name)
 		plug._name_to_module = name_to_module
-		plug.install_plugins(['t-shirt', 'shave', 'ready_to_go!'])
+		plug.install_plugins(['t-shirt', 'shave', 'ready_to_go!'], debug=True)
 
 		# print(' -> '.join(install_order))
 		for name, deps in table.items():

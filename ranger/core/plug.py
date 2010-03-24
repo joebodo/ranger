@@ -48,20 +48,22 @@ def _get_dependencies(module):
 	except:
 		return set()
 
-def install_plugins(plugins, **keywords):
+def install_plugins(plugins, debug=False, **keywords):
 	# entry = (string_name, set_of_dependencies, module)
 	modules = []
 	module_names = set()
+	implicit_deps = set()
 
-	def add_plugin(name):
+	def add_plugin(name, implicit=False):
 		try:
 			module = _name_to_module(name)
-		except:
-			raise
+		except AttributeError:
 			raise Exception("Plugin {0} not found!".format(name))
 		deps = _get_dependencies(module)
 		modules.append((name, deps, module))
 		module_names.add(name)
+		if implicit:
+			implicit_deps.add(name)
 
 	for name in plugins:
 		add_plugin(name)
@@ -79,7 +81,11 @@ def install_plugins(plugins, **keywords):
 		else:
 			i += 1
 			for name in entry[1] - module_names:
-				add_plugin(name)
+				add_plugin(name, implicit=True)
+	
+	if debug and implicit_deps:
+		print("Implicit plugin dependencies: %s" %
+				', '.join(implicit_deps))
 
 	# Resolve dependencies and create the ordered list
 	while no_deps:

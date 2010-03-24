@@ -118,7 +118,7 @@ def main():
 	if not ranger.arg.debug:
 		curses_interrupt_handler.install_interrupt_handler()
 
-	install_plugins(plugins=settings.plugins, fm=fm,
+	install_plugins(plugins=settings.plugins, debug=arg.debug, fm=fm,
 			signals=fm.signals)
 
 	# Initialize objects
