@@ -20,6 +20,7 @@ The module responsible for signals aka events aka hooks.
 import inspect
 
 _signals = {}
+base_signal_keywords = None
 
 def clear():
 	_signals.clear()
@@ -30,13 +31,12 @@ def logfunc(x):
 
 
 class Signal(dict):
-	propagation_order = []
-	_stop = False
-
-	def __init__(self, name, keywords):
+	def __init__(self, name, handlers, keywords):
 		dict.__init__(self, keywords)
-		self.__dict__ = self
+		self.__dict__ = keywords
+		self.propagation_order = handlers
 		self.name = name
+		self._stop = False
 
 	def propagate(self):
 		for handler in self.propagation_order:
@@ -51,10 +51,20 @@ class Signal(dict):
 
 class Handler(dict):
 	prio = 0.5
-	def __init__(self, dct):
+	def __init__(self, signal_name, function, dct):
+		dict.__init__(self, dct)
 		self.__dict__ = dct
 		if self.prio < 0: self.prio = 0
 		elif self.prio > 1: self.prio = 1
+		self.signal_name = signal_name
+		self.function = function
+
+	def remove(self):
+		try:
+			handlers = _signals[self.signal_name]['handlers']
+			handlers.remove(self)
+		except KeyError:
+			pass
 
 
 def register(signal_name, function=None, **rules):
@@ -79,8 +89,9 @@ def register(signal_name, function=None, **rules):
 		dct['sorted'] = False
 		lst = dct['handlers']
 
-	rules['function'] = function
-	lst.append(Handler(rules))
+	handler = Handler(signal_name, function, rules)
+	lst.append(handler)
+	return handler
 
 
 def emit(signal_name, vital=False, **kw):
@@ -99,10 +110,16 @@ def emit(signal_name, vital=False, **kw):
 		signal_data['handlers'] = handlers
 		signal_data['sorted'] = True
 
-	signal = Signal(signal_name, kw)
-	signal.propagation_order = handlers
+	if base_signal_keywords:
+		assert isinstance(base_signal_keywords, dict)
+		new_kw = base_signal_keywords.copy()
+		new_kw.update(kw)
+		kw = new_kw
+	signal = Signal(signal_name, handlers, kw)
 	try:
 		return signal.propagate()
+	except AssertionError:
+		raise
 	except BaseException as e:
 		if vital:
 			raise

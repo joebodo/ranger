@@ -24,12 +24,18 @@ class TestDisplayable(unittest.TestCase):
 	tearDown = setUp
 
 	def test_signal_register_emit(self):
-		@signal.register('x')
 		def poo(sig):
 			self.assert_('works' in sig)
 			self.assertEqual('yes', sig.works)
+		handler = signal.register('x', poo)
 
 		signal.emit('x', works='yes')
+
+		signal.base_signal_keywords = {'works': 'yes'}
+		signal.emit('x')
+		signal.base_signal_keywords = None
+		handler.remove()
+		signal.emit('x')
 
 	def test_signal_order(self):
 		lst = []
