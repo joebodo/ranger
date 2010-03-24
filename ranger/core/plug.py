@@ -70,9 +70,14 @@ class PluginManager(object):
 		self.plugins = []
 		self.features = set()
 		self.load_order = []
+		self.exclude = set()
 
 	def install(self, *names):
 		for name in names:
+			assert isinstance(name, str), "Plugin names must be strings!"
+			if name[0] == '!':
+				self.exclude.add(name[1:])
+				continue
 			try:
 				self._install(name)
 			except MissingFeature as e:
@@ -103,10 +108,15 @@ class PluginManager(object):
 		missing_features = reqs - self.features
 		if missing_features:
 			raise MissingFeature(name, missing_features, self.load_order[:])
-		required_keywords = dict(  # only pass on the keywords it needs
-				(arg, kw[arg] if arg in kw else None) \
-				for arg in getargspec(module.__install__).args)
-		module.__install__(**required_keywords)
+		try:
+			installfunc = module.__install__
+		except:
+			pass
+		else:
+			required_keywords = dict(  # only pass on the keywords it needs
+					(arg, kw[arg] if arg in kw else None) \
+					for arg in getargspec(installfunc).args)
+			installfunc(**required_keywords)
 		self.features |= _get_safely(module, IMP_FEATURES)
 		self.plugins.append(name)
 		self.load_order.pop()

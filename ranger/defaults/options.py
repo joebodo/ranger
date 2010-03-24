@@ -33,7 +33,7 @@ of the values stay the same.
 
 from ranger.api.options import *
 
-plugins = ['bookmarks', 'throbber'] 
+plugins = ['!throbber', 'base']
 
 # Which files are hidden if show_hidden is False?
 hidden_filter = regexp(

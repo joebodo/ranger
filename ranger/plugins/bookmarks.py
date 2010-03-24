@@ -20,7 +20,7 @@ __author__ = 'Roman Zimbelmann'
 __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 
-__implements__ = 'bookmarks'
+__implements__ = ['bookmarks']
 
 from ranger.container import Bookmarks
 from ranger import relpath_conf
