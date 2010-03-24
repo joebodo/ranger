@@ -110,6 +110,7 @@ def main():
 
 	arg = parse_arguments()
 	ranger.arg = arg
+	fm.arg = arg
 
 	settings = ranger.core.settings.Settings(fm)
 	SettingsAware.settings = settings
@@ -117,9 +118,8 @@ def main():
 	if not ranger.arg.debug:
 		curses_interrupt_handler.install_interrupt_handler()
 
-#	SettingsAware._setup()
-
-	install_plugins(plugins=settings.plugins, fm=fm, env=fm.env, signals=fm.signals)
+	install_plugins(plugins=settings.plugins, fm=fm,
+			signals=fm.signals)
 
 	# Initialize objects
 	if arg.targets:

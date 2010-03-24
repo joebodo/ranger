@@ -72,15 +72,21 @@ class SignalContainer(object):
 		handler = Handler(dict(rules, function=function))
 		lst.append(handler)
 
+	def _sort(self, lst):
+		# TODO: sort the signals by topology
+		return lst
+
 	def emit(self, signal_name, vital=False, *__args, **__kws):
 		try:
 			signal_data = self._signals[signal_name]
 		except:
 			return
 		lst = signal_data['handlers']
+		if not lst:
+			return
 
 		if not signal_data['sorted']:
-			# TODO: sort the signals by topology
+			signal_data['handlers'] = self._sort(signal_data['handlers'])
 			signal_data['sorted'] = True
 
 		signal = Signal(signal_name, *__args, **__kws)

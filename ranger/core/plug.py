@@ -39,11 +39,70 @@ def _find_plugin(name):
 		return 'ranger.plugins'
 	raise Exception('Plugin not found!')
 
+def _name_to_module(name):
+	return getattr(__import__(_find_plugin(name), fromlist=[name]), name)
+
+def _get_dependencies(module):
+	try:
+		return set(module.__dependencies__)
+	except:
+		return set()
+
 def install_plugins(plugins, **keywords):
-	for plugin in plugins:
-		path = _find_plugin(plugin)
-		module = __import__(path, fromlist=[plugin])
-		installfunc = getattr(module, plugin).__install__
+	# entry = (string_name, set_of_dependencies, module)
+	modules = []
+	module_names = set()
+
+	def add_plugin(name):
+		try:
+			module = _name_to_module(name)
+		except:
+			raise
+			raise Exception("Plugin {0} not found!".format(name))
+		deps = _get_dependencies(module)
+		modules.append((name, deps, module))
+		module_names.add(name)
+
+	for name in plugins:
+		add_plugin(name)
+
+	order = []
+	no_deps = []
+	i = 0
+	# Add implicit dependencies and find plugins with no dependencies.
+	while True:
+		try: entry = modules[i]
+		except: break
+		if not entry[1]:
+			no_deps.append(entry)
+			modules.remove(entry)
+		else:
+			i += 1
+			for name in entry[1] - module_names:
+				add_plugin(name)
+
+	# Resolve dependencies and create the ordered list
+	while no_deps:
+		current = no_deps.pop()
+		name = current[0]
+		order.append(current[2])
+		i = 0
+		while True:
+			try: entry = modules[i]
+			except: break
+			try:
+				entry[1].remove(name)
+			except KeyError:
+				i += 1
+			if not entry[1]:
+				no_deps.append(entry)
+				modules.remove(entry)
+	
+	if modules:
+		raise Exception("Circular Dependencies!")
+
+	for module in order:
+		installfunc = module.__install__
 		install_keywords = dict(
 				(arg, keywords[arg] if arg in keywords else None) \
 				for arg in getargspec(installfunc).args)

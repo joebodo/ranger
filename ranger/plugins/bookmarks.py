@@ -61,7 +61,7 @@ def draw(sig):
 		self.addnstr(line, 0, string.ljust(maxlen), self.wid)
 
 def initialize(signal):
-	if signal.arg.clean:
+	if signal.fm.arg.clean:
 		bookmarkfile = None
 	else:
 		bookmarkfile = relpath_conf('bookmarks')
