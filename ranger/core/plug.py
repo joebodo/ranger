@@ -30,6 +30,11 @@ from ranger import relpath, relpath_conf
 from os.path import exists
 from inspect import getargspec
 
+DEPENDENCIES = '__dependencies__'
+REQ_FEATURES = '__required_features__'
+IMP_FEATURES = '__implements__'
+
+
 def _find_plugin(name):
 	assert isinstance(name, str), 'Plugin names must be strings!'
 	assert '.' not in name, 'Specify plugin names without the extension!'
@@ -42,17 +47,53 @@ def _find_plugin(name):
 def _name_to_module(name):
 	return getattr(__import__(_find_plugin(name), fromlist=[name]), name)
 
-def _get_dependencies(module):
+def _get_safely(module, name):
 	try:
-		return set(module.__dependencies__)
+		value = getattr(module, name)
 	except:
 		return set()
+	if isinstance(value, (set, list, tuple)):
+		return set(value)
+	else:
+		return set([value])
 
-def install_plugins(plugins, debug=False, **keywords):
-	for plugin in plugins:
-		module = _name_to_module(plugin)
-		installfunc = module.__install__
-		install_keywords = dict(
-				(arg, keywords[arg] if arg in keywords else None) \
-				for arg in getargspec(installfunc).args)
-		installfunc(**install_keywords)
+class MissingFeature(Exception):
+	pass
+
+class PluginManager(object):
+	_install_keywords = {}
+
+	def __init__(self):
+		self.plugins = []
+		self.features = set()
+
+	def install(self, *names):
+		for name in names:
+			try:
+				self._install(name)
+			except MissingFeature as e:
+				print("The plugin `{0}' requires the " \
+					"features: {1}.\nPlease edit your configuration" \
+					" file\nand add a plugin that implements this feature!" \
+					.format(e[0], ', '.join(e[1])))
+				raise SystemExit
+
+	def _install(self, name):
+		if name in self.plugins:
+			return  # already installed
+		kw = self._install_keywords
+		module = _name_to_module(name)
+		deps = _get_safely(module, DEPENDENCIES)
+		reqs = _get_safely(module, REQ_FEATURES)
+		for dep in deps:
+			if dep not in self.plugins:
+				self._install(dep)
+		missing_features = reqs - self.features
+		if missing_features:
+			raise MissingFeature(name, missing_features)
+		required_keywords = dict(  # only pass on the keywords it needs
+				(arg, kw[arg] if arg in kw else None) \
+				for arg in getargspec(module.__install__).args)
+		module.__install__(**required_keywords)
+		self.features |= _get_safely(module, IMP_FEATURES)
+		self.plugins.append(name)

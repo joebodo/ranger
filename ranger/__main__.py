@@ -92,7 +92,7 @@ def main():
 	import ranger.core.settings
 	from ranger.ext import curses_interrupt_handler
 	from ranger.core.fm import FM
-	from ranger.core.plug import install_plugins
+	from ranger.core.plug import PluginManager
 	from ranger.core.environment import Environment
 	from ranger.shared.settings import SettingsAware
 	from ranger.fsobject.file import File
@@ -107,6 +107,9 @@ def main():
 
 
 	fm = FM()
+	plugins = PluginManager()
+	fm.plugins = plugins
+	plugins._install_keywords = dict(fm=fm, signals=fm.signals)
 
 	arg = parse_arguments()
 	ranger.arg = arg
@@ -118,8 +121,7 @@ def main():
 	if not ranger.arg.debug:
 		curses_interrupt_handler.install_interrupt_handler()
 
-	install_plugins(plugins=settings.plugins, debug=arg.debug, fm=fm,
-			signals=fm.signals)
+	plugins.install(*settings.plugins)
 
 	# Initialize objects
 	if arg.targets:

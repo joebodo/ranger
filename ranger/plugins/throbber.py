@@ -20,6 +20,8 @@ __author__ = 'Roman Zimbelmann'
 __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 
+__required_features__ = ['bookmarks']
+
 def __install__(fm, signals):
 	@signals.register('loop_start')
 	def throbber_function(signal):
