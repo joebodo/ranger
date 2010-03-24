@@ -49,65 +49,8 @@ def _get_dependencies(module):
 		return set()
 
 def install_plugins(plugins, debug=False, **keywords):
-	# entry = (string_name, set_of_dependencies, module)
-	modules = []
-	module_names = set()
-	implicit_deps = set()
-
-	def add_plugin(name, implicit=False):
-		try:
-			module = _name_to_module(name)
-		except AttributeError:
-			raise Exception("Plugin {0} not found!".format(name))
-		deps = _get_dependencies(module)
-		modules.append((name, deps, module))
-		module_names.add(name)
-		if implicit:
-			implicit_deps.add(name)
-
-	for name in plugins:
-		add_plugin(name)
-
-	order = []
-	no_deps = []
-	i = 0
-	# Add implicit dependencies and find plugins with no dependencies.
-	while True:
-		try: entry = modules[i]
-		except: break
-		if not entry[1]:
-			no_deps.append(entry)
-			modules.remove(entry)
-		else:
-			i += 1
-			for name in entry[1] - module_names:
-				add_plugin(name, implicit=True)
-	
-	if debug and implicit_deps:
-		print("Implicit plugin dependencies: %s" %
-				', '.join(implicit_deps))
-
-	# Resolve dependencies and create the ordered list
-	while no_deps:
-		current = no_deps.pop()
-		name = current[0]
-		order.append(current[2])
-		i = 0
-		while True:
-			try: entry = modules[i]
-			except: break
-			try:
-				entry[1].remove(name)
-			except KeyError:
-				i += 1
-			if not entry[1]:
-				no_deps.append(entry)
-				modules.remove(entry)
-	
-	if modules:
-		raise Exception("Circular Dependencies!")
-
-	for module in order:
+	for plugin in plugins:
+		module = _name_to_module(plugin)
 		installfunc = module.__install__
 		install_keywords = dict(
 				(arg, keywords[arg] if arg in keywords else None) \
