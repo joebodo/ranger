@@ -19,17 +19,6 @@ The module responsible for signals aka events aka hooks.
 
 import inspect
 
-_signals = {}
-base_signal_keywords = None
-
-def clear():
-	_signals.clear()
-
-
-def logfunc(x):
-	print(x)
-
-
 class Signal(dict):
 	def __init__(self, name, handlers, keywords):
 		dict.__init__(self, keywords)
@@ -48,7 +37,6 @@ class Signal(dict):
 	def stop(self):
 		self._stop = True
 
-
 class Handler(dict):
 	prio = 0.5
 	def __init__(self, signal_name, function, dct):
@@ -59,80 +47,79 @@ class Handler(dict):
 		self.signal_name = signal_name
 		self.function = function
 
-	def remove(self):
+class SignalManager(object):
+	def __init__(self):
+		self.base_signal_keywords = None
+		self._signals = {}
+		self.logfunc = None
+		self.sortfunc = lambda handler: -handler.prio
+
+	def clear(self):
+		self._signals = {}
+
+	def register(self, signal_name, function=None, **rules):
+		assert isinstance(signal_name, str)
+		if function is None:
+			if inspect.isfunction(signal_name):
+				function = signal_name
+				signal_name = functin.__name__
+			else:
+				def decorator(func):
+					register(signal_name, func, **rules)
+					return func
+				return decorator
+
 		try:
-			handlers = _signals[self.signal_name]['handlers']
-			handlers.remove(self)
+			dct = self._signals[signal_name]
+		except:
+			lst = []
+			dct = {'sorted': False, 'handlers': lst}
+			self._signals[signal_name] = dct
+		else:
+			dct['sorted'] = False
+			lst = dct['handlers']
+
+		handler = Handler(signal_name, function, rules)
+		handler.remove = lambda: self.remove(handler)
+		lst.append(handler)
+		return handler
+
+	def emit(self, signal_name, vital=False, **kw):
+		assert isinstance(signal_name, str)
+		assert isinstance(vital, bool)
+		try:
+			signal_data = self._signals[signal_name]
+		except:
+			return
+		handlers = signal_data['handlers']
+		if not handlers:
+			return
+
+		if not signal_data['sorted']:
+			handlers = sorted(handlers, key=self.sortfunc)
+			signal_data['handlers'] = handlers
+			signal_data['sorted'] = True
+
+		if self.base_signal_keywords:
+			assert isinstance(self.base_signal_keywords, dict)
+			new_kw = self.base_signal_keywords.copy()
+			new_kw.update(kw)
+			kw = new_kw
+		signal = Signal(signal_name, handlers, kw)
+		try:
+			return signal.propagate()
+		except AssertionError:
+			raise
+		except BaseException as e:
+			if vital:
+				raise
+			else:
+				if logfunc: logfunc(e)
+				return False
+
+	def remove(self, handler):
+		try:
+			handlers = self._signals[handler.signal_name]['handlers']
+			handlers.remove(handler)
 		except KeyError:
 			pass
-
-
-def register(signal_name, function=None, **rules):
-	assert isinstance(signal_name, str)
-	if function is None:
-		if inspect.isfunction(signal_name):
-			function = signal_name
-			signal_name = functin.__name__
-		else:
-			def decorator(func):
-				register(signal_name, func, **rules)
-				return func
-			return decorator
-
-	try:
-		dct = _signals[signal_name]
-	except:
-		lst = []
-		dct = {'sorted': False, 'handlers': lst}
-		_signals[signal_name] = dct
-	else:
-		dct['sorted'] = False
-		lst = dct['handlers']
-
-	handler = Handler(signal_name, function, rules)
-	lst.append(handler)
-	return handler
-
-
-def emit(signal_name, vital=False, **kw):
-	assert isinstance(signal_name, str)
-	assert isinstance(vital, bool)
-	try:
-		signal_data = _signals[signal_name]
-	except:
-		return
-	handlers = signal_data['handlers']
-	if not handlers:
-		return
-
-	if not signal_data['sorted']:
-		handlers = _topsort(handlers)
-		signal_data['handlers'] = handlers
-		signal_data['sorted'] = True
-
-	if base_signal_keywords:
-		assert isinstance(base_signal_keywords, dict)
-		new_kw = base_signal_keywords.copy()
-		new_kw.update(kw)
-		kw = new_kw
-	signal = Signal(signal_name, handlers, kw)
-	try:
-		return signal.propagate()
-	except AssertionError:
-		raise
-	except BaseException as e:
-		if vital:
-			raise
-		else:
-			logfunc(e)
-			return False
-
-
-# ---- Helper Functions
-
-def _topsort_key_fnc(handler):
-	return -handler.prio
-
-
-def _topsort(handlers):
-	return sorted(handlers, key=_topsort_key_fnc)
