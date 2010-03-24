@@ -60,27 +60,39 @@ def _get_safely(module, name):
 class MissingFeature(Exception):
 	pass
 
+class DependencyCycle(Exception):
+	pass
+
 class PluginManager(object):
 	_install_keywords = {}
 
 	def __init__(self):
 		self.plugins = []
 		self.features = set()
+		self.load_order = []
 
 	def install(self, *names):
 		for name in names:
 			try:
 				self._install(name)
 			except MissingFeature as e:
-				print("The plugin `{0}' requires the " \
+				print("Error: The plugin `{0}' requires the " \
 					"features: {1}.\nPlease edit your configuration" \
-					" file\nand add a plugin that implements this feature!" \
-					.format(e[0], ', '.join(e[1])))
+					" file and add a plugin that\nimplements this " \
+					"feature!\nStack: {2}" \
+					.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
+				raise SystemExit
+			except DependencyCycle as e:
+				print("Error: Dependency cycle encountered!\nStack: {0}" \
+						.format(' -> '.join(e[0])))
 				raise SystemExit
 
 	def _install(self, name):
 		if name in self.plugins:
 			return  # already installed
+		if name in self.load_order:
+			raise DependencyCycle(self.load_order + [name])
+		self.load_order.append(name)
 		kw = self._install_keywords
 		module = _name_to_module(name)
 		deps = _get_safely(module, DEPENDENCIES)
@@ -90,10 +102,11 @@ class PluginManager(object):
 				self._install(dep)
 		missing_features = reqs - self.features
 		if missing_features:
-			raise MissingFeature(name, missing_features)
+			raise MissingFeature(name, missing_features, self.load_order[:])
 		required_keywords = dict(  # only pass on the keywords it needs
 				(arg, kw[arg] if arg in kw else None) \
 				for arg in getargspec(module.__install__).args)
 		module.__install__(**required_keywords)
 		self.features |= _get_safely(module, IMP_FEATURES)
 		self.plugins.append(name)
+		self.load_order.pop()
