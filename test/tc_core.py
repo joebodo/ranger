@@ -189,6 +189,8 @@ class DummyPlugins(object):
 		__requires__ = ['x']
 	class myconsole(object):
 		__implements__ = ['console']
+	class mybookmarks(object):
+		__implements__ = ['bookmarks']
 	class myloader(object):
 		__implements__ = 'data_loader'
 		@staticmethod
@@ -216,6 +218,9 @@ class TestPlugin(unittest.TestCase):
 		self.assertRaises(DependencyCycle, plugin.install, 'loop2')
 		self.assertRaises(DependencyCycle, plugin.install, 'loop3')
 
+		# cycle1 implements feature x and depends on cycle2
+		# cycle2 requires feature x. since cycle2 is installed before cycle1
+		# as a dependency, the feature x will not be available yet.
 		self.assertRaises(MissingFeature, plugin.install, 'cycle1')
 
 	def test_replace_features(self):
@@ -227,16 +232,33 @@ class TestPlugin(unittest.TestCase):
 		self.assertFalse('myloader' in plugin.plugins)
 		plugin.install('myloader', force=True)
 		self.assertTrue('myloader' in plugin.plugins)
-		self.assertTrue(plugin['myloader'].throbber_code_executed)
+		self.assertTrue(plugin.find('myloader').throbber_code_executed)
 
 		self.assertTrue('throbber' in plugin.features)
 		self.assertRaises(FeatureAlreadyExists, plugin.implement_feature,
 				'throbber', None)
-		self.assertEqual(plugin['myloader'], plugin.features['throbber'])
+		self.assertEqual(plugin.find('myloader'), plugin.features['throbber'])
 
-	def test_blabla(self):
-#		plugin.install('myloader')
-		pass
+	def test_exclude_features(self):
+		name, feature = 'myconsole', 'console'
+		plugin.exclude_plugins(name)
+		plugin.install(name)
+		self.assertFalse(name in plugin.plugins)
+		self.assertFalse(feature in plugin.features)
+		plugin.allow_plugins(name)
+		plugin.install(name)
+		self.assertTrue(name in plugin.plugins)
+		self.assertTrue(feature in plugin.features)
+
+		name, feature = 'mybookmarks', 'bookmarks'
+		plugin.exclude_features(feature)
+		plugin.install(name)
+		self.assertFalse(name in plugin.plugins)
+		self.assertFalse(feature in plugin.features)
+		plugin.allow_features(feature)
+		plugin.install(name)
+		self.assertTrue(name in plugin.plugins)
+		self.assertTrue(feature in plugin.features)
 
 if __name__ == '__main__':
 	unittest.main()

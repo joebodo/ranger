@@ -43,14 +43,9 @@ def _find_plugin(name):
 def _name_to_module(name):
 	return getattr(__import__(_find_plugin(name), fromlist=[name]), name)
 
-class MissingFeature(Exception):
-	pass
-
-class DependencyCycle(Exception):
-	pass
-
-class FeatureAlreadyExists(Exception):
-	pass
+class MissingFeature(Exception): pass
+class DependencyCycle(Exception): pass
+class FeatureAlreadyExists(Exception): pass
 
 class Plugin(object):
 	_strings = ('version', 'author', 'credits', 'license', 'maintainer',
@@ -85,7 +80,7 @@ class Plugin(object):
 					except: value = None
 			self.__dict__[attr] = value
 
-	def implement_feature(self, name, force=False):
+	def implement_feature(self, name, force=False):  #wrapper
 		self._plugin_manager.implement_feature(name, self, force=force)
 
 
@@ -98,7 +93,7 @@ class PluginManager(object):
 		self.excluded_plugins = set()
 		self.excluded_features = set()
 
-	def __getitem__(self, name):
+	def find(self, name):
 		try:
 			return self._plugins_cache[name]
 		except KeyError:
@@ -106,6 +101,7 @@ class PluginManager(object):
 			self._plugins_cache[name] = plg
 			return plg
 
+# XXX Shouldn't this be a part of the main function?
 #	def multi_install(self, *names):
 #		for name in names:
 #			assert isinstance(name, str), "Plugin names must be strings!"
@@ -133,10 +129,16 @@ class PluginManager(object):
 		self.__init__()
 
 	def exclude_plugins(self, *names):
-		self.excluded_plugins.update(set(names))
+		self.excluded_plugins.update(names)
 
 	def exclude_features(self, *names):
-		self.excluded_features.update(set(names))
+		self.excluded_features.update(names)
+
+	def allow_plugins(self, *names):
+		self.excluded_plugins.difference_update(names)
+
+	def allow_features(self, *names):
+		self.excluded_features.difference_update(names)
 
 	def implement_feature(self, name, plugin, force=False):
 		if not force and name in self.features:
@@ -146,11 +148,16 @@ class PluginManager(object):
 	def install(self, name, force=False):
 		if name in self.plugins:
 			return  # already installed
-		if not force and name in self.excluded_plugins:
-			return  # this plugin is excluded
-		plg = self[name]
-		if not force and plg.implements & set(self.features):
-			return  # this plugin implements already existing features
+		if force:
+			plg = self.find(name)
+		else:
+			if name in self.excluded_plugins:
+				return  # this plugin is excluded
+			plg = self.find(name)
+			if plg.implements.intersection(self.features):
+				return  # this plugin implements existing features
+			if plg.implements & self.excluded_features:
+				return  # this plugin implements excluded features
 
 		if name in self.load_order:  # detect dependency cycles
 			load_order, self.load_order = self.load_order, []
@@ -162,7 +169,7 @@ class PluginManager(object):
 			if dep not in self.plugins:
 				self.install(dep)
 
-		missing_features = plg.requires - set(self.features)
+		missing_features = plg.requires.difference(self.features)
 		if missing_features:  # check if there are missing features
 			load_order, self.load_order = self.load_order, []
 			raise MissingFeature(name, missing_features, load_order)
