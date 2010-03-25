@@ -68,5 +68,3 @@ def relpath(*paths):
 	return os.path.join(RANGERDIR, *paths)
 
 from ranger.__main__ import main
-
-from ranger.core import signal

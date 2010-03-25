@@ -25,17 +25,16 @@ class Signal(dict):
 		self.__dict__ = keywords
 		self.propagation_order = handlers
 		self.name = name
-		self._stop = False
+		self.stopped = False
 
 	def propagate(self):
 		for handler in self.propagation_order:
 			handler.function(self)
-			if self._stop:
-				return True
-		return False
+			if self.stopped:
+				break
 
 	def stop(self):
-		self._stop = True
+		self.stopped = True
 
 class Handler(dict):
 	prio = 0.5
@@ -84,6 +83,9 @@ class SignalManager(object):
 		lst.append(handler)
 		return handler
 
+	def _sort(self, handlers):
+		return sorted(handlers, key=self.sortfunc)
+
 	def emit(self, signal_name, vital=False, **kw):
 		assert isinstance(signal_name, str)
 		assert isinstance(vital, bool)
@@ -96,7 +98,7 @@ class SignalManager(object):
 			return
 
 		if not signal_data['sorted']:
-			handlers = sorted(handlers, key=self.sortfunc)
+			handlers = self._sort(handlers)
 			signal_data['handlers'] = handlers
 			signal_data['sorted'] = True
 
@@ -107,7 +109,7 @@ class SignalManager(object):
 			kw = new_kw
 		signal = Signal(signal_name, handlers, kw)
 		try:
-			return signal.propagate()
+			signal.propagate()
 		except AssertionError:
 			raise
 		except BaseException as e:
@@ -115,7 +117,6 @@ class SignalManager(object):
 				raise
 			else:
 				if logfunc: logfunc(e)
-				return False
 
 	def remove(self, handler):
 		try:

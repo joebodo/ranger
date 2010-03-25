@@ -15,6 +15,7 @@
 
 if __name__ == '__main__': from __init__ import init; init()
 
+import ranger.core.init
 from ranger import signal
 import unittest
 
