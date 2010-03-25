@@ -19,7 +19,7 @@ import ranger.core.init
 from ranger import signal
 import unittest
 
-class TestDisplayable(unittest.TestCase):
+class TestSignal(unittest.TestCase):
 	def setUp(self):
 		signal.clear()
 	tearDown = setUp

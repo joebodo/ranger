@@ -30,8 +30,6 @@ __copyright__ = """
 Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 """
 
-__all__ = ['signal']
-
 USAGE = '%prog [options] [path/filename]'
 DEFAULT_CONFDIR = '~/.ranger'
 RANGERDIR = os.path.dirname(__file__)

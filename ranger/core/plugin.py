@@ -70,16 +70,20 @@ class PluginManager(object):
 		self.plugins = []
 		self.features = set()
 		self.load_order = []
-		self.exclude = set()
+		self.excluded_plugins = set()
+		self.excluded_features = set()
 
 	def install(self, *names):
 		for name in names:
 			assert isinstance(name, str), "Plugin names must be strings!"
 			if name[0] == '!':
-				self.exclude.add(name[1:])
+				self.excluded_plugins.add(name[1:])
+				continue
+			if name[0] == '~':
+				self.excluded_features.add(name[1:])
 				continue
 			try:
-				self._install(name)
+				self.raw_install(name)
 			except MissingFeature as e:
 				print("Error: The plugin `{0}' requires the " \
 					"features: {1}.\nPlease edit your configuration" \
@@ -92,11 +96,22 @@ class PluginManager(object):
 						.format(' -> '.join(e[0])))
 				raise SystemExit
 
-	def _install(self, name):
+	def reset(self):
+		self.__init__()
+
+	def exclude_plugins(self, *names):
+		self.excluded_plugins.update(set(names))
+
+	def exclude_features(self, *names):
+		self.excluded_features.update(set(names))
+
+	def raw_install(self, name):
+		name = name.replace('.', '_')
 		if name in self.plugins:
 			return  # already installed
 		if name in self.load_order:
-			raise DependencyCycle(self.load_order + [name])
+			load_order, self.load_order = self.load_order, []
+			raise DependencyCycle(load_order + [name])
 		self.load_order.append(name)
 		kw = self._install_keywords
 		module = _name_to_module(name)
@@ -104,19 +119,20 @@ class PluginManager(object):
 		reqs = _get_safely(module, REQ_FEATURES)
 		for dep in deps:
 			if dep not in self.plugins:
-				self._install(dep)
+				self.raw_install(dep)
 		missing_features = reqs - self.features
 		if missing_features:
-			raise MissingFeature(name, missing_features, self.load_order[:])
+			load_order, self.load_order = self.load_order, []
+			raise MissingFeature(name, missing_features, load_order)
 		try:
 			installfunc = module.__install__
 		except:
 			pass
 		else:
-			required_keywords = dict(  # only pass on the keywords it needs
-					(arg, kw[arg] if arg in kw else None) \
-					for arg in getargspec(installfunc).args)
-			installfunc(**required_keywords)
+#			required_keywords = dict(  # only pass on the keywords it needs
+#					(arg, kw[arg] if arg in kw else None) \
+#					for arg in getargspec(installfunc).args)
+			installfunc()
 		self.features |= _get_safely(module, IMP_FEATURES)
 		self.plugins.append(name)
 		self.load_order.pop()
