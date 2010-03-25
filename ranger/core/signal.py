@@ -13,17 +13,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+The module responsible for signals aka events aka hooks.
+"""
+
 import inspect
 
 class Signal(dict):
-	propagation_order = []
-	_stop = False
-
-	def __init__(self, name, *args, **__keywords):
-		dict.__init__(self, **__keywords)
-		self.__dict__ = self
-		self._stop = False
+	def __init__(self, name, handlers, keywords):
+		dict.__init__(self, keywords)
+		self.__dict__ = keywords
+		self.propagation_order = handlers
 		self.name = name
+		self._stop = False
 
 	def propagate(self):
 		for handler in self.propagation_order:
@@ -32,71 +34,92 @@ class Signal(dict):
 				return True
 		return False
 
-	def stop_propagation(self):
+	def stop(self):
 		self._stop = True
 
 class Handler(dict):
-	def __init__(self, dct):
+	prio = 0.5
+	def __init__(self, signal_name, function, dct):
+		dict.__init__(self, dct)
 		self.__dict__ = dct
+		if self.prio < 0: self.prio = 0
+		elif self.prio > 1: self.prio = 1
+		self.signal_name = signal_name
+		self.function = function
 
-class SignalContainer(object):
-	# Rules are:
-	#     run_before: Try to run this handler before the given handler
-	#     run_after: Try to run it after that one.
-	#     name: Identifier for "run_before" and "run_after" rules
-	# special names: everything
-	def __init__(self, logfunc=None):
-		self._logfunc = logfunc
+class SignalManager(object):
+	def __init__(self):
+		self.base_signal_keywords = None
+		self._signals = {}
+		self.logfunc = None
+		self.sortfunc = lambda handler: -handler.prio
+
+	def clear(self):
 		self._signals = {}
 
-	def register(self, signal, function=None, **rules):
+	def register(self, signal_name, function=None, **rules):
+		assert isinstance(signal_name, str)
 		if function is None:
-			if inspect.isfunction(signal):
-				function = signal
-				signal = function.__name__
+			if inspect.isfunction(signal_name):
+				function = signal_name
+				signal_name = functin.__name__
 			else:
-				def moo(fnc):
-					self.register(signal, fnc, **rules)
-					return fnc
-				return moo
+				def decorator(func):
+					register(signal_name, func, **rules)
+					return func
+				return decorator
+
 		try:
-			dct = self._signals[signal]
+			dct = self._signals[signal_name]
 		except:
 			lst = []
-			dct = {'sorted':False, 'handlers': lst}
-			self._signals[signal] = dct
+			dct = {'sorted': False, 'handlers': lst}
+			self._signals[signal_name] = dct
 		else:
 			dct['sorted'] = False
 			lst = dct['handlers']
 
-		handler = Handler(dict(rules, function=function))
+		handler = Handler(signal_name, function, rules)
+		handler.remove = lambda: self.remove(handler)
 		lst.append(handler)
+		return handler
 
-	def _sort(self, lst):
-		# TODO: sort the signals by topology
-		return lst
-
-	def emit(self, signal_name, vital=False, *__args, **__kws):
+	def emit(self, signal_name, vital=False, **kw):
+		assert isinstance(signal_name, str)
+		assert isinstance(vital, bool)
 		try:
 			signal_data = self._signals[signal_name]
 		except:
 			return
-		lst = signal_data['handlers']
-		if not lst:
+		handlers = signal_data['handlers']
+		if not handlers:
 			return
 
 		if not signal_data['sorted']:
-			signal_data['handlers'] = self._sort(signal_data['handlers'])
+			handlers = sorted(handlers, key=self.sortfunc)
+			signal_data['handlers'] = handlers
 			signal_data['sorted'] = True
 
-		signal = Signal(signal_name, *__args, **__kws)
-		signal.propagation_order = lst
+		if self.base_signal_keywords:
+			assert isinstance(self.base_signal_keywords, dict)
+			new_kw = self.base_signal_keywords.copy()
+			new_kw.update(kw)
+			kw = new_kw
+		signal = Signal(signal_name, handlers, kw)
 		try:
 			return signal.propagate()
+		except AssertionError:
+			raise
 		except BaseException as e:
 			if vital:
 				raise
 			else:
-				if self._logfunc:
-					self._logfunc(e)
+				if logfunc: logfunc(e)
 				return False
+
+	def remove(self, handler):
+		try:
+			handlers = self._signals[handler.signal_name]['handlers']
+			handlers.remove(handler)
+		except KeyError:
+			pass

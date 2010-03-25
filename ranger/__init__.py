@@ -67,8 +67,6 @@ def relpath(*paths):
 	"""returns the path relative to rangers library directory"""
 	return os.path.join(RANGERDIR, *paths)
 
-
 from ranger.__main__ import main
-from ranger.signal import SignalManager
 
-signal = SignalManager()
+from ranger.core import signal
