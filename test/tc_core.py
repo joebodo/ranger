@@ -18,7 +18,9 @@ if __name__ == '__main__': from __init__ import init; init()
 import unittest
 import inspect
 
-# monkey-patch some of the core parts for easier testing
+# monkey-patch some of the core parts for easier testing.
+# All the core tests are in one file because once ranger.core.init
+# is imported, it cannot be monkey-patched anymore.
 
 class OpenStruct(dict):
 	def __init__(self, **kw):
@@ -40,7 +42,8 @@ ranger.core.plugin._name_to_module = patched_name_to_module
 
 import ranger.core.init
 
-from ranger.core.plugin import MissingFeature, DependencyCycle
+from ranger.core.plugin import MissingFeature, DependencyCycle, \
+		FeatureAlreadyExists
 from ranger import *
 
 
@@ -159,6 +162,8 @@ class TestSignal(unittest.TestCase):
 		self.assertEqual(None, lst[-1])
 
 
+class OK(Exception): pass
+
 class DummyPlugins(object):
 	"""Imagine this is your plugin directory"""
 	class base(object):
@@ -168,39 +173,70 @@ class DummyPlugins(object):
 	class loader_parallel(object):
 		__implements__ = ['data_loader']
 	class cool_commands(object):
-		__required_features__ = ['console']
+		__requires__ = ['console']
 	class loop1(object):
 		__dependencies__ = 'loop2'
 	class loop2(object):
 		__dependencies__ = 'loop1'
 	class loop3(object):
+		@staticmethod
 		def __install__(self):
-			plugin.raw_install('loop2')
+			plugin.install('loop2')
 	class cycle1(object):
 		__implements__ = ['x']
 		__dependencies__ = ['cycle2']
 	class cycle2(object):
-		__required_features__ = ['x']
-
+		__requires__ = ['x']
+	class myconsole(object):
+		__implements__ = ['console']
+	class myloader(object):
+		__implements__ = 'data_loader'
+		@staticmethod
+		def __install__(self):
+			try:
+				self.implement_feature('throbber')
+			except:
+				self.throbber_code_executed = False
+			else:
+				self.throbber_code_executed = True
 
 class TestPlugin(unittest.TestCase):
 	def tearDown(self):
 		plugin.reset()
 
 	def test_dependencies(self):
-		self.assertRaises(MissingFeature, plugin.raw_install, 'cool_commands')
-		plugin.raw_install('base')
+		self.assertRaises(MissingFeature, plugin.install, 'cool_commands')
+		plugin.install('base')
 		deps = set(DummyPlugins.base.__dependencies__)
 		self.assert_(deps.issubset(plugin.plugins))
-		plugin.raw_install('cool_commands') # works now since console is installed
+		plugin.install('cool_commands') # works now since console is installed
 
 	def test_cycle_detection(self):
-		self.assertRaises(DependencyCycle, plugin.raw_install, 'loop1')
-		self.assertRaises(DependencyCycle, plugin.raw_install, 'loop2')
-		self.assertRaises(DependencyCycle, plugin.raw_install, 'loop3')
+		self.assertRaises(DependencyCycle, plugin.install, 'loop1')
+		self.assertRaises(DependencyCycle, plugin.install, 'loop2')
+		self.assertRaises(DependencyCycle, plugin.install, 'loop3')
 
-		self.assertRaises(MissingFeature, plugin.raw_install, 'cycle1')
+		self.assertRaises(MissingFeature, plugin.install, 'cycle1')
 
+	def test_replace_features(self):
+		plugin.install('myconsole')
+		plugin.install('base')
+		self.assertFalse('ncurses_base_console' in plugin.plugins)
+
+		plugin.install('myloader')  # nothing happens
+		self.assertFalse('myloader' in plugin.plugins)
+		plugin.install('myloader', force=True)
+		self.assertTrue('myloader' in plugin.plugins)
+		self.assertTrue(plugin['myloader'].throbber_code_executed)
+
+		self.assertTrue('throbber' in plugin.features)
+		self.assertRaises(FeatureAlreadyExists, plugin.implement_feature,
+				'throbber', None)
+		self.assertEqual(plugin['myloader'], plugin.features['throbber'])
+
+	def test_blabla(self):
+#		plugin.install('myloader')
+		pass
 
 if __name__ == '__main__':
 	unittest.main()

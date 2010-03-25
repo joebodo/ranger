@@ -28,12 +28,8 @@ fm.signals:
 import ranger
 from ranger import relpath, relpath_conf
 from os.path import exists
-from inspect import getargspec
-
-DEPENDENCIES = '__dependencies__'
-REQ_FEATURES = '__required_features__'
-IMP_FEATURES = '__implements__'
-
+from inspect import getargspec, isfunction, ismethod
+from types import MethodType
 
 def _find_plugin(name):
 	assert isinstance(name, str), 'Plugin names must be strings!'
@@ -47,54 +43,91 @@ def _find_plugin(name):
 def _name_to_module(name):
 	return getattr(__import__(_find_plugin(name), fromlist=[name]), name)
 
-def _get_safely(module, name):
-	try:
-		value = getattr(module, name)
-	except:
-		return set()
-	if isinstance(value, (set, list, tuple)):
-		return set(value)
-	else:
-		return set([value])
-
 class MissingFeature(Exception):
 	pass
 
 class DependencyCycle(Exception):
 	pass
 
-class PluginManager(object):
-	_install_keywords = {}
+class FeatureAlreadyExists(Exception):
+	pass
 
+class Plugin(object):
+	_strings = ('version', 'author', 'credits', 'license', 'maintainer',
+			'copyright', 'email', 'maintainer')
+	_fncs = ('install', 'activate', 'deactivate')
+	_sets = ('dependencies', 'requires', 'implements')
+	_attrs = _strings + _fncs + _sets
+
+	def __init__(self, name, module, plugin_manager):
+		self.name = name
+		self._plugin_manager = plugin_manager
+		for attr in Plugin._attrs:
+			try: value = getattr(module, '__'+attr+'__')
+			except: value = None
+			if attr in Plugin._sets:
+				if value is None:
+					value = set()
+				elif isinstance(value, str):
+					value = set([value])
+				elif isinstance(value, (set, list, tuple)):
+					value = set(value)
+			elif attr in Plugin._fncs:
+				if isfunction(value):
+					value = MethodType(value, self)
+				else:
+					value = None # XXX
+			else:  # must be in _strings now...
+				if value is None:
+					value = ""
+				elif not isinstance(value, str):
+					try: value = str(value)
+					except: value = None
+			self.__dict__[attr] = value
+
+	def implement_feature(self, name, force=False):
+		self._plugin_manager.implement_feature(name, self, force=force)
+
+
+class PluginManager(object):
 	def __init__(self):
+		self._plugins_cache = dict()
 		self.plugins = []
-		self.features = set()
+		self.features = dict()
 		self.load_order = []
 		self.excluded_plugins = set()
 		self.excluded_features = set()
 
-	def install(self, *names):
-		for name in names:
-			assert isinstance(name, str), "Plugin names must be strings!"
-			if name[0] == '!':
-				self.excluded_plugins.add(name[1:])
-				continue
-			if name[0] == '~':
-				self.excluded_features.add(name[1:])
-				continue
-			try:
-				self.raw_install(name)
-			except MissingFeature as e:
-				print("Error: The plugin `{0}' requires the " \
-					"features: {1}.\nPlease edit your configuration" \
-					" file and add a plugin that\nimplements this " \
-					"feature!\nStack: {2}" \
-					.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
-				raise SystemExit
-			except DependencyCycle as e:
-				print("Error: Dependency cycle encountered!\nStack: {0}" \
-						.format(' -> '.join(e[0])))
-				raise SystemExit
+	def __getitem__(self, name):
+		try:
+			return self._plugins_cache[name]
+		except KeyError:
+			plg = Plugin(name, _name_to_module(name), self)
+			self._plugins_cache[name] = plg
+			return plg
+
+#	def multi_install(self, *names):
+#		for name in names:
+#			assert isinstance(name, str), "Plugin names must be strings!"
+#			if name[0] == '!':
+#				self.excluded_plugins.add(name[1:])
+#				continue
+#			if name[0] == '~':
+#				self.excluded_features.add(name[1:])
+#				continue
+#			try:
+#				self.install(name)
+#			except MissingFeature as e:
+#				print("Error: The plugin `{0}' requires the " \
+#					"features: {1}.\nPlease edit your configuration" \
+#					" file and add a plugin that\nimplements this " \
+#					"feature!\nStack: {2}" \
+#					.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
+#				raise SystemExit
+#			except DependencyCycle as e:
+#				print("Error: Dependency cycle encountered!\nStack: {0}" \
+#						.format(' -> '.join(e[0])))
+#				raise SystemExit
 
 	def reset(self):
 		self.__init__()
@@ -105,34 +138,37 @@ class PluginManager(object):
 	def exclude_features(self, *names):
 		self.excluded_features.update(set(names))
 
-	def raw_install(self, name):
-		name = name.replace('.', '_')
+	def implement_feature(self, name, plugin, force=False):
+		if not force and name in self.features:
+			raise FeatureAlreadyExists(name)
+		self.features[name] = plugin
+
+	def install(self, name, force=False):
 		if name in self.plugins:
 			return  # already installed
-		if name in self.load_order:
+		if not force and name in self.excluded_plugins:
+			return  # this plugin is excluded
+		plg = self[name]
+		if not force and plg.implements & set(self.features):
+			return  # this plugin implements already existing features
+
+		if name in self.load_order:  # detect dependency cycles
 			load_order, self.load_order = self.load_order, []
 			raise DependencyCycle(load_order + [name])
+
 		self.load_order.append(name)
-		kw = self._install_keywords
-		module = _name_to_module(name)
-		deps = _get_safely(module, DEPENDENCIES)
-		reqs = _get_safely(module, REQ_FEATURES)
-		for dep in deps:
+
+		for dep in plg.dependencies:  # install dependencies
 			if dep not in self.plugins:
-				self.raw_install(dep)
-		missing_features = reqs - self.features
-		if missing_features:
+				self.install(dep)
+
+		missing_features = plg.requires - set(self.features)
+		if missing_features:  # check if there are missing features
 			load_order, self.load_order = self.load_order, []
 			raise MissingFeature(name, missing_features, load_order)
-		try:
-			installfunc = module.__install__
-		except:
-			pass
-		else:
-#			required_keywords = dict(  # only pass on the keywords it needs
-#					(arg, kw[arg] if arg in kw else None) \
-#					for arg in getargspec(installfunc).args)
-			installfunc()
-		self.features |= _get_safely(module, IMP_FEATURES)
+
+		if plg.install: plg.install()
+		for feature in plg.implements:
+			self.implement_feature(feature, plg, force=force)
 		self.plugins.append(name)
 		self.load_order.pop()
