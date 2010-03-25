@@ -18,44 +18,15 @@ if __name__ == '__main__': from __init__ import init; init()
 import unittest
 import inspect
 
+# monkey-patch some of the core parts for easier testing
 
 class OpenStruct(dict):
 	def __init__(self, **kw):
 		dict.__init__(self, kw)
 		self.__dict__ = self
 
-class DummyPlugin(object):
-	pass
-
-class base(DummyPlugin):
-	__dependencies__ = ['ncurses_base_console', 'loader_parallel']
-class ncurses_base_console(DummyPlugin):
-	__implements__ = ['console']
-class loader_parallel(DummyPlugin):
-	__implements__ = ['data_loader']
-class cool_commands(DummyPlugin):
-	__required_features__ = ['console']
-class loop1(DummyPlugin):
-	__dependencies__ = 'loop2'
-class loop2(DummyPlugin):
-	__dependencies__ = 'loop1'
-class loop3(DummyPlugin):
-	def __install__(self):
-		plugin.raw_install('loop2')
-class cycle1(DummyPlugin):
-	__implements__ = ['x']
-	__dependencies__ = ['cycle2']
-class cycle2(DummyPlugin):
-	__required_features__ = ['x']
-
-plugins = {}
-for name, obj in vars().copy().items():
-	if inspect.isclass(obj) and issubclass(obj, DummyPlugin) \
-			and obj is not DummyPlugin:
-		plugins[name] = obj()
-
 def patched_name_to_module(name):
-	return plugins[name]
+	return DummyPlugins.__dict__[name]()
 
 def patched_get_config_files():
 	default = OpenStruct(plugins=['a','b','c'])
@@ -68,6 +39,7 @@ import ranger.core.plugin
 ranger.core.plugin._name_to_module = patched_name_to_module
 
 import ranger.core.init
+
 from ranger.core.plugin import MissingFeature, DependencyCycle
 from ranger import *
 
@@ -124,7 +96,6 @@ class TestSettings(unittest.TestCase):
 		bad = 'a colorscheme with spaces'
 		settings.colorscheme = bad
 		self.assertNotEqual(bad, settings.colorscheme)
-
 
 
 class TestSignal(unittest.TestCase):
@@ -188,6 +159,30 @@ class TestSignal(unittest.TestCase):
 		self.assertEqual(None, lst[-1])
 
 
+class DummyPlugins(object):
+	"""Imagine this is your plugin directory"""
+	class base(object):
+		__dependencies__ = ['ncurses_base_console', 'loader_parallel']
+	class ncurses_base_console(object):
+		__implements__ = ['console']
+	class loader_parallel(object):
+		__implements__ = ['data_loader']
+	class cool_commands(object):
+		__required_features__ = ['console']
+	class loop1(object):
+		__dependencies__ = 'loop2'
+	class loop2(object):
+		__dependencies__ = 'loop1'
+	class loop3(object):
+		def __install__(self):
+			plugin.raw_install('loop2')
+	class cycle1(object):
+		__implements__ = ['x']
+		__dependencies__ = ['cycle2']
+	class cycle2(object):
+		__required_features__ = ['x']
+
+
 class TestPlugin(unittest.TestCase):
 	def tearDown(self):
 		plugin.reset()
@@ -195,7 +190,7 @@ class TestPlugin(unittest.TestCase):
 	def test_dependencies(self):
 		self.assertRaises(MissingFeature, plugin.raw_install, 'cool_commands')
 		plugin.raw_install('base')
-		deps = set(base.__dependencies__)
+		deps = set(DummyPlugins.base.__dependencies__)
 		self.assert_(deps.issubset(plugin.plugins))
 		plugin.raw_install('cool_commands') # works now since console is installed
 
