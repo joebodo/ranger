@@ -61,8 +61,7 @@ class SignalHandler(dict):
 		dict.__init__(self, rules)
 		self.__dict__ = rules
 		self.fm = fm
-		if self.prio < 0: self.prio = 0
-		elif self.prio > 1: self.prio = 1
+		self.prio = min(0, max(1, self.prio))
 		self.signal_name = signal_name
 		self.function = function
 
@@ -87,7 +86,7 @@ class Plugin(dict):
 				elif isinstance(value, (set, list, tuple)):
 					value = set(value)
 			elif attr in Plugin._fncs:
-				if isfunction(value):
+				if hasattr(value, '__call__'):
 					value = MethodType(value, self)
 				else:
 					value = None # XXX
@@ -103,6 +102,26 @@ class Plugin(dict):
 		self.fm.plugins.implement_feature(name, self, force=force)
 
 
+class SettingWrapper(object):
+	def __init__(self, fm):
+		self._fm = fm
+		self._settings = fm._settings
+
+	def __setattr__(self, name, value):
+		if name[0] == '_':
+			self.__dict__[name] = value
+		else:
+			assert name in self._settings, "No such setting: {0}!".format(name)
+			signal = ranger.signal.emit(SETTING_CHANGE_SIGNAL, \
+				setting=name, value=value, previous=self._settings[name])
+
+	def __getattr__(self, name):
+		assert name in self._settings, "No such setting: {0}!".format(name)
+		return self._settings[name]
+
+	__getitem__ = __getattr__
+	__setitem__ = __setattr__
+
 # ---------------------------
 # --- Constants
 # ---------------------------
@@ -115,12 +134,78 @@ PLUGIN_ATTR_SETS = ('dependencies', 'requires', 'implements')
 PLUGIN_ATTR_ALL = PLUGIN_ATTR_STRINGS + PLUGIN_ATTR_METHODS + PLUGIN_ATTR_SETS
 SIGNALS_SORTED = 0
 SIGNAL_HANDLERS = 1
+BAD_SETTING_NAMES = ('register', )
+BAD_SETTING_STARTS = tuple('0123456789_')
+SETTING_CHANGE_SIGNAL = 'core.settingchange'
 
 def DummyFM():
 	fm = FM()
 	fm.args = OpenStruct(cd_after_exit=False,
 			debug=False, clean=True, confdir=DEFAULT_CONFDIR,
 			mode=0, flags='', targets=[])
+
+def main():
+	from locale import getdefaultlocale, setlocale, LC_ALL
+	from ranger.__main__ import parse_arguments
+
+	# Ensure that a utf8 locale is set.
+	if getdefaultlocale()[1] not in ('utf8', 'UTF-8'):
+		for locale in ('en_US.utf8', 'en_US.UTF-8'):
+			try: setlocale(LC_ALL, locale)
+			except: pass  #sometimes there is none available though...
+	else:
+		setlocale(LC_ALL, '')
+
+	# initialize stuff
+	fm = FM()
+
+	args = parse_arguments()
+	fm.args = args
+
+	fm._setting_structs = []
+	try:
+		from ranger.defaults import options as default_options
+		fm._setting_structs.append(default_options)
+	except ImportError:
+		pass
+	try:
+		import options as custom_options
+		fm._setting_structs.append(custom_options)
+	except ImportError:
+		pass
+
+	# load plugins
+	fm.settings = SettingWrapper(fm)
+	fm.setting_add('plugins', ['base'], (list, tuple))
+	for name in fm.settings.plugins:
+		assert isinstance(name, str), "Plugin names must be strings!"
+		if name[0] == '!':
+			fm.plugin_forbid(name[1:])
+			continue
+		if name[0] == '~':
+			fm.feature_forbid(name[1:])
+			continue
+		try:
+			fm.plugin_install(name)
+		except MissingFeature as e:
+			print("Error: The plugin `{0}' requires the " \
+				"features: {1}.\nPlease edit your configuration" \
+				" file and add a plugin that\nimplements this " \
+				"feature!\nStack: {2}" \
+				.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
+			raise SystemExit
+		except DependencyCycle as e:
+			print("Error: Dependency cycle encountered!\nStack: {0}" \
+					.format(' -> '.join(e[0])))
+			raise SystemExit
+
+	# run the shit
+	fm.signal_emit('all_plugins_loaded')
+	try:
+		fm.signal_emit('run')
+	finally:
+		fm.signal_emit('quit')
+
 
 # ---------------------------
 # --- File Manager Class
@@ -137,6 +222,12 @@ class FM(object):
 		self._excluded_plugins = set()
 		self._excluded_features = set()
 		self._log = deque(maxlen=50)
+		self._setting_structs = list()
+		self._settings = dict()
+		self._setting_types = dict()
+
+		self.signal_bind(SETTING_CHANGE_SIGNAL,
+				self._setting_set_raw_signal, prio=0.1)
 
 	def log(self, obj):
 		self._log.append(obj)
@@ -154,6 +245,40 @@ class FM(object):
 	# --------------------------------
 	# --- Settings stuff
 	# --------------------------------
+
+	def _is_valid_setting_name(self, string):
+		return string not in BAD_SETTING_NAMES \
+				and string[0] not in BAD_SETTING_STARTS
+
+	def setting_add(self, name, default, type=None):
+		assert self._is_valid_setting_name(name), \
+			'{0} is no valid setting name!'.format(name)
+		value = default
+		for struct in self._setting_structs:
+			try:
+				value = getattr(struct, name)
+			except AttributeError:
+				pass
+		if type is not None:
+			self._setting_types[name] = type
+#			assert self._check_setting_type(name, type, value)
+		self._settings[name] = value
+
+	def _setting_set_raw(self, name, value):
+		self._settings[name] = value
+
+	def _check_setting_type(self, name, typ, value):
+		if isfunction(typ):
+			assert typ(value), \
+				"The option `" + name + "' has an incorrect type!"
+		else:
+			assert isinstance(value, typ), \
+				"The option `" + name + "' has an incorrect type!"\
+				" Got " + str(type(value)) + ", expected " + str(typ) + "!"
+		return True
+
+	def _setting_set_raw_signal(self, signal):
+		self._settings[signal.setting] = signal.value
 
 	# --------------------------------
 	# --- Signal stuff
@@ -177,7 +302,7 @@ class FM(object):
 			self._signals[signal_name] = entry
 		else:
 			entry[SIGNALS_SORTED] = False
-		handler = SignalHandler(fm, signal_name, function, rules)
+		handler = SignalHandler(self, signal_name, function, rules)
 		entry[SIGNAL_HANDLERS].append(handler)
 		return handler
 
@@ -217,24 +342,23 @@ class FM(object):
 	# --------------------------------
 
 	def _name_to_plugin(self, name):
-		from ranger import relpath, relpath_conf
 		assert isinstance(name, str), 'Plugin names must be strings!'
 		assert '.' not in name, 'Specify plugin names without the extension!'
-		if exists(relpath_conf('plugins', name + '.py')):
+		if os.path.exists(self.confpath('plugins', name + '.py')):
 			modulepath = 'plugins'
-		elif exists(relpath('plugins', name + '.py')):
+		elif os.path.exists(self.relpath('plugins', name + '.py')):
 			modulepath = 'ranger.plugins'
-		raise Exception('Plugin not found!')
+		raise Exception('Plugin not found: ' + name)
 
 		module = getattr(__import__(_find_plugin(name), fromlist=[name]), name)
 		return Plugin(name, module, self)
 
 	def plugin_find(self, name):
 		try:
-			return self._plugins_cache[name]
+			return self._plugin_cache[name]
 		except KeyError:
 			plg = self._name_to_plugin(name)
-			self._plugins_cache[name] = plg
+			self._plugin_cache[name] = plg
 			return plg
 
 	def plugin_allow(self, *names):
