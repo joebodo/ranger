@@ -19,6 +19,7 @@ The core of ranger
 
 import os
 import sys
+from types import MethodType
 from collections import deque
 from ranger.ext.openstruct import OpenStruct
 from ranger import *
@@ -70,22 +71,22 @@ class SignalHandler(dict):
 
 
 class Plugin(dict):
-	def __init__(self, fm, name, attributes):
-		dict.__init__(self, attributes)
-		self.__dict__ = self
+	def __init__(self, fm, name, module):
+#		dict.__init__(self, attributes)
+#		self.__dict__ = self
 		self.fm = fm
 		self.name = name
-		for attr in Plugin._attrs:
+		for attr in PLUGIN_ATTR_ALL:
 			try: value = getattr(module, '__'+attr+'__')
 			except: value = None
-			if attr in Plugin._sets:
+			if attr in PLUGIN_ATTR_SETS:
 				if value is None:
 					value = set()
 				elif isinstance(value, str):
 					value = set([value])
 				elif isinstance(value, (set, list, tuple)):
 					value = set(value)
-			elif attr in Plugin._fncs:
+			elif attr in PLUGIN_ATTR_METHODS:
 				if hasattr(value, '__call__'):
 					value = MethodType(value, self)
 				else:
@@ -200,11 +201,11 @@ def main():
 			raise SystemExit
 
 	# run the shit
-	fm.signal_emit('all_plugins_loaded')
+	fm.signal_emit('core.all_plugins_loaded')
 	try:
-		fm.signal_emit('run')
+		fm.signal_emit('core.run')
 	finally:
-		fm.signal_emit('quit')
+		fm.signal_emit('core.quit')
 
 
 # ---------------------------
@@ -301,7 +302,7 @@ class FM(object):
 			entry = (False, [])
 			self._signals[signal_name] = entry
 		else:
-			entry[SIGNALS_SORTED] = False
+			entry = (False, entry[1])
 		handler = SignalHandler(self, signal_name, function, rules)
 		entry[SIGNAL_HANDLERS].append(handler)
 		return handler
@@ -324,11 +325,10 @@ class FM(object):
 			return
 
 		if not entry[SIGNALS_SORTED]:
-			handlers = self._sort(handlers)
-			entry[SIGNAL_HANDLERS] = handlers
-			entry[SIGNALS_SORTED] = True
+			handlers = self._signal_sort(handlers)
+			entry = (True, handlers)
 
-		signal = Signal(fm, signal_name, handlers, kw)
+		signal = Signal(self, signal_name, handlers, kw)
 		try:
 			signal.propagate()
 		except Exception as e:
@@ -348,10 +348,11 @@ class FM(object):
 			modulepath = 'plugins'
 		elif os.path.exists(self.relpath('plugins', name + '.py')):
 			modulepath = 'ranger.plugins'
-		raise Exception('Plugin not found: ' + name)
+		else:
+			raise Exception('Plugin not found: ' + name)
 
-		module = getattr(__import__(_find_plugin(name), fromlist=[name]), name)
-		return Plugin(name, module, self)
+		module = getattr(__import__(modulepath, fromlist=[name]), name)
+		return Plugin(self, name, module)
 
 	def plugin_find(self, name):
 		try:
@@ -408,7 +409,7 @@ class FM(object):
 			stack, self._plugin_load_stack = self._plugin_load_stack, []
 			raise MissingFeature(name, missing_features, stack)
 
-		if plg.install: plg.install()
+		if plg.install: plg.install(self)
 		for feature in plg.implements:
 			self.feature_implement(feature, plg, force=force)
 		self._loaded_plugins.append(name)
