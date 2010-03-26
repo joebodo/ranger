@@ -74,8 +74,12 @@ class SettingWrapper(object):
 			self.__dict__[name] = value
 		else:
 			assert name in self._settings, "No such setting: {0}!".format(name)
-			self._fm.signal_emit(SETTING_CHANGE_SIGNAL, \
-				setting=name, value=value, previous=self._settings[name])
+			kws = dict(setting=name, value=value, previous=self._settings[name])
+			if kws['previous'] != kws['value']:
+				self._fm.signal_emit(SIG_SETTING_CHANGE, **kws)
+				self._fm.signal_emit('core.setting.'+name+'.change', **kws)
+			self._fm.signal_emit(SIG_SETTING_SET, **kws)
+			self._fm.signal_emit('core.setting.'+name+'.set', **kws)
 
 	def __getattr__(self, name):
 		assert name in self._settings, "No such setting: {0}!".format(name)
@@ -104,13 +108,15 @@ class Library(dict):
 RANGERDIR = os.path.dirname(__file__)
 PLUGIN_ATTR_STRINGS = ('version', 'author', 'credits', 'license', 'maintainer',
 		'copyright', 'email', 'maintainer')
-PLUGIN_ATTR_SETS = ('dependencies', 'requires', 'implements')
-PLUGIN_ATTR_ALL = PLUGIN_ATTR_STRINGS + PLUGIN_ATTR_SETS
+PLUGIN_ATTR_LISTS = ('dependencies', 'requires', 'implements')
+PLUGIN_ATTR_ALL = PLUGIN_ATTR_STRINGS + PLUGIN_ATTR_LISTS
 SIGNALS_SORTED = 0
 SIGNAL_HANDLERS = 1
 BAD_SETTING_NAMES = ('register', )
 BAD_SETTING_STARTS = tuple('0123456789_')
-SETTING_CHANGE_SIGNAL = 'core.settingchange'
+SETTING_CHANGE_SIGNAL = 'core.setting.change'
+SIG_SETTING_CHANGE = 'core.setting.change'
+SIG_SETTING_SET = 'core.setting.set'
 
 def DummyFM():
 	fm = FM()
@@ -291,13 +297,13 @@ class FM(object):
 			except:
 				try: value = getattr(module, __attr__)
 				except: value = None
-			if attr in PLUGIN_ATTR_SETS:
+			if attr in PLUGIN_ATTR_LISTS:
 				if value is None:
-					value = set()
+					value = list()
 				elif isinstance(value, str):
-					value = set([value])
+					value = [value]
 				elif isinstance(value, (set, list, tuple)):
-					value = set(value)
+					value = list(value)
 			else:  # must be in PLUGIN_ATTR_STRINGS now...
 				if value is None:
 					value = ""
@@ -370,9 +376,10 @@ class FM(object):
 			if name in self._excluded_plugins:
 				return  # this plugin is excluded
 			plg = self.plugin_find(name)
-			if plg.__implements__.intersection(self._loaded_features):
+			feature_set = set(plg.__implements__)
+			if feature_set.intersection(self._loaded_features):
 				return  # this plugin implements existing features
-			if plg.__implements__ & self._excluded_features:
+			if feature_set & self._excluded_features:
 				return  # this plugin implements excluded features
 
 		if name in self._plugin_load_stack:  # detect dependency cycles
@@ -385,10 +392,10 @@ class FM(object):
 			if dep not in self._loaded_plugins:
 				self.plugin_install(dep)
 
-		missing_features = plg.__requires__.difference(self._loaded_features)
-		if missing_features:  # check if there are missing features
+		missing_feats = set(plg.__requires__).difference(self._loaded_features)
+		if missing_feats:  # check if there are missing features
 			stack, self._plugin_load_stack = self._plugin_load_stack, []
-			raise MissingFeature(name, missing_features, stack)
+			raise MissingFeature(name, missing_feats, stack)
 
 		if hasattr(plg, '__install__'): plg.__install__()
 		for feature in plg.__implements__:

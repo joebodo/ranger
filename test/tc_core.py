@@ -96,7 +96,7 @@ class TestSettings(unittest.TestCase):
 		def fooo(signal):
 			lst.append("something")
 
-		fm.signal_bind(SETTING_CHANGE_SIGNAL, fooo)
+		fm.signal_bind('core.setting.plugins.change', fooo)
 		fm.settings.plugins = ['xyz']
 
 		self.assertEqual(1, len(lst))
@@ -170,6 +170,15 @@ class DummyPlugins(object):
 				self.throbber_code_executed = False
 			else:
 				self.throbber_code_executed = True
+	class package(object):
+		__dependencies__ = 'part1', 'part2', 'part3'
+	class part1(object):
+		__implements__ = 'quaquaq'
+	class part2(object):
+		__requires__ = 'quaquaq'
+		__implements__ = 'blabloo'
+	class part3(object):
+		__requires__ = 'quaquaq', 'blabloo'
 
 class TestPlugins(unittest.TestCase):
 	def setUp(self):
@@ -187,6 +196,12 @@ class TestPlugins(unittest.TestCase):
 		deps = set(DummyPlugins.base.__dependencies__)
 		self.assert_(deps.issubset(fm._loaded_plugins))
 		fm.plugin_install('cool_commands') # works now since console is installed
+
+	def test_foo(self):
+		self.fm.plugin_install('package')
+		self.assertTrue('part1' in self.fm._loaded_plugins)
+		self.assertTrue('part2' in self.fm._loaded_plugins)
+		self.assertTrue('part3' in self.fm._loaded_plugins)
 
 	def test_cycle_detection(self):
 		fm = self.fm

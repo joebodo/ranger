@@ -4,8 +4,6 @@ import curses
 __implements__ = 'ncurses'
 __requires__ = 'mainloop'
 
-MOUSEMASK = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
-
 class Plugin(object):
 	def initialize(self):
 		os.environ['ESCDELAY'] = '25'   # don't know a cleaner way
@@ -25,21 +23,7 @@ class Plugin(object):
 		curses.start_color()
 		curses.use_default_colors()
 
-		curses.mousemask(MOUSEMASK)
-		curses.mouseinterval(0)
-
-		## this line solves this problem:
-		## If an action, following a mouse click, includes the
-		## suspension and re-initializion of the ui (e.g. running a
-		## file by clicking on its preview) and the next key is another
-		## mouse click, the bstate of this mouse event will be invalid.
-		## (atm, invalid bstates are recognized as scroll-down)
-		curses.ungetmouse(0,0,0,0,0)
-
-		#	if not self.is_set_up:
-		#		self.is_set_up = True
-		#		self.setup()
-		#	self.update_size()
+		self.fm.signal_emit('base.ncurses.activate')
 
 	def __deactivate__(self):
 		self.win.keypad(0)
@@ -49,16 +33,11 @@ class Plugin(object):
 			curses.curs_set(1)
 		except:
 			pass
-		curses.mousemask(0)
+		self.fm.signal_emit('base.ncurses.deactivate')
 		curses.endwin()
-
-	def do_something(self, signal):
-		self.win.addstr('a')
-		self.win.refresh()
 
 	def __install__(self):
 		fm = self.fm
 		fm.setting_add('show_cursor', True, bool)
 		fm.signal_bind('core.init', self.initialize)
 		fm.signal_bind('core.quit', self.__deactivate__)
-		fm.signal_bind('base.loop.main', self.do_something)
