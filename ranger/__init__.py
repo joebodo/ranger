@@ -15,10 +15,6 @@
 
 """Ranger - file browser for the unix terminal"""
 
-import os
-import sys
-from ranger.ext.openstruct import OpenStruct
-
 __license__ = 'GPL3'
 __version__ = '1.0.4'
 __credits__ = 'Roman Zimbelmann'
@@ -32,11 +28,7 @@ Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 
 USAGE = '%prog [options] [path/filename]'
 DEFAULT_CONFDIR = '~/.ranger'
-RANGERDIR = os.path.dirname(__file__)
 LOGFILE = '/tmp/errorlog'
-arg = OpenStruct(cd_after_exit=False,
-		debug=False, clean=False, confdir=DEFAULT_CONFDIR,
-		mode=0, flags='', targets=[])
 
 #for python3-only versions, this could be replaced with:
 #def log(*objects, start='ranger:', sep=' ', end='\n'):
@@ -53,15 +45,4 @@ def log(*objects, **keywords):
 	_file =  'file' in keywords and keywords['file']  or open(LOGFILE, 'a')
 	end   =   'end' in keywords and keywords['end']   or '\n'
 	_file.write(sep.join(map(str, (start, ) + objects)) + end)
-
-def relpath_conf(*paths):
-	"""returns the path relative to rangers configuration directory"""
-	if arg.clean:
-		assert 0, "Should not access relpath_conf in clean mode!"
-	else:
-		return os.path.join(arg.confdir, *paths)
-
-def relpath(*paths):
-	"""returns the path relative to rangers library directory"""
-	return os.path.join(RANGERDIR, *paths)
 
