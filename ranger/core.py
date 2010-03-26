@@ -238,8 +238,10 @@ class FM(object):
 			handlers = self._signals[signal_handler.signal_name][1]
 		except KeyError:
 			pass
+		else:
+			handlers.remove(signal_handler)
 
-	def signal_emit(self, signal_name, vital=False, **kw):
+	def signal_emit(self, signal_name, vital=True, **kw):
 		assert isinstance(signal_name, str)
 		assert isinstance(vital, bool)
 		try:
@@ -255,8 +257,6 @@ class FM(object):
 		if not entry[SIGNALS_SORTED]:  # sort the handlers by priority
 			handlers = self._signal_sort(handlers)
 			entry = (True, handlers)
-		if self.args.debug:
-			vital = True
 		for handler in handlers:  # propagate
 			if handler.active:
 				try:

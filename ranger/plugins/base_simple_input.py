@@ -15,3 +15,5 @@ class Plugin(object):
 			self.fm.feature_deactivate('ncurses_mouse_handling')
 		elif key == ord('f'):
 			self.fm.feature_activate('ncurses_mouse_handling')
+		elif key == ord('Q'):
+			quit()

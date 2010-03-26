@@ -8,8 +8,6 @@ def main_loop(signal):
 			emit('base.loop.start')
 			emit('base.loop.main')
 			emit('base.loop.end')
-	except Exception as e:
-		print(e)
 	except KeyboardInterrupt:
 		pass
 
