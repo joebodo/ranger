@@ -8,6 +8,8 @@ class Plugin(object):
 	def initialize(self):
 		os.environ['ESCDELAY'] = '25'   # don't know a cleaner way
 		self.win = curses.initscr()
+		self.fm.lib.register_subdirectory('ncurses')
+		self.fm.lib.ncurses.win = self.win
 		self.__activate__()
 
 	def __activate__(self):

@@ -13,10 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#__dependencies__ = ['throbber']
+class Plugin(object):
+	def __install__(self):
+		self.fm.signal_bind('base.ncurses.getch', self.printkey)
 
-def __install__(fm):
-	@fm.signals.register('change_setting')
-	def mooh(s):
-		if s.setting == 'flushinput':
-			s.fm.notify('FLUSSSHHH!')
+	def printkey(self, sig):
+		self.fm.lib.ncurses.win.addch(sig.key)

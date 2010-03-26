@@ -52,6 +52,7 @@ class Signal(dict):
 class SignalHandler(dict):
 	prio = 0.5
 	pass_signal = True
+	active = True
 	def __init__(self, fm, signal_name, function, rules):
 		dict.__init__(self, rules)
 		self.__dict__ = self
@@ -254,17 +255,20 @@ class FM(object):
 		if not entry[SIGNALS_SORTED]:  # sort the handlers by priority
 			handlers = self._signal_sort(handlers)
 			entry = (True, handlers)
+		if self.args.debug:
+			vital = True
 		for handler in handlers:  # propagate
-			try:
-				if handler.pass_signal:
-					handler.function(signal)
-				else:
-					handler.function()
-			except Exception as e:
-				if vital: raise
-				else: self.log(e)
-			if signal.stopped:
-				break
+			if handler.active:
+				try:
+					if handler.pass_signal:
+						handler.function(signal)
+					else:
+						handler.function()
+				except Exception as e:
+					if vital: raise
+					else: self.log(e)
+				if signal.stopped:
+					break
 
 	# --------------------------------
 	# --- Plugin stuff
