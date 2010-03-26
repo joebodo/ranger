@@ -53,7 +53,7 @@ def _get_config_files():
 class Settings(object):
 	CHANGE = 'core.settings.change'
 
-	def __init__(self, config_files=None):
+	def __init__(self, fm, config_files=None):
 		self._default, self._custom = config_files or _get_config_files()
 		self._data = {}
 		self._types = {}

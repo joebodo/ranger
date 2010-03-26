@@ -14,26 +14,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Create a clean FM object without any interaction with the outside world.
-
-This is useful for unit tests.
+The core of ranger
 """
 
+import os
+import sys
 
-def DummyFM():
-	from ranger.core import FM
-	import ranger
+class Ranger(object):
+	def __init__(self):
+		pass
 
-	fm = FM()
-
-	fm.settings = Settings()
-	fm.plugins = PluginManager()
-	fm.signals = SignalManager()
-	fm.env = Environment()
-
-	ranger.debug = True
-	ranger.clean = True
-	ranger.cd_after_exit = False
-	ranger.fm = fm
-
-	return fm
+	def emit_signal(self):
+		pass

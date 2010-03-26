@@ -25,23 +25,10 @@ Avoid dependencies though!
 fm.signals: 
 """
 
-import ranger
-from ranger import relpath, relpath_conf
 from os.path import exists
 from inspect import getargspec, isfunction, ismethod
 from types import MethodType
 
-def _find_plugin(name):
-	assert isinstance(name, str), 'Plugin names must be strings!'
-	assert '.' not in name, 'Specify plugin names without the extension!'
-	if exists(relpath_conf('plugins', name + '.py')):
-		return 'plugins'
-	elif exists(relpath('plugins', name + '.py')):
-		return 'ranger.plugins'
-	raise Exception('Plugin not found!')
-
-def _name_to_module(name):
-	return getattr(__import__(_find_plugin(name), fromlist=[name]), name)
 
 class MissingFeature(Exception): pass
 class DependencyCycle(Exception): pass
@@ -54,9 +41,9 @@ class Plugin(object):
 	_sets = ('dependencies', 'requires', 'implements')
 	_attrs = _strings + _fncs + _sets
 
-	def __init__(self, name, module, plugin_manager):
+	def __init__(self, name, module, fm):
 		self.name = name
-		self._plugin_manager = plugin_manager
+		self.fm = fm
 		for attr in Plugin._attrs:
 			try: value = getattr(module, '__'+attr+'__')
 			except: value = None
@@ -81,11 +68,12 @@ class Plugin(object):
 			self.__dict__[attr] = value
 
 	def implement_feature(self, name, force=False):  #wrapper
-		self._plugin_manager.implement_feature(name, self, force=force)
+		self.fm.plugins.implement_feature(name, self, force=force)
 
 
 class PluginManager(object):
-	def __init__(self):
+	def __init__(self, fm):
+		self.fm = fm
 		self._plugins_cache = dict()
 		self.plugins = []
 		self.features = dict()
@@ -97,9 +85,22 @@ class PluginManager(object):
 		try:
 			return self._plugins_cache[name]
 		except KeyError:
-			plg = Plugin(name, _name_to_module(name), self)
+			plg = self.name_to_plugin(name)
 			self._plugins_cache[name] = plg
 			return plg
+	
+	def name_to_plugin(self, name):
+		from ranger import relpath, relpath_conf
+		assert isinstance(name, str), 'Plugin names must be strings!'
+		assert '.' not in name, 'Specify plugin names without the extension!'
+		if exists(relpath_conf('plugins', name + '.py')):
+			modulepath = 'plugins'
+		elif exists(relpath('plugins', name + '.py')):
+			modulepath = 'ranger.plugins'
+		raise Exception('Plugin not found!')
+
+		module = getattr(__import__(_find_plugin(name), fromlist=[name]), name)
+		return Plugin(name, module, self)
 
 # XXX Shouldn't this be a part of the main function?
 #	def multi_install(self, *names):

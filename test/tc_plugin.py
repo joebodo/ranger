@@ -16,14 +16,15 @@
 if __name__ == '__main__': from __init__ import init; init()
 
 import unittest
+from types import MethodType
 
-def patched_name_to_module(name):
-	return DummyPlugins.__dict__[name]()
+#def patched_name_to_module(name):
+#	return DummyPlugins.__dict__[name]()
+#
+#import ranger.core.plugin
+#ranger.core.plugin._name_to_module = patched_name_to_module
 
-import ranger.core.plugin
-ranger.core.plugin._name_to_module = patched_name_to_module
-
-ranger.core.init()
+#ranger.core.init()
 
 from ranger.core.plugin import MissingFeature, DependencyCycle, \
 		FeatureAlreadyExists
@@ -47,7 +48,7 @@ class DummyPlugins(object):
 	class loop3(object):
 		@staticmethod
 		def __install__(self):
-			plugin.install('loop2')
+			self.fm.plugins.install('loop2')
 	class cycle1(object):
 		__implements__ = ['x']
 		__dependencies__ = ['cycle2']
@@ -69,10 +70,15 @@ class DummyPlugins(object):
 				self.throbber_code_executed = True
 
 class TestPlugin(unittest.TestCase):
-	def tearDown(self):
-		plugin.reset()
+	def setUp(self):
+		from ranger.core.dummy import DummyFM
+		from ranger.core.plugin import Plugin
+		fm = DummyFM()
+		fm.plugins.name_to_plugin = MethodType(lambda s,n: Plugin(n, DummyPlugins.__dict__[n](),s), fm)
+		self.plugin = fm.plugins
 
 	def test_dependencies(self):
+		plugin = self.plugin
 		self.assertRaises(MissingFeature, plugin.install, 'cool_commands')
 		plugin.install('base')
 		deps = set(DummyPlugins.base.__dependencies__)
@@ -80,6 +86,7 @@ class TestPlugin(unittest.TestCase):
 		plugin.install('cool_commands') # works now since console is installed
 
 	def test_cycle_detection(self):
+		plugin = self.plugin
 		self.assertRaises(DependencyCycle, plugin.install, 'loop1')
 		self.assertRaises(DependencyCycle, plugin.install, 'loop2')
 		self.assertRaises(DependencyCycle, plugin.install, 'loop3')
@@ -90,6 +97,7 @@ class TestPlugin(unittest.TestCase):
 		self.assertRaises(MissingFeature, plugin.install, 'cycle1')
 
 	def test_replace_features(self):
+		plugin = self.plugin
 		plugin.install('myconsole')
 		plugin.install('base')
 		self.assertFalse('ncurses_base_console' in plugin.plugins)
@@ -106,6 +114,7 @@ class TestPlugin(unittest.TestCase):
 		self.assertEqual(plugin.find('myloader'), plugin.features['throbber'])
 
 	def test_exclude_features(self):
+		plugin = self.plugin
 		name, feature = 'myconsole', 'console'
 		plugin.exclude_plugins(name)
 		plugin.install(name)
