@@ -2,7 +2,6 @@ import os
 import curses
 
 __implements__ = 'ncurses'
-__requires__ = 'mainloop'
 
 class Plugin(object):
 	def initialize(self):
