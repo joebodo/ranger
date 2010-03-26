@@ -66,15 +66,15 @@ class SignalHandler(dict):
 
 class SettingWrapper(object):
 	def __init__(self, fm):
-		self._fm = fm
-		self._settings = fm._settings
+		self.__dict__['_fm'] = fm
+		self.__dict__['_settings'] = fm._settings
 
 	def __setattr__(self, name, value):
 		if name[0] == '_':
 			self.__dict__[name] = value
 		else:
 			assert name in self._settings, "No such setting: {0}!".format(name)
-			signal = ranger.signal.emit(SETTING_CHANGE_SIGNAL, \
+			self._fm.signal_emit(SETTING_CHANGE_SIGNAL, \
 				setting=name, value=value, previous=self._settings[name])
 
 	def __getattr__(self, name):
@@ -83,6 +83,18 @@ class SettingWrapper(object):
 
 	__getitem__ = __getattr__
 	__setitem__ = __setattr__
+
+class Library(dict):
+	def __init__(self, fm):
+		dict.__init__(self)
+		self.__dict__ = self
+		self.fm = fm
+
+	def register_subdirectory(self, name):
+		self[name] = Library(self.fm)
+
+	def register_method(self, name, function):
+		self[name] = MethodType(function, self.fm)
 
 
 # ---------------------------
@@ -105,6 +117,7 @@ def DummyFM():
 	fm.args = OpenStruct(cd_after_exit=False,
 			debug=False, clean=True, confdir=DEFAULT_CONFDIR,
 			mode=0, flags='', targets=[])
+	return fm
 
 
 # ---------------------------
@@ -125,6 +138,9 @@ class FM(object):
 		self._setting_structs = list()
 		self._settings = dict()
 		self._setting_types = dict()
+
+		self.lib = Library(self)
+		self.settings = SettingWrapper(self)
 
 		self.signal_bind(SETTING_CHANGE_SIGNAL,
 				self._setting_set_raw_signal, prio=0.1)
@@ -155,10 +171,9 @@ class FM(object):
 			'{0} is no valid setting name!'.format(name)
 		value = default
 		for struct in self._setting_structs:
-			try:
-				value = getattr(struct, name)
-			except AttributeError:
-				pass
+			try: value = getattr(struct, name)
+			except: pass
+			else: break
 		if type is not None:
 			self._setting_types[name] = type
 #			assert self._check_setting_type(name, type, value)
@@ -292,7 +307,6 @@ class FM(object):
 			plugin.__dict__[__attr__] = value
 		return plugin
 
-
 	def plugin_find(self, name):
 		try:
 			return self._plugin_cache[name]
@@ -307,11 +321,23 @@ class FM(object):
 	def plugin_forbid(self, *names):
 		self._excluded_plugins.update(names)
 
+	def plugin_activate(self, name):
+		self._loaded_plugins[name].__activate__()
+
+	def plugin_deactivate(self, name):
+		self._loaded_plugins[name].__deactivate__()
+
 	def feature_allow(self, *names):
 		self._excluded_features.difference_update(names)
 
 	def feature_forbid(self, *names):
 		self._excluded_features.update(names)
+
+	def feature_activate(self, name):
+		self._loaded_features[name].__activate__()
+
+	def feature_deactivate(self, name):
+		self._loaded_features[name].__deactivate__()
 
 	def feature_implement(self, name, plugin, force=False):
 		if not force and name in self._loaded_features \
@@ -348,7 +374,7 @@ class FM(object):
 			stack, self._plugin_load_stack = self._plugin_load_stack, []
 			raise MissingFeature(name, missing_features, stack)
 
-		if hasattr(plg, '__install__'): plg.__install__(self)
+		if hasattr(plg, '__install__'): plg.__install__()
 		for feature in plg.__implements__:
 			self.feature_implement(feature, plg, force=force)
 		self._loaded_plugins.append(name)

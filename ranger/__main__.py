@@ -99,18 +99,17 @@ def main():
 
 	fm._setting_structs = []
 	try:
-		from ranger.defaults import options as default_options
-		fm._setting_structs.append(default_options)
-	except ImportError:
-		pass
-	try:
 		import options as custom_options
 		fm._setting_structs.append(custom_options)
 	except ImportError:
 		pass
+	try:
+		from ranger.defaults import options as default_options
+		fm._setting_structs.append(default_options)
+	except ImportError:
+		pass
 
 	# load plugins
-	fm.settings = SettingWrapper(fm)
 	fm.setting_add('plugins', ['base'], (list, tuple))
 	for name in fm.settings.plugins:
 		assert isinstance(name, str), "Plugin names must be strings!"

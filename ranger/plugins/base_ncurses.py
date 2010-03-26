@@ -7,7 +7,7 @@ __requires__ = 'mainloop'
 MOUSEMASK = curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION
 
 class Plugin(object):
-	def initialize(self, sig):
+	def initialize(self):
 		os.environ['ESCDELAY'] = '25'   # don't know a cleaner way
 		self.win = curses.initscr()
 		self.__activate__()
@@ -56,7 +56,8 @@ class Plugin(object):
 		self.win.addstr('a')
 		self.win.refresh()
 
-	def __install__(self, fm):
+	def __install__(self):
+		fm = self.fm
 		fm.setting_add('show_cursor', True, bool)
 		fm.signal_bind('core.init', self.initialize)
 		fm.signal_bind('core.quit', self.__deactivate__)

@@ -14,5 +14,5 @@ def main_loop(signal):
 		pass
 
 class Plugin(object):
-	def __install__(self, fm):
-		fm.signal_bind('core.run', main_loop)
+	def __install__(self):
+		self.fm.signal_bind('core.run', main_loop)
