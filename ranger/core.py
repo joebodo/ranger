@@ -38,19 +38,12 @@ class FeatureAlreadyExists(Exception): pass
 # ---------------------------
 
 class Signal(dict):
-	def __init__(self, fm, name, handlers, keywords):
+	def __init__(self, fm, name, keywords):
 		dict.__init__(self, keywords)
 		self.__dict__ = keywords
-		self.propagation_order = handlers
 		self.fm = fm
 		self.name = name
 		self.stopped = False
-
-	def propagate(self):
-		for handler in self.propagation_order:
-			handler.function(self)
-			if self.stopped:
-				break
 
 	def stop(self):
 		self.stopped = True
@@ -60,9 +53,9 @@ class SignalHandler(dict):
 	prio = 0.5
 	def __init__(self, fm, signal_name, function, rules):
 		dict.__init__(self, rules)
-		self.__dict__ = rules
+		self.__dict__ = self
 		self.fm = fm
-		self.prio = min(0, max(1, self.prio))
+		self.prio = max(0, min(1, self.prio))
 		self.signal_name = signal_name
 		self.function = function
 
@@ -223,11 +216,11 @@ class FM(object):
 	# --- Signal stuff
 	# --------------------------------
 
-	def emit_signal(self):
-		pass
+	def _keyfunc(self, handler):
+		return -handler.prio
 
 	def _signal_sort(self, handlers):
-		return sorted(handlers, key=lambda handler: -handler.prio)
+		return sorted(handlers, key=self._keyfunc)
 
 	def signal_clear(self):
 		self._signals = dict()
@@ -262,18 +255,19 @@ class FM(object):
 		if not handlers:
 			return
 
-		if not entry[SIGNALS_SORTED]:
+		signal = Signal(self, signal_name, kw)
+
+		if not entry[SIGNALS_SORTED]:  # sort the handlers by priority
 			handlers = self._signal_sort(handlers)
 			entry = (True, handlers)
-
-		signal = Signal(self, signal_name, handlers, kw)
 		try:
-			signal.propagate()
+			for handler in handlers:  # propagate
+				handler.function(signal)
+				if signal.stopped:
+					break
 		except Exception as e:
-			if vital:
-				raise
-			else:
-				self.log(e)
+			if vital: raise
+			else: self.log(e)
 
 	# --------------------------------
 	# --- Plugin stuff
