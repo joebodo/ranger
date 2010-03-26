@@ -322,10 +322,18 @@ class FM(object):
 		self._excluded_plugins.update(names)
 
 	def plugin_activate(self, name):
-		self._loaded_plugins[name].__activate__()
+		try:
+			activate = self._loaded_plugins[name].__activate__
+		except:
+			return
+		activate()
 
 	def plugin_deactivate(self, name):
-		self._loaded_plugins[name].__deactivate__()
+		try:
+			deactivate = self._loaded_plugins[name].__deactivate__
+		except:
+			return
+		deactivate()
 
 	def feature_allow(self, *names):
 		self._excluded_features.difference_update(names)
@@ -334,10 +342,18 @@ class FM(object):
 		self._excluded_features.update(names)
 
 	def feature_activate(self, name):
-		self._loaded_features[name].__activate__()
+		try:
+			activate = self._loaded_features[name].__activate__
+		except:
+			return
+		activate()
 
 	def feature_deactivate(self, name):
-		self._loaded_features[name].__deactivate__()
+		try:
+			deactivate = self._loaded_features[name].__deactivate__
+		except:
+			return
+		deactivate()
 
 	def feature_implement(self, name, plugin, force=False):
 		if not force and name in self._loaded_features \

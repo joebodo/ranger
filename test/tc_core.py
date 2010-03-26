@@ -239,6 +239,50 @@ class TestPlugins(unittest.TestCase):
 		self.assertTrue(name in fm._loaded_plugins)
 		self.assertTrue(feature in fm._loaded_features)
 
+class TestLibrary(unittest.TestCase):
+	def setUp(self):
+		self.fm = DummyFM()
+		self.lib = self.fm.lib
+
+	def test_lib(self):
+		lib = self.lib
+
+		self.assertRaises(AttributeError, lambda: lib.moo)
+		lib.moo = 5
+		self.assertEqual(5, lib.moo)
+
+	def test_register_lib_methods(self):
+		lib = self.lib
+		lst = []
+		string = "a random string!"
+
+		def add_something_to_list(signal):
+			lst.append(signal.value)
+
+		def emit_the_signal(self, string):
+			self.signal_emit('add!', value=string)
+
+		self.fm.signal_bind('add!', add_something_to_list)
+		lib.register_method('testmethod', emit_the_signal)
+
+		lib.testmethod(string)
+		self.assertEqual(string, lst[0])
+
+	def test_register_sub_directory(self):
+		lib = self.lib
+		lib.register_subdirectory('super_feature')
+		lib.super_feature.variable1 = 'cool'
+		self.assertEqual('cool', lib.super_feature.variable1)
+		lib.super_feature = 'uncool'
+		self.assertEqual('uncool', lib.super_feature)
+
+		lib.register_subdirectory('xyz')
+		lib.xyz.register_subdirectory('foo')
+		lib.xyz.foo.register_subdirectory('bar')
+		self.lib = lib.xyz.foo.bar
+		self.test_register_lib_methods()
+
+
 if __name__ == '__main__':
 	unittest.main()
 
