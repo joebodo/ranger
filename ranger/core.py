@@ -145,69 +145,6 @@ def DummyFM():
 			debug=False, clean=True, confdir=DEFAULT_CONFDIR,
 			mode=0, flags='', targets=[])
 
-def main():
-	from locale import getdefaultlocale, setlocale, LC_ALL
-	from ranger.__main__ import parse_arguments
-
-	# Ensure that a utf8 locale is set.
-	if getdefaultlocale()[1] not in ('utf8', 'UTF-8'):
-		for locale in ('en_US.utf8', 'en_US.UTF-8'):
-			try: setlocale(LC_ALL, locale)
-			except: pass
-			else: break
-		else: setlocale(LC_ALL, '')
-	else: setlocale(LC_ALL, '')
-
-	# initialize stuff
-	fm = FM()
-
-	args = parse_arguments()
-	fm.args = args
-
-	fm._setting_structs = []
-	try:
-		from ranger.defaults import options as default_options
-		fm._setting_structs.append(default_options)
-	except ImportError:
-		pass
-	try:
-		import options as custom_options
-		fm._setting_structs.append(custom_options)
-	except ImportError:
-		pass
-
-	# load plugins
-	fm.settings = SettingWrapper(fm)
-	fm.setting_add('plugins', ['base'], (list, tuple))
-	for name in fm.settings.plugins:
-		assert isinstance(name, str), "Plugin names must be strings!"
-		if name[0] == '!':
-			fm.plugin_forbid(name[1:])
-			continue
-		if name[0] == '~':
-			fm.feature_forbid(name[1:])
-			continue
-		try:
-			fm.plugin_install(name)
-		except MissingFeature as e:
-			print("Error: The plugin `{0}' requires the " \
-				"features: {1}.\nPlease edit your configuration" \
-				" file and add a plugin that\nimplements this " \
-				"feature!\nStack: {2}" \
-				.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
-			raise SystemExit
-		except DependencyCycle as e:
-			print("Error: Dependency cycle encountered!\nStack: {0}" \
-					.format(' -> '.join(e[0])))
-			raise SystemExit
-
-	# run the shit
-	fm.signal_emit('core.all_plugins_loaded')
-	try:
-		fm.signal_emit('core.run')
-	finally:
-		fm.signal_emit('core.quit')
-
 
 # ---------------------------
 # --- File Manager Class
