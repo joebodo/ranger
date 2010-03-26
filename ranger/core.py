@@ -51,6 +51,7 @@ class Signal(dict):
 
 class SignalHandler(dict):
 	prio = 0.5
+	pass_signal = True
 	def __init__(self, fm, signal_name, function, rules):
 		dict.__init__(self, rules)
 		self.__dict__ = self
@@ -61,39 +62,6 @@ class SignalHandler(dict):
 
 	def remove(self):
 		self.fm.signal_unbind(self)
-
-
-class Plugin(dict):
-	def __init__(self, fm, name, module):
-#		dict.__init__(self, attributes)
-#		self.__dict__ = self
-		self.fm = fm
-		self.name = name
-		for attr in PLUGIN_ATTR_ALL:
-			try: value = getattr(module, '__'+attr+'__')
-			except: value = None
-			if attr in PLUGIN_ATTR_SETS:
-				if value is None:
-					value = set()
-				elif isinstance(value, str):
-					value = set([value])
-				elif isinstance(value, (set, list, tuple)):
-					value = set(value)
-			elif attr in PLUGIN_ATTR_METHODS:
-				if hasattr(value, '__call__'):
-					value = MethodType(value, self)
-				else:
-					value = None # XXX
-			else:  # must be in _strings now...
-				if value is None:
-					value = ""
-				elif not isinstance(value, str):
-					try: value = str(value)
-					except: value = None
-			self.__dict__[attr] = value
-
-	def implement_feature(self, name, force=False):  #wrapper
-		self.fm.plugins.implement_feature(name, self, force=force)
 
 
 class SettingWrapper(object):
@@ -116,6 +84,7 @@ class SettingWrapper(object):
 	__getitem__ = __getattr__
 	__setitem__ = __setattr__
 
+
 # ---------------------------
 # --- Constants
 # ---------------------------
@@ -123,9 +92,8 @@ class SettingWrapper(object):
 RANGERDIR = os.path.dirname(__file__)
 PLUGIN_ATTR_STRINGS = ('version', 'author', 'credits', 'license', 'maintainer',
 		'copyright', 'email', 'maintainer')
-PLUGIN_ATTR_METHODS = ('install', 'activate', 'deactivate')
 PLUGIN_ATTR_SETS = ('dependencies', 'requires', 'implements')
-PLUGIN_ATTR_ALL = PLUGIN_ATTR_STRINGS + PLUGIN_ATTR_METHODS + PLUGIN_ATTR_SETS
+PLUGIN_ATTR_ALL = PLUGIN_ATTR_STRINGS + PLUGIN_ATTR_SETS
 SIGNALS_SORTED = 0
 SIGNAL_HANDLERS = 1
 BAD_SETTING_NAMES = ('register', )
@@ -235,6 +203,11 @@ class FM(object):
 		else:
 			entry = (False, entry[1])
 		handler = SignalHandler(self, signal_name, function, rules)
+		arity = function.__code__.co_argcount
+		if hasattr(function, 'im_func'):
+			arity -= 1
+		if arity == 0:
+			handler.pass_signal = False
 		entry[SIGNAL_HANDLERS].append(handler)
 		return handler
 
@@ -260,14 +233,17 @@ class FM(object):
 		if not entry[SIGNALS_SORTED]:  # sort the handlers by priority
 			handlers = self._signal_sort(handlers)
 			entry = (True, handlers)
-		try:
-			for handler in handlers:  # propagate
-				handler.function(signal)
-				if signal.stopped:
-					break
-		except Exception as e:
-			if vital: raise
-			else: self.log(e)
+		for handler in handlers:  # propagate
+			try:
+				if handler.pass_signal:
+					handler.function(signal)
+				else:
+					handler.function()
+			except Exception as e:
+				if vital: raise
+				else: self.log(e)
+			if signal.stopped:
+				break
 
 	# --------------------------------
 	# --- Plugin stuff
@@ -284,7 +260,38 @@ class FM(object):
 			raise Exception('Plugin not found: ' + name)
 
 		module = getattr(__import__(modulepath, fromlist=[name]), name)
-		return Plugin(self, name, module)
+		return self._module_to_plugin(module, name)
+
+	def _module_to_plugin(self, module, name):
+		try:
+			cls = getattr(module, 'Plugin')
+		except:
+			raise Exception('Plugin ' + name + " contains no `Plugin' class!")
+		plugin = cls()
+		plugin.fm = self
+		plugin.name = name
+		for attr in PLUGIN_ATTR_ALL:
+			__attr__ = '__' + attr + '__'
+			try: value = getattr(plugin, __attr__)
+			except:
+				try: value = getattr(module, __attr__)
+				except: value = None
+			if attr in PLUGIN_ATTR_SETS:
+				if value is None:
+					value = set()
+				elif isinstance(value, str):
+					value = set([value])
+				elif isinstance(value, (set, list, tuple)):
+					value = set(value)
+			else:  # must be in PLUGIN_ATTR_STRINGS now...
+				if value is None:
+					value = ""
+				elif not isinstance(value, str):
+					try: value = str(value)
+					except: value = None
+			plugin.__dict__[__attr__] = value
+		return plugin
+
 
 	def plugin_find(self, name):
 		try:
@@ -321,9 +328,9 @@ class FM(object):
 			if name in self._excluded_plugins:
 				return  # this plugin is excluded
 			plg = self.plugin_find(name)
-			if plg.implements.intersection(self._loaded_features):
+			if plg.__implements__.intersection(self._loaded_features):
 				return  # this plugin implements existing features
-			if plg.implements & self._excluded_features:
+			if plg.__implements__ & self._excluded_features:
 				return  # this plugin implements excluded features
 
 		if name in self._plugin_load_stack:  # detect dependency cycles
@@ -332,17 +339,17 @@ class FM(object):
 
 		self._plugin_load_stack.append(name)
 
-		for dep in plg.dependencies:  # install dependencies
+		for dep in plg.__dependencies__:  # install dependencies
 			if dep not in self._loaded_plugins:
 				self.plugin_install(dep)
 
-		missing_features = plg.requires.difference(self._loaded_features)
+		missing_features = plg.__requires__.difference(self._loaded_features)
 		if missing_features:  # check if there are missing features
 			stack, self._plugin_load_stack = self._plugin_load_stack, []
 			raise MissingFeature(name, missing_features, stack)
 
-		if plg.install: plg.install(self)
-		for feature in plg.implements:
+		if hasattr(plg, '__install__'): plg.__install__(self)
+		for feature in plg.__implements__:
 			self.feature_implement(feature, plg, force=force)
 		self._loaded_plugins.append(name)
 		self._plugin_load_stack.pop()

@@ -35,6 +35,7 @@ from ranger.api.options import *
 
 #plugins = ['!throbber', 'base']
 plugins = ['base', 'instant_quit', 'goodbye']
+plugins = ['base', 'goodbye']
 
 # Which files are hidden if show_hidden is False?
 hidden_filter = regexp(

@@ -79,7 +79,8 @@ def parse_arguments():
 
 def main():
 	from locale import getdefaultlocale, setlocale, LC_ALL
-	from ranger.core import FM, SettingWrapper
+	from ranger.core import FM, SettingWrapper, \
+			MissingFeature, DependencyCycle
 
 	# Ensure that a utf8 locale is set.
 	if getdefaultlocale()[1] not in ('utf8', 'UTF-8'):
@@ -135,6 +136,7 @@ def main():
 
 	# run the shit
 	fm.signal_emit('core.all_plugins_loaded')
+	fm.signal_emit('core.init', vital=True)
 	try:
 		fm.signal_emit('core.run')
 	finally:

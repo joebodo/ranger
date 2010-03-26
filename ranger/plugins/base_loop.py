@@ -1,4 +1,4 @@
-
+__implements__ = 'mainloop'
 
 def main_loop(signal):
 	emit = signal.fm.signal_emit
@@ -6,10 +6,13 @@ def main_loop(signal):
 	try:
 		while True:
 			emit('base.loop.start')
-			emit('base.loop.middle')
+			emit('base.loop.main')
 			emit('base.loop.end')
+	except Exception as e:
+		print(e)
 	except KeyboardInterrupt:
 		pass
 
-def __install__(self, fm):
-	fm.signal_bind('core.run', main_loop)
+class Plugin(object):
+	def __install__(self, fm):
+		fm.signal_bind('core.run', main_loop)
