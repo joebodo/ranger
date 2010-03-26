@@ -53,8 +53,8 @@ def _get_config_files():
 class Settings(object):
 	CHANGE = 'core.settings.change'
 
-	def __init__(self):
-		self._defaultoptions, self._customoptions = _get_config_files()
+	def __init__(self, config_files=None):
+		self._default, self._custom = config_files or _get_config_files()
 		self._data = {}
 		self._types = {}
 		for name, type in ALLOWED_SETTINGS.items():
@@ -65,10 +65,10 @@ class Settings(object):
 		assert is_valid_setting_name(name), \
 			'{0} is no valid setting name!'.format(name)
 		try:
-			value = getattr(self._customoptions, name)
+			value = getattr(self._custom, name)
 		except AttributeError:
 			try:
-				value = getattr(self._defaultoptions, name)
+				value = getattr(self._default, name)
 			except AttributeError:
 				if default is Undefined:
 					raise Exception("No default value for option `{0}' "\
