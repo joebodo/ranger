@@ -76,80 +76,69 @@ def parse_arguments():
 
 	return arg
 
+
 def main():
-	"""initialize objects and run the filemanager"""
-	try:
-		import curses
-	except ImportError as errormessage:
-		print(errormessage)
-		print('ranger requires the python curses module. Aborting.')
-		sys.exit(1)
-
-	from signal import signal, SIGINT
 	from locale import getdefaultlocale, setlocale, LC_ALL
-
-	import ranger
-	import ranger.core.settings
-	from ranger.ext import curses_interrupt_handler
-	from ranger.core.fm import FM
-	from ranger.core.plug import PluginManager
-	from ranger.core.environment import Environment
-	from ranger.shared.settings import SettingsAware
-	from ranger.fsobject.file import File
+	from ranger.core import FM, SettingWrapper
 
 	# Ensure that a utf8 locale is set.
 	if getdefaultlocale()[1] not in ('utf8', 'UTF-8'):
 		for locale in ('en_US.utf8', 'en_US.UTF-8'):
 			try: setlocale(LC_ALL, locale)
-			except: pass  #sometimes there is none available though...
-	else:
-		setlocale(LC_ALL, '')
-
-
-	fm = FM()
-	plugins = PluginManager()
-	fm.plugins = plugins
-	plugins._install_keywords = dict(fm=fm, signals=fm.signals)
-
-	arg = parse_arguments()
-	ranger.arg = arg
-	fm.arg = arg
-
-	settings = ranger.core.settings.Settings(fm)
-	SettingsAware.settings = settings
-
-	if not ranger.arg.debug:
-		curses_interrupt_handler.install_interrupt_handler()
-
-	plugins.install(*settings.plugins)
-
-	# Initialize objects
-	if arg.targets:
-		target = arg.targets[0]
-		if not os.access(target, os.F_OK):
-			print("File or directory doesn't exist: %s" % target)
-			sys.exit(1)
-		elif os.path.isfile(target):
-			thefile = File(target)
-			FM().execute_file(thefile, mode=arg.mode, flags=arg.flags)
-			sys.exit(0)
-		else:
-			path = target
-	else:
-		path = '.'
-
-	Environment(path)
-
-	fm.stderr_to_out = arg.cd_after_exit
-	try:
-		fm.initialize()
-		fm.loop()
-	finally:
-		if fm.ui:
-			fm.ui.destroy()
-		if arg.cd_after_exit:
-			try: sys.__stderr__.write(fm.env.cwd.path)
 			except: pass
+			else: break
+		else: setlocale(LC_ALL, '')
+	else: setlocale(LC_ALL, '')
+
+	# initialize stuff
+	fm = FM()
+
+	args = parse_arguments()
+	fm.args = args
+
+	fm._setting_structs = []
+	try:
+		from ranger.defaults import options as default_options
+		fm._setting_structs.append(default_options)
+	except ImportError:
+		pass
+	try:
+		import options as custom_options
+		fm._setting_structs.append(custom_options)
+	except ImportError:
+		pass
+
+	# load plugins
+	fm.settings = SettingWrapper(fm)
+	fm.setting_add('plugins', ['base'], (list, tuple))
+	for name in fm.settings.plugins:
+		assert isinstance(name, str), "Plugin names must be strings!"
+		if name[0] == '!':
+			fm.plugin_forbid(name[1:])
+			continue
+		if name[0] == '~':
+			fm.feature_forbid(name[1:])
+			continue
+		try:
+			fm.plugin_install(name)
+		except MissingFeature as e:
+			print("Error: The plugin `{0}' requires the " \
+				"features: {1}.\nPlease edit your configuration" \
+				" file and add a plugin that\nimplements this " \
+				"feature!\nStack: {2}" \
+				.format(e[0], ', '.join(e[1]), ' -> '.join(e[2])))
+			raise SystemExit
+		except DependencyCycle as e:
+			print("Error: Dependency cycle encountered!\nStack: {0}" \
+					.format(' -> '.join(e[0])))
+			raise SystemExit
+
+	# run the shit
+	fm.signal_emit('core.all_plugins_loaded')
+	try:
+		fm.signal_emit('core.run')
+	finally:
+		fm.signal_emit('core.quit')
 
 if __name__ == '__main__':
 	top_dir = os.path.dirname(sys.path[0])
