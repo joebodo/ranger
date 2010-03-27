@@ -2,7 +2,7 @@ __implements__ = 'mainloop'
 
 class Plugin(object):
 	def __install__(self):
-		self.fm.signal_bind('core.run', main_loop)
+		self.fm.signal_bind('core.run', self.main_loop)
 
 	def main_loop(self, signal):
 		emit = signal.fm.signal_emit

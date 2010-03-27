@@ -4,5 +4,7 @@ class Plugin:
 	base_ncurses
 	base_ncurses_mouse
 	base_simple_input
-	test
+	base_simple_loader
+	base_simple_viewer
+	base_env
 	""".split()

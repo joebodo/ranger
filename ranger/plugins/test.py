@@ -14,8 +14,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class Plugin(object):
+	__dependencies__ = 'base_env'
 	def __install__(self):
 		self.fm.signal_bind('base.ncurses.getch', self.printkey)
 
 	def printkey(self, sig):
+		lib = self.fm.lib
+		win = lib.ncurses.win
+
 		self.fm.lib.ncurses.win.addch(sig.key)
+
+		win.addstr(str(lib.env.cwd) + '\n')
