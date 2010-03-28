@@ -43,13 +43,14 @@ def draw(sig):
 	sig.stop_propagation()
 
 	self = sig.target
+	self.color_reset()
 	self.need_clear = True
 
 	sorted_bookmarks = sorted(item for item in self.fm.bookmarks \
 			if '/.' not in item[1].path)
 
 	def generator():
-		return zip(range(self.hei), sorted_bookmarks)
+		return zip(range(self.hei-1), sorted_bookmarks)
 
 	try:
 		maxlen = max(len(item[1].path) for i, item in generator())
@@ -57,10 +58,19 @@ def draw(sig):
 		return
 	maxlen = min(maxlen + 5, self.wid)
 
+	whitespace = " " * maxlen
 	for line, items in generator():
 		key, mark = items
 		string = " " + key + ": " + mark.path
-		self.addnstr(line, 0, string.ljust(maxlen), self.wid)
+		self.addstr(line, 0, whitespace)
+		self.addnstr(line, 0, string, self.wid)
+
+	if sig.fm.settings.draw_bookmark_borders:
+		self.win.hline(line+1, 0, curses.ACS_HLINE, maxlen)
+
+		if maxlen < self.wid:
+			self.win.vline(0, maxlen, curses.ACS_VLINE, line+1)
+			self.win.addch(line+1, maxlen, curses.ACS_LRCORNER)
 
 def initialize(signal):
 	if signal.fm.arg.clean:

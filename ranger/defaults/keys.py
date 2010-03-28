@@ -108,13 +108,14 @@ def initialize_commands(map):
 
 	# -------------------------------------------------- toggle options
 	map('b', hint="show_//h//idden //p//review_files //d//irectories_first " \
-		"//c//ollapse_preview flush//i//nput")
+		"//c//ollapse_preview flush//i//nput ca//s//e_insensitive")
 	map('bh', fm.toggle_boolean_option('show_hidden'))
 	map('bp', fm.toggle_boolean_option('preview_files'))
 	map('bP', fm.toggle_boolean_option('preview_directories'))
 	map('bi', fm.toggle_boolean_option('flushinput'))
-	map('bd', fm.toggle_boolean_option('directories_first'))
+	map('bd', fm.toggle_boolean_option('sort_directories_first'))
 	map('bc', fm.toggle_boolean_option('collapse_preview'))
+	map('bs', fm.toggle_boolean_option('sort_case_insensitive'))
 
 	# ------------------------------------------------------------ sort
 	map('o', 'O', hint="//s//ize //b//ase//n//ame //m//time //t//ype //r//everse")
@@ -133,7 +134,7 @@ def initialize_commands(map):
 			map('O' + key, fm.sort(func=val, reverse=True))
 
 	map('or', 'Or', 'oR', 'OR', lambda arg: \
-			arg.fm.sort(reverse=not arg.fm.settings.reverse))
+			arg.fm.sort(reverse=not arg.fm.settings.sort_reverse))
 
 	# ----------------------------------------------- console shortcuts
 	@map("A")
@@ -179,7 +180,7 @@ def initialize_commands(map):
 		map("`" + key, "'" + key, func.enter_bookmark(key))
 		map("m" + key, func.set_bookmark(key))
 		map("um" + key, func.unset_bookmark(key))
-	map("`", "'", "m", draw_bookmarks=True)
+	map("`", "'", "m", "um", draw_bookmarks=True)
 
 	# ---------------------------------------------------- change views
 	map('i', fm.display_file())
@@ -189,7 +190,7 @@ def initialize_commands(map):
 
 	# ------------------------------------------------ system functions
 	_system_functions(map)
-	map('ZZ', fm.exit())
+	map('ZZ', 'ZQ', fm.exit())
 	map(ctrl('R'), fm.reset())
 	map('R', fm.reload_cwd())
 	map(ctrl('C'), fm.exit())

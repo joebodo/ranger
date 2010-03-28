@@ -27,9 +27,11 @@ ALLOWED_SETTINGS = {
 	'autosave_bookmarks': bool,
 	'collapse_preview': bool,
 	'draw_borders': bool,
+	'draw_bookmark_borders': bool,
 	'sort': str,
-	'reverse': bool,
-	'directories_first': bool,
+	'sort_reverse': bool,
+	'sort_case_insensitive': bool,
+	'sort_directories_first': bool,
 	'update_title': bool,
 	'shorten_title': int,  # Note: False is an instance of int
 	'max_filesize_for_preview': (int, type(None)),
@@ -40,6 +42,11 @@ ALLOWED_SETTINGS = {
 	'flushinput': bool,
 	'colorscheme': str,
 	'hidden_filter': lambda x: isinstance(x, str) or hasattr(x, 'match'),
+}
+
+COMPAT_MAP = {
+	'sort_reverse': 'reverse',
+	'sort_directories_first': 'directories_first',
 }
 
 # -- globalize the settings --
@@ -69,6 +76,15 @@ class SettingsAware(object):
 				for setting in ALLOWED_SETTINGS:
 					try:
 						settings[setting] = getattr(my_options, setting)
+					except AttributeError:
+						pass
+				for new, old in COMPAT_MAP.items():
+					try:
+						settings[new] = getattr(my_options, old)
+						print("Warning: the option `{0}'"\
+								" was renamed to `{1}'\nPlease update"\
+								" your configuration file soon." \
+								.format(old, new))
 					except AttributeError:
 						pass
 

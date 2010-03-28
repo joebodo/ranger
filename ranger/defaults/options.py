@@ -55,7 +55,8 @@ max_filesize_for_preview = 300 * 1024  # 300kb
 collapse_preview = True
 
 # Draw borders around columns?
-draw_borders = True
+draw_borders = False
+draw_bookmark_borders = True
 
 # Set a title for the window?
 update_title = True
@@ -84,6 +85,7 @@ show_cursor = False
 
 # One of: size, basename, mtime, type
 sort = 'basename'
-reverse = False
-directories_first = True
+sort_reverse = False
+sort_case_insensitive = False
+sort_directories_first = True
 
