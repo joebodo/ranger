@@ -28,8 +28,8 @@ PREVIEW_BLACKLIST = re.compile(r"""
 			# one character extensions:
 				[oa]
 			# media formats:
-				| avi | [mj]pe?g | mp\d | og[gmv] | wm[av] | mkv | flv
-				| png | bmp | vob | wav | mpc | flac | divx? | xcf | pdf
+				| avi | [m]pe?g | mp\d | og[gmv] | wm[av] | mkv | flv
+				| vob | wav | mpc | flac | divx? | xcf | pdf
 			# binary files:
 				| torrent | class | so | img | py[co] | dmg
 			# containers:
@@ -82,11 +82,22 @@ class File(FileSystemObject):
 			return True
 		if PREVIEW_BLACKLIST.search(self.basename):
 			return False
-		if self.extension not in ('zip',) and self.is_binary():
+		if self.extension not in ('zip') and not self.image and self.is_binary():
 			return False
 		return True
 
 	def get_preview_source(self):
 		if self.extension == 'zip':
 			return '\n'.join(zipfile.ZipFile(self.path).namelist())
+		elif self.image:
+			try:
+				import Image
+			except ImportError:
+				return None
+			try:
+				im = Image.open(self.path)
+				return im
+			except IOError:
+				return None
+
 		return open(self.path, 'r')

@@ -20,11 +20,21 @@ import re
 from . import Widget
 from ranger.ext.direction import Direction
 from ranger.container.keymap import CommandArgs
+from ranger.gui.color import get_color
+from ranger.gui import ansi
 
 BAR_REGEXP = re.compile(r'\|\d+\?\|')
 QUOTES_REGEXP = re.compile(r'"[^"]+?"')
 SPECIAL_CHARS_REGEXP = re.compile(r'<\w+>|\^[A-Z]')
 TITLE_REGEXP = re.compile(r'^\d+\.')
+
+def is_pil_image(obj):
+	try:
+		import Image
+	except ImportError:
+		return False
+	else:
+		return isinstance(obj, Image.Image)
 
 class Pager(Widget):
 	source = None
@@ -33,6 +43,8 @@ class Pager(Widget):
 	old_source = None
 	old_scroll_begin = 0
 	old_startx = 0
+	old_im_source = None
+	old_size = None
 	def __init__(self, win, embedded=False):
 		Widget.__init__(self, win)
 		self.embedded = embedded
@@ -67,11 +79,17 @@ class Pager(Widget):
 
 		if self.need_redraw:
 			self.win.erase()
-			line_gen = self._generate_lines(
-					starty=self.scroll_begin, startx=self.startx)
+			cant_draw = False
+			if is_pil_image(self.source):
+				cant_draw = (self._generate_image(self.source) == False)
+			if cant_draw:
+				self.close()
+			else:
+				line_gen = self._generate_lines(
+						starty=self.scroll_begin, startx=self.startx)
 
-			for line, i in zip(line_gen, range(self.hei)):
-				self._draw_line(i, line)
+				for line, i in zip(line_gen, range(self.hei)):
+					self._draw_line(i, line)
 			self.need_redraw = False
 
 	def _draw_line(self, i, line):
@@ -106,6 +124,14 @@ class Pager(Widget):
 
 			if TITLE_REGEXP.match(line):
 				self.color_at(i, 0, -1, 'title', *baseclr)
+		elif self.markup is 'ansi':
+			self.addstr(i, 0, "")		# set start position
+			for chunk in ansi.text_with_fg_bg(line):
+				if isinstance(chunk, tuple):
+					fg, bg = chunk
+					self.fg_bg_color(fg, bg)
+				else:
+					self.addstr(chunk)
 
 	def move(self, narg=None, **kw):
 		direction = Direction(kw)
@@ -158,12 +184,15 @@ class Pager(Widget):
 
 		if isinstance(source, str):
 			self.source_is_stream = False
-			self.lines = source.split('\n')
+			self.lines = source.splitlines()
 		elif hasattr(source, '__getitem__'):
 			self.source_is_stream = False
 			self.lines = source
 		elif hasattr(source, 'readline'):
 			self.source_is_stream = True
+			self.lines = []
+		elif is_pil_image(source):
+			self.source_is_stream = False
 			self.lines = []
 		else:
 			self.source = None
@@ -199,6 +228,26 @@ class Pager(Widget):
 				return self._get_line(n, attempt_to_read=False)
 			return ""
 
+	def _generate_image(self, img):
+		if (self.wid, self.hei) == self.old_size \
+				and self.source == self.old_im_source:
+			return True
+		self.old_size = (self.wid, self.hei)
+		self.old_im_source = self.source
+		try:
+			from ranger.ext import caca
+		except (ImportError, OSError):
+			return False
+		the_canvas = caca.canvas.Canvas.create(self.wid, self.hei)
+		the_canvas.set_color_ansi(caca.Colors.BLACK, caca.Colors.WHITE)
+		w, h = img.size
+		ww, wh = the_canvas.get_width(), the_canvas.get_height()
+		scale = min(float(ww)/w, float(wh*2)/h)
+		the_canvas.put_pil_image(0, 0, int(w*scale), int(h*scale/2), img)
+		self.lines = the_canvas.export("ansi").splitlines()
+		self.markup = 'ansi'
+		return True
+
 	def _generate_lines(self, starty, startx):
 		i = starty
 		if not self.source:
@@ -206,7 +255,11 @@ class Pager(Widget):
 		while True:
 			try:
 				line = self._get_line(i).expandtabs(4)
-				line = line[startx:self.wid + startx].rstrip()
+				if self.markup is 'ansi':
+					line = ansi.char_slice(line, startx, self.wid + startx) + '\x1b[0m'
+				else:
+					line = line[startx:self.wid + startx]
+				line = line.rstrip()
 				yield line
 			except IndexError:
 				raise StopIteration
