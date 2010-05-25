@@ -17,6 +17,7 @@ import _curses
 
 from ranger.ext.iter_tools import flatten
 from ranger.shared import SettingsAware
+from ranger.gui.color import get_color
 
 def ascii_only(string):
 	# Some python versions have problems with invalid unicode strings.
@@ -83,6 +84,13 @@ class CursesShortcuts(SettingsAware):
 		attr = self.settings.colorscheme.get_attr(*keys)
 		try:
 			self.win.attrset(attr)
+		except _curses.error:
+			pass
+
+	def fg_bg_color(self, fg, bg):
+		"""Change the colors from now on to a specific fg and bg color."""
+		try:
+			self.win.attrset(_curses.color_pair(get_color(fg, bg)))
 		except _curses.error:
 			pass
 
