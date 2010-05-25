@@ -82,7 +82,7 @@ class File(FileSystemObject):
 			return True
 		if PREVIEW_BLACKLIST.search(self.basename):
 			return False
-		if self.extension not in ('zip') and not self.image and self.is_binary():
+		if self.extension not in ('zip',) and not self.image and self.is_binary():
 			return False
 		return True
 
