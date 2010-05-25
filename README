@@ -49,6 +49,7 @@ Dependencies
 Optional:
 * The "file" program
 * A pager ("less" by default)
+* "python-imaging" and "libcaca" for image previews
 
 
 Getting Started
