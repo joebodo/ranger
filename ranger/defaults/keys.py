@@ -163,6 +163,8 @@ map('T', fm.tag_remove())
 map(' ', fm.mark(toggle=True))
 map('v', fm.mark(all=True, toggle=True))
 map('V', 'uv', fm.mark(all=True, val=False))
+map('<C-V><dir>', fm.mark_in_direction(val=True))
+map('u<C-V><dir>', fm.mark_in_direction(val=False))
 
 # ------------------------------------------ file system operations
 map('yy', 'y<dir>', fm.copy())
@@ -170,8 +172,8 @@ map('dd', 'd<dir>', fm.cut())
 map('pp', fm.paste())
 map('po', fm.paste(overwrite=True))
 map('pl', fm.paste_symlink())
-map('p<bg>', fm.hint('press *p* once again to confirm pasting' \
-		', or *l* to create symlinks'))
+map('p<bg>', fm.hint('press *p* to confirm pasting' \
+		', *o* to overwrite or *l* to create symlinks'))
 
 map('u<bg>', fm.hint("un*y*ank, unbook*m*ark, unselect:*v*"))
 map('ud', 'uy', fm.uncut())
