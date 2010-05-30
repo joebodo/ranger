@@ -1,4 +1,4 @@
-# pulled from http://www.bitbucket.org/mu_mind/pycaca, r9:1728e2cc354c
+# pulled from http://www.bitbucket.org/mu_mind/pycaca, r10:37c9c00f0474
 
 from . import _caca
 
@@ -56,8 +56,9 @@ class Canvas(object):
 
     def put_pil_image(self, x, y, w, h, img):
         w_px, h_px = img.size
-        pixels = struct.unpack('%dI'%(w_px*h_px), img.convert('RGBA').tostring())
-        pixels_array = (ctypes.c_int * len(pixels))(*pixels)
+        n_pixels = (w_px*h_px)
+        pixels_array = (ctypes.c_int * n_pixels)()
+        ctypes.memmove(pixels_array, img.convert('RGBA').tostring(), n_pixels*4)
         dither = self._default_dither(w_px, h_px)
         _caca.caca_dither_bitmap(self._internal, x, y, w, h, dither, pixels_array)
 
