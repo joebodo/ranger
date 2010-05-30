@@ -17,6 +17,8 @@ import re
 
 ansi_re = re.compile('(\x1b' + r'\[\d+(?:;\d+)*?m)')
 
+colormap = { 0:0, 1:4, 2:2, 3:6, 4:1, 5:5, 6:3, 7:7 }
+
 def split_ansi_from_text(ansi_text):
 	return ansi_re.split(ansi_text)
 
@@ -28,10 +30,10 @@ def text_with_fg_bg(ansi_text):
 			for attr in attr_text.split(';'):
 				m = re.match('^3(\d)$', attr)
 				if m:
-					fg = int(m.group(1))
+					fg = colormap[int(m.group(1))]
 				m = re.match('^4(\d)$', attr)
 				if m:
-					bg = int(m.group(1))
+					bg = colormap[int(m.group(1))]
 			yield (fg, bg)
 		else:
 			yield chunk
