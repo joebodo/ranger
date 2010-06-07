@@ -131,3 +131,5 @@ def colorscheme_overlay(context, fg, bg, attr):
 
 # The above function was just an example, let's set it back to None
 colorscheme_overlay = None
+
+launch_script = '/home/hut/ranger/pyrun.py --flags=$flags --mode=$mode $files'

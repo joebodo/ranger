@@ -16,11 +16,14 @@
 import os
 import re
 import shutil
+import string
+from subprocess import call
 from os.path import join, isdir
 from os import symlink, getcwd
 from inspect import cleandoc
 
 import ranger
+from ranger.ext.shell_escape import shell_quote
 from ranger.ext.direction import Direction
 from ranger import fsobject
 from ranger.shared import FileManagerAware, EnvironmentAware, SettingsAware
@@ -86,7 +89,17 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		elif type(files) not in (list, tuple):
 			files = [files]
 
-		return self.run(files=list(files), **kw)
+		if self.settings.launch_script:
+			flags = kw['flags'] if 'flags' in kw else ''
+			mode  = kw['mode']  if 'mode'  in kw else ''
+			files = ' '.join(shell_quote(p.path) for p in files)
+			cmd = string.Template(self.settings.launch_script).safe_substitute(dict(
+				files=files, mode=mode, flags=flags))
+			self.log.append(cmd)
+			cmd = cmd + ' 2> /tmp/errorlog'
+			self.ui.suspend()
+			call(cmd, shell=True)
+			self.ui.initialize()
 
 	# --------------------------
 	# -- Moving Around
