@@ -21,17 +21,31 @@ Ranger-run: Configurable file-opener
 
 from ranger.core.runner import Runner
 from string import Template
-import os
+from os.path import dirname, expanduser
 
 __version__ = '0.0'
 USAGE = '%prog [options] [filename1 [filename 2...]]'
 DEFAULT_CONFIG = '~/.pyrunrc'
+apps = {}
 
 class OpenStruct(dict): #{{{
 	"""The fusion of dict and struct"""
 	def __init__(self, *__args, **__keywords):
 		dict.__init__(self, *__args, **__keywords)
 		self.__dict__ = self #}}}
+
+class AppsWrapper(object): #{{{
+	def __init__(self, apps):
+		self.apps = apps
+
+	def apply(self, app, context):
+		if not app or app not in self.apps:
+			app = 'default'
+		try:
+			handler = self.apps[app]
+		except KeyError:
+			return False
+		return handler(context) #}}}
 
 def shell_quote(string): #{{{
 	"""Escapes by quoting"""
@@ -54,10 +68,7 @@ def parse_arguments(): #{{{
 	args = OpenStruct(named.__dict__, targets=positional)
 	return args #}}}
 
-apps = {}
-
-
-def substitute_macros(cmd, context):
+def substitute_macros(cmd, context): #{{{
 	class _CustomTemplate(Template):
 		delimiter = '%'
 		idpattern = '[a-z]'
@@ -66,20 +77,20 @@ def substitute_macros(cmd, context):
 	macros = {}
 	macros['f'] = context.file
 	macros['s'] = ' '.join(shell_quote(fl) for fl in context.files)
-	macros['d'] = os.path.dirname(context.file)
-	return _CustomTemplate(cmd).safe_substitute(macros)
+	macros['d'] = dirname(context.file)
+	return _CustomTemplate(cmd).safe_substitute(macros) #}}}
 
-def app(name, fnc=None, cmd=None, flags=None):
+def app(name, fnc=None, cmd=None, flags=None): #{{{
 	global apps
 	if fnc:
-		if flags:
+		if flags is not None:
 			def result(context):
 				context.flags = flags
 				return fnc(context)
 		else:
 			result = fnc
 	elif cmd:
-		if flags:
+		if flags is not None:
 			def result(context):
 				context.flags = flags
 				return substitute_macros(cmd, context)
@@ -88,27 +99,16 @@ def app(name, fnc=None, cmd=None, flags=None):
 				return substitute_macros(cmd, context)
 	else:
 		raise Exception('define a function or a command!')
-	apps[name] = result
+	apps[name] = result #}}}
 
+# Defaults:
 app('default', cmd='cat %s')
 app('pager', cmd='less')
 
-config = open('/home/hut/.pyrunrc', 'r')
-exec(config)
-
-class AppsWrapper(object):
-	def __init__(self, apps):
-		self.apps = apps
-
-	def apply(self, app, context):
-		if not app or app not in self.apps:
-			app = 'default'
-		try:
-			handler = self.apps[app]
-		except KeyError:
-			return False
-		return handler(context)
-
-runner = Runner(apps=AppsWrapper(apps))
 args = parse_arguments()
-runner(files=args.targets, flags=args.flags, mode=args.mode)
+if args.targets:
+	config = open(expanduser(args.config), 'r')
+	exec(config)
+
+	runner = Runner(apps=AppsWrapper(apps))
+	runner(files=args.targets, flags=args.flags, mode=args.mode)
