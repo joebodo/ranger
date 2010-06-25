@@ -131,6 +131,27 @@ def load_settings(fm, clean):
 	fm.apps = apps.CustomApplications()
 
 
+def load_rc(fm):
+	import ranger
+	try:
+		rc_filename = ranger.relpath_conf('rc.py')
+		stream = open(rc_filename)
+	except IOError:
+		try:
+			rc_filename = ranger.relpath('defaults', 'rc.py')
+			stream = open(rc_filename)
+		except IOError:
+			return
+	environment = {
+		'fm': fm,
+		'settings': fm.settings,
+		'map_key': fm.env.keymanager.map,
+		'browser': 'browser'
+	}
+	rc = compile(stream.read(), rc_filename, 'exec')
+	exec(rc, environment)
+
+
 def load_apps(fm, clean):
 	import ranger
 	if not clean:
@@ -206,6 +227,7 @@ def main():
 				in enumerate(targets[:9]))
 		load_settings(fm, ranger.arg.clean)
 		FileManagerAware._assign(fm)
+		load_rc(fm)
 		fm.ui = UI()
 
 		# Run the file manager
