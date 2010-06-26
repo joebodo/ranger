@@ -157,6 +157,8 @@ class UI(DisplayableContainer):
 		if cmd.function:
 			try:
 				cmd.function(CommandArgs.from_widget(self.fm))
+			except TypeError:
+				cmd.function()
 			except Exception as error:
 				self.fm.notify(error)
 			if kbuf.done:

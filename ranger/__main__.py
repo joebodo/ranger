@@ -132,24 +132,21 @@ def load_settings(fm, clean):
 
 
 def load_rc(fm):
-	import ranger
-	try:
-		rc_filename = ranger.relpath_conf('rc.py')
-		stream = open(rc_filename)
-	except IOError:
-		try:
-			rc_filename = ranger.relpath('defaults', 'rc.py')
-			stream = open(rc_filename)
-		except IOError:
-			return
 	environment = {
 		'fm': fm,
 		'settings': fm.settings,
-		'map_key': fm.env.keymanager.map,
-		'browser': 'browser'
+		'keys': fm.env.keymanager,
 	}
-	rc = compile(stream.read(), rc_filename, 'exec')
+	import ranger
+	filename = ranger.relpath('defaults', 'rc.py')
+	rc = compile(open(filename).read(), filename, 'exec')
 	exec(rc, environment)
+	try:
+		filename = ranger.relpath_conf('rc.py')
+		rc = compile(open(filename).read(), filename, 'exec')
+		exec(rc, environment)
+	except IOError:
+		pass
 
 
 def load_apps(fm, clean):
@@ -225,7 +222,7 @@ def main():
 		fm = FM()
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
-		load_settings(fm, ranger.arg.clean)
+		load_apps(fm, ranger.arg.clean)
 		FileManagerAware._assign(fm)
 		load_rc(fm)
 		fm.ui = UI()
