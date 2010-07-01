@@ -26,6 +26,13 @@ settings.hidden_filter = re.compile(
 	r'^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found')
 settings.show_hidden = False
 
+# Which program should be responsible for launching files?
+settings.launch_script = '$libpath/data/rifle.py -f $flags -m $mode $files'
+# Ranger ships with the file launcher "Rifle."
+# Alternatives include:  (uncomment to use)
+#launch_script = "xdg-open $files"  # The XDG file launcher
+#launch_script = "exo-open $files"  # The file launcher of Thunar
+
 # Show dotfiles in the bookmark preview box?
 settings.show_hidden_bookmarks = True
 

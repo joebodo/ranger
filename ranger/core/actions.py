@@ -94,7 +94,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			mode  = kw['mode']  if 'mode'  in kw else ''
 			files = ' '.join(shell_quote(p.path) for p in files)
 			cmd = string.Template(self.settings.launch_script).safe_substitute(dict(
-				files=files, mode=mode, flags=flags))
+				files=files, mode=mode, flags=flags, libpath=ranger.RANGERDIR))
 			self.log.append(cmd)
 			cmd = cmd + ' 2> /tmp/errorlog'
 			self.ui.suspend()
