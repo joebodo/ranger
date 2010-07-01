@@ -22,7 +22,7 @@ from os.path import abspath, normpath, join, expanduser, isdir
 from ranger.fsobject import Directory
 from ranger.container import KeyBuffer, KeyManager, History
 from ranger.ext.signal_dispatcher import SignalDispatcher
-from ranger.shared import SettingsAware
+from ranger.core.shared import SettingsAware
 
 ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
 		'console')
@@ -54,7 +54,6 @@ class Environment(SettingsAware, SignalDispatcher):
 		self.keybuffer = KeyBuffer(None, None)
 		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
 		self.copy = set()
-		self.history = History(self.settings.max_history_size)
 
 		try:
 			self.username = pwd.getpwuid(os.geteuid()).pw_name
@@ -65,6 +64,9 @@ class Environment(SettingsAware, SignalDispatcher):
 
 		self.signal_bind('move', self._set_cf_from_signal, priority=0.1,
 				weak=True)
+
+	def init2(self):
+		self.history = History(self.settings.max_history_size)
 
 	def _set_cf_from_signal(self, signal):
 		self._cf = signal.new

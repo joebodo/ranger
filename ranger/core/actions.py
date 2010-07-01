@@ -26,7 +26,7 @@ import ranger
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.direction import Direction
 from ranger import fsobject
-from ranger.shared import FileManagerAware, EnvironmentAware, SettingsAware
+from ranger.core.shared import FileManagerAware, EnvironmentAware, SettingsAware
 from ranger.gui.widgets import console_mode as cmode
 from ranger.fsobject import File
 from ranger.ext import shutil_generatorized as shutil_g
@@ -94,7 +94,8 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			mode  = kw['mode']  if 'mode'  in kw else ''
 			files = ' '.join(shell_quote(p.path) for p in files)
 			cmd = string.Template(self.settings.launch_script).safe_substitute(dict(
-				files=files, mode=mode, flags=flags, libpath=ranger.RANGERDIR))
+				files=files, mode=mode, flags=flags, libpath=ranger.RANGERDIR,
+				confpath=ranger.arg.confdir))
 			self.log.append(cmd)
 			cmd = cmd + ' 2> /tmp/errorlog'
 			self.ui.suspend()

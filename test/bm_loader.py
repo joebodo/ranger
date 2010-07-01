@@ -17,7 +17,7 @@ from ranger.core.loader import Loader
 from ranger.fsobject import Directory, File
 from ranger.ext.openstruct import OpenStruct
 import os.path
-from ranger.shared import FileManagerAware, SettingsAware
+from ranger.core.shared import FileManagerAware, SettingsAware
 from testlib import Fake
 from os.path import realpath, join, dirname
 from subprocess import Popen, PIPE

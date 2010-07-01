@@ -78,59 +78,6 @@ def allow_access_to_confdir(confdir, allow):
 			del sys.path[0]
 
 
-def load_settings(fm, clean):
-	import ranger.shared
-	import ranger.api.commands
-	import ranger.api.keys
-	if not clean:
-		allow_access_to_confdir(ranger.arg.confdir, True)
-
-		# Load commands
-		comcont = ranger.api.commands.CommandContainer()
-		ranger.api.commands.alias = comcont.alias
-		try:
-			import commands
-			comcont.load_commands_from_module(commands)
-		except ImportError:
-			pass
-		from ranger.defaults import commands
-		comcont.load_commands_from_module(commands)
-		commands = comcont
-
-		# Load apps
-		try:
-			import apps
-		except ImportError:
-			from ranger.defaults import apps
-
-		# Load keys
-		keymanager = ranger.shared.EnvironmentAware.env.keymanager
-		ranger.api.keys.keymanager = keymanager
-		from ranger.defaults import keys
-		try:
-			import keys
-		except ImportError:
-			pass
-		# COMPAT WARNING
-		if hasattr(keys, 'initialize_commands'):
-			print("Warning: the syntax for ~/.ranger/keys.py has changed.")
-			print("Your custom keys are not loaded."\
-					"  Please update your configuration.")
-		allow_access_to_confdir(ranger.arg.confdir, False)
-	else:
-		comcont = ranger.api.commands.CommandContainer()
-		ranger.api.commands.alias = comcont.alias
-		from ranger.api import keys
-		keymanager = ranger.shared.EnvironmentAware.env.keymanager
-		ranger.api.keys.keymanager = keymanager
-		from ranger.defaults import commands, keys, apps
-		comcont.load_commands_from_module(commands)
-		commands = comcont
-	fm.commands = commands
-	fm.keys = keys
-	fm.apps = apps.CustomApplications()
-
-
 def load_rc(fm):
 	environment = {
 		'fm': fm,
@@ -190,7 +137,7 @@ def main():
 	from ranger.core.environment import Environment
 	from ranger.gui.defaultui import DefaultUI as UI
 	from ranger.fsobject import File
-	from ranger.shared import (EnvironmentAware, FileManagerAware,
+	from ranger.core.shared import (EnvironmentAware, FileManagerAware,
 			SettingsAware)
 
 	if not arg.debug:
@@ -225,6 +172,7 @@ def main():
 		load_apps(fm, ranger.arg.clean)
 		FileManagerAware._assign(fm)
 		load_rc(fm)
+		EnvironmentAware.env.init2()
 		fm.ui = UI()
 
 		# Run the file manager

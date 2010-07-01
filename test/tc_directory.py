@@ -19,7 +19,7 @@ from os.path import realpath, join, dirname
 from ranger import fsobject
 from ranger.fsobject.file import File
 from ranger.fsobject.directory import Directory
-from ranger.shared.settings import SettingsAware
+from ranger.core.shared import SettingsAware
 
 SettingsAware._setup()
 

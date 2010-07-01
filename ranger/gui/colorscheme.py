@@ -48,7 +48,7 @@ import ranger
 from ranger.gui.color import get_color
 from ranger.gui.context import Context
 from ranger.__main__ import allow_access_to_confdir
-from ranger.shared.settings import SettingsAware
+from ranger.core.shared import SettingsAware
 
 # ColorScheme is not SettingsAware but it will gain access
 # to the settings during the initialization.  We can't import
@@ -76,20 +76,8 @@ class ColorScheme(SettingsAware):
 		keys = frozenset(keys)
 		try:
 			return self.cache[keys]
-
 		except KeyError:
-			context = Context(keys)
-
-			# add custom error messages for broken colorschemes
-			color = self.use(context)
-			if self.settings.colorscheme_overlay:
-				result = self.settings.colorscheme_overlay(context, *color)
-				assert isinstance(result, (tuple, list)), \
-						"Your colorscheme overlay doesn't return a tuple!"
-				assert all(isinstance(val, int) for val in result), \
-						"Your colorscheme overlay doesn't return a tuple"\
-						" containing 3 integers!"
-				color = result
+			color = self.use(Context(keys))
 			self.cache[keys] = color
 			return color
 

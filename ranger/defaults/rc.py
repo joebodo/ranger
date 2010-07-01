@@ -27,7 +27,9 @@ settings.hidden_filter = re.compile(
 settings.show_hidden = False
 
 # Which program should be responsible for launching files?
-settings.launch_script = '$libpath/data/rifle.py -f $flags -m $mode $files'
+settings.launch_script = '$libpath/data/rifle.py' \
+		' --config=$confpath/riflerc.py' \
+		' -f $flags -m $mode $files'
 # Ranger ships with the file launcher "Rifle."
 # Alternatives include:  (uncomment to use)
 #launch_script = "xdg-open $files"  # The XDG file launcher

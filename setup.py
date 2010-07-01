@@ -38,5 +38,4 @@ distutils.core.setup(
 	          'ranger.fsobject',
 	          'ranger.gui',
 	          'ranger.gui.widgets',
-	          'ranger.help',
-	          'ranger.shared'))
+	          'ranger.help'))

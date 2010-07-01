@@ -19,6 +19,8 @@ import ranger
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger.ext.openstruct import OpenStruct
 
+NoneType = type(None)
+
 ALLOWED_SETTINGS = {
 	'show_hidden': bool,
 	'show_hidden_bookmarks': bool,
@@ -39,26 +41,37 @@ ALLOWED_SETTINGS = {
 	'update_title': bool,
 	'shorten_title': int,  # Note: False is an instance of int
 	'tilde_in_titlebar': bool,
-	'max_history_size': (int, type(None)),
-	'max_console_history_size': (int, type(None)),
-	'launch_script': (str, type(None)),
+	'max_history_size': (int, NoneType),
+	'max_console_history_size': (int, NoneType),
+	'launch_script': (str, NoneType),
 	'scroll_offset': int,
 	'preview_files': bool,
 	'preview_directories': bool,
 	'mouse_enabled': bool,
 	'flushinput': bool,
 	'colorscheme': str,
-	'colorscheme_overlay': (type(None), type(lambda:0)),
+	'colorscheme_overlay': (NoneType, type(lambda:0)),
 	'hidden_filter': lambda x: isinstance(x, str) or hasattr(x, 'match'),
 	'xterm_alt_key': bool,
 }
+
+
+def default_value(name):
+	types = ALLOWED_SETTINGS[name]
+	if not isinstance(types, tuple):
+		types = (types, )
+	for t in types:
+		if t is NoneType:
+			return None
+		if t in (bool, int, str, tuple):
+			return t()
+	return None
 
 
 class SettingObject(SignalDispatcher):
 	def __init__(self):
 		SignalDispatcher.__init__(self)
 		self.__dict__['_settings'] = dict()
-		self.__dict__['_setting_sources'] = list()
 		for name in ALLOWED_SETTINGS:
 			self.signal_bind('setopt.'+name,
 					self._raw_set_with_signal, priority=0.2)
@@ -67,30 +80,19 @@ class SettingObject(SignalDispatcher):
 		if name[0] == '_':
 			self.__dict__[name] = value
 		else:
-			self.__getattr__(name)
 			assert self._check_type(name, value)
 			kws = dict(setting=name, value=value,
-					previous=self._settings[name])
+					previous=(self._settings[name] \
+							if name in self._settings \
+							else default_value(name)))
 			self.signal_emit('setopt', **kws)
 			self.signal_emit('setopt.'+name, **kws)
 
 	def __getattr__(self, name):
-		assert name in ALLOWED_SETTINGS or name in self._settings, \
-				"No such setting: {0}!".format(name)
 		try:
 			return self._settings[name]
-		except:
-			for struct in self._setting_sources:
-				try: value = getattr(struct, name)
-				except: pass
-				else: break
-			else:
-				raise Exception("The option `{0}' was not defined" \
-						" in the defaults!".format(name))
-			assert self._check_type(name, value)
-			self._raw_set(name, value)
-			self.__setattr__(name, value)
-			return self._settings[name]
+		except KeyError:
+			raise Exception("No such setting: %s!" % name)
 
 	def __iter__(self):
 		for x in self._settings:
@@ -106,7 +108,6 @@ class SettingObject(SignalDispatcher):
 				return typ
 			else:
 				return (typ, )
-
 
 	def _check_type(self, name, value):
 		typ = ALLOWED_SETTINGS[name]
@@ -127,35 +128,3 @@ class SettingObject(SignalDispatcher):
 
 	def _raw_set_with_signal(self, signal):
 		self._settings[signal.setting] = signal.value
-
-
-# -- globalize the settings --
-class SettingsAware(object):
-	settings = OpenStruct()
-
-	@staticmethod
-	def _setup():
-		settings = SettingObject()
-
-		from ranger.gui.colorscheme import _colorscheme_name_to_class
-		settings.signal_bind('setopt.colorscheme',
-				_colorscheme_name_to_class, priority=1)
-
-		if not ranger.arg.clean:
-			# overwrite single default options with custom options
-			sys.path[0:0] = [ranger.arg.confdir]
-			try:
-				import options as my_options
-			except ImportError:
-				pass
-			else:
-				settings._setting_sources.append(my_options)
-			del sys.path[0]
-
-		from ranger.defaults import options as default_options
-		settings._setting_sources.append(default_options)
-		assert all(hasattr(default_options, setting) \
-				for setting in ALLOWED_SETTINGS), \
-				"Ensure that all options are defined in the defaults!"
-
-		SettingsAware.settings = settings

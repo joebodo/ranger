@@ -13,10 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Shared objects contain singleton variables which can be
-inherited, essentially acting like global variables."""
+"""
+Shared objects contain singleton variables which can be
+inherited, essentially acting like global variables.
+"""
+
+import mimetypes
+import ranger
+import sys
+from ranger import relpath
+from ranger.ext.openstruct import OpenStruct
+
+
 class Awareness(object):
-	pass
+	"""Base class for shared objects"""
+
 
 class EnvironmentAware(Awareness):
 	env = None
@@ -31,5 +42,21 @@ class FileManagerAware(Awareness):
 	def _assign(instance):
 		FileManagerAware.fm = instance
 
-from .mimetype import MimeTypeAware
-from .settings import SettingsAware
+
+class MimeTypeAware(Awareness):
+	mimetypes = {}
+	def __init__(self):
+		MimeTypeAware.__init__ = lambda _: None  # refuse multiple inits
+		MimeTypeAware.mimetypes = mimetypes.MimeTypes()
+		MimeTypeAware.mimetypes.read(relpath('data/mime.types'))
+
+class SettingsAware(Awareness):
+	settings = OpenStruct()
+	@staticmethod
+	def _setup():
+		from ranger.gui.colorscheme import _colorscheme_name_to_class
+		from ranger.container.settings import SettingObject
+		settings = SettingObject()
+		settings.signal_bind('setopt.colorscheme',
+				_colorscheme_name_to_class, priority=1)
+		SettingsAware.settings = settings

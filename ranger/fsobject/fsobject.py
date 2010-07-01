@@ -21,7 +21,7 @@ from os import access, listdir, lstat, readlink, stat
 from time import time
 from os.path import abspath, basename, dirname, realpath, splitext, extsep
 from . import BAD_INFO
-from ranger.shared import MimeTypeAware, FileManagerAware
+from ranger.core.shared import MimeTypeAware, FileManagerAware
 from ranger.ext.shell_escape import shell_escape
 from ranger.ext.spawn import spawn
 from ranger.ext.lazy_property import lazy_property
