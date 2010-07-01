@@ -66,22 +66,22 @@ def extension(filename):
 	return os.path.splitext(filename)[1][1:]
 
 def mimetype(filename):
-	return spawn('file', '-Lb', '--mimetype', filename)
+	return spawn('file', '-Lb', '--mime-type', filename)
 
-def isimage(filename):
+def is_image(filename):
 	return mimetype(filename).startswith('image')
 
-def isvideo(filename):
+def is_video(filename):
 	return mimetype(filename).startswith('video')
 
-def isaudio(filename):
+def is_audio(filename):
 	return mimetype(filename).startswith('audio')
 
 CONTAINER_EXTENSIONS = ('7z', 'ace', 'ar', 'arc', 'bz', 'bz2', 'cab', 'cpio',
 	'cpt', 'dgc', 'dmg', 'gz', 'iso', 'jar', 'msi', 'pkg', 'rar', 'shar',
 	'tar', 'tbz', 'tgz', 'xar', 'xz', 'zip')
 
-def iscontainer(filename):
+def is_container(filename):
 	return extension(filename) in CONTAINER_EXTENSIONS
 #}}}
 
@@ -187,17 +187,27 @@ class Rifle(object): #{{{
 		self.parse_arguments(argv)
 
 		# Setup defaults
-		app = self.app
-		app('default', cmd='cat %s', flags='p')
-		app('pager', cmd='less')
+		self.app('default', cmd='cat %s', flags='p')
+		self.app('pager', cmd='less')
 
-		# Load config file
 		try:
-			config = open(os.path.expanduser(self.args.config), 'r')
+			self.load_conf(os.path.expanduser(self.args.config))
 		except IOError:
-			pass
-		else:
-			exec(config)
+			self.load_conf()
+
+	def load_conf(self, rcname=None):
+		if rcname is None:
+			rcname = os.path.join(os.path.dirname(os.path.realpath(__file__)), "riflerc.py")
+		rcstream = open(rcname, 'r')  # expected IOError if file doesnt exist
+
+		# setup artificial environment:
+		global app, appdef, get_app
+		app = self.app
+		appdef = self.appdef
+		get_app = self.get_app
+
+		exec(rcstream.read())
+		return True
 
 	def parse_arguments(self, argv):
 		parser = optparse.OptionParser(usage=USAGE,
@@ -217,19 +227,33 @@ class Rifle(object): #{{{
 
 	def app(self, name, fnc=None, cmd=None, flags=None):
 		"""The method to define new applications"""
+		if cmd is None:
+			cmd = name + " %s"
+
+#		if fnc:
+#			print(fnc(OpenStruct(file='info',mode=0)))
 		def function(context):
 			if flags is not None:
 				context.flags = flags
 			if fnc:
-				return fnc(context)
-			elif cmd:
-				if '%' not in cmd:
-					return cmd
-				macros = dict(f=context.file, s=context.allfiles,
-						d=os.path.dirname(context.file))
-				return CustomTemplate(cmd).safe_substitute(macros)
-			raise Exception('define a function or a command!')
+				cmd = fnc(context)
+			if '%' not in cmd:
+				return cmd
+			macros = dict(f=context.file, s=context.allfiles,
+					d=os.path.dirname(context.file))
+			return CustomTemplate(cmd).substitute(macros)
 		self.apps[name] = function
+
+	def appdef(self, function):
+		self.app(function.__name__, fnc=function)
+		return function
+
+	def get_app(self, context, *apps):
+		name = apps[0] if apps else None
+		try:
+			return self.apps[name](context)
+		except KeyError:
+			return name + " %s"
 
 	def execute(self):
 		if self.args.targets:
