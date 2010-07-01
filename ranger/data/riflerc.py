@@ -80,6 +80,7 @@ def make(context):
 
 @appdef
 def feh(context):
+	context.flags += "d"
 	if context.mode == 1:
 		return "feh --bg-scale %f"
 	elif context.mode == 2:

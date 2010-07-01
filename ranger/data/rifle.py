@@ -240,13 +240,14 @@ class Rifle(object): #{{{
 		if cmd is None:
 			cmd = name + " %s"
 
-#		if fnc:
-#			print(fnc(OpenStruct(file='info',mode=0)))
 		def function(context):
 			if flags is not None:
 				context.flags = flags
 			if fnc:
 				cmd = fnc(context)
+			if cmd is None:
+				print("No action found!")
+				return
 			if '%' not in cmd:
 				return cmd
 			macros = dict(f=context.file, s=context.allfiles,

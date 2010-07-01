@@ -90,8 +90,8 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			files = [files]
 
 		if self.settings.launch_script:
-			flags = kw['flags'] if 'flags' in kw else ''
-			mode  = kw['mode']  if 'mode'  in kw else ''
+			flags = kw['flags'] if 'flags' in kw else "''"
+			mode  = kw['mode']  if 'mode'  in kw else "''"
 			files = ' '.join(shell_quote(p.path) for p in files)
 			cmd = string.Template(self.settings.launch_script).safe_substitute(dict(
 				files=files, mode=mode, flags=flags, libpath=ranger.RANGERDIR,
