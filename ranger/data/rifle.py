@@ -59,6 +59,15 @@ def shell_quote(string):
 class CustomTemplate(string.Template):
 	delimiter = '%'
 	idpattern = '[a-z]'
+
+def is_installed(program):
+	for path in os.environ['PATH'].split(":"):
+		if os.path.exists(os.path.join(path, program)):
+			return True
+	return False
+
+def shell_escape(string):
+	return "'" + str(string).replace("'", "'\\''") + "'"
 #}}}
 
 # Helper functions for .riflerc #{{{
@@ -201,10 +210,11 @@ class Rifle(object): #{{{
 		rcstream = open(rcname, 'r')  # expected IOError if file doesnt exist
 
 		# setup artificial environment:
-		global app, appdef, get_app
+		global app, appdef, get_app, find_app
 		app = self.app
 		appdef = self.appdef
 		get_app = self.get_app
+		find_app = self.find_app
 
 		exec(rcstream.read())
 		return True
@@ -248,8 +258,22 @@ class Rifle(object): #{{{
 		self.app(function.__name__, fnc=function)
 		return function
 
-	def get_app(self, context, *apps):
-		name = apps[0] if apps else None
+	def find_app(self, context, name, *apps):
+		if not apps:
+			return self.get_app(context, name)
+		for app in (name, ) + tuple(apps):
+			if not app in self.apps:
+				if is_installed(app):
+					return self.get_app(context, app)
+			else:
+				context_copy = OpenStruct(context)
+				result = self.get_app(context_copy, app)
+				result_split = result.split()
+				if is_installed(result_split[0]):
+					return result
+		raise Exception("No appropriate program found!")
+
+	def get_app(self, context, name):
 		try:
 			return self.apps[name](context)
 		except KeyError:
