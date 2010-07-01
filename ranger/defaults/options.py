@@ -39,6 +39,14 @@ hidden_filter = regexp(
 	r'^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found')
 show_hidden = False
 
+
+# Which program should be responsible for launching files?
+launch_script = relpath('scripts/rifle.py') + ' -f $flags -m $mode $files'
+# Ranger ships with the file launcher "Rifle."
+# Alternatives include:  (uncomment to use)
+#launch_script = "xdg-open $files"  # The XDG file launcher
+#launch_script = "exo-open $files"  # The file launcher of Thunar
+
 # Show dotfiles in the bookmark preview box?
 show_hidden_bookmarks = True
 
