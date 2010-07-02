@@ -85,11 +85,11 @@ def load_rc(fm):
 		'keys': fm.env.keymanager,
 	}
 	import ranger
-	filename = ranger.relpath('defaults', 'rc.py')
+	filename = ranger.relpath('data', 'rangerrc.py')
 	rc = compile(open(filename).read(), filename, 'exec')
 	exec(rc, environment)
 	try:
-		filename = ranger.relpath_conf('rc.py')
+		filename = ranger.relpath_conf('rangerrc.py')
 		rc = compile(open(filename).read(), filename, 'exec')
 		exec(rc, environment)
 	except IOError:
