@@ -33,9 +33,8 @@ class Pager(Widget):
 	old_source = None
 	old_scroll_begin = 0
 	old_startx = 0
-	def __init__(self, win, embedded=False):
+	def __init__(self, win):
 		Widget.__init__(self, win)
-		self.embedded = embedded
 		self.scroll_begin = 0
 		self.startx = 0
 		self.markup = None
@@ -129,7 +128,7 @@ class Pager(Widget):
 					offset=-self.hei + 1)
 
 	def press(self, key):
-		self.env.keymanager.use_context(self.embedded and 'embedded_pager' or 'pager')
+		self.env.keymanager.use_context('pager')
 		self.env.key_append(key)
 		kbuf = self.env.keybuffer
 		cmd = kbuf.command
@@ -145,6 +144,8 @@ class Pager(Widget):
 		if cmd.function:
 			try:
 				cmd.function(CommandArgs.from_widget(self))
+			except TypeError:
+				cmd.function()
 			except Exception as error:
 				self.fm.notify(error)
 			if kbuf.done:
