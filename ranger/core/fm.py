@@ -64,6 +64,12 @@ class FM(Actions, SignalDispatcher):
 		"""For compatibility. Calls get_executables()"""
 		return get_executables()
 
+	@property
+	def focused(self):
+		from ranger import log
+		log(repr(self.ui._get_focused_obj()))
+		return self.ui._get_focused_obj()
+
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""
 		if self.bookmarks is None:
