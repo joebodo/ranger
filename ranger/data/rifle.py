@@ -14,7 +14,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Rifle - Ranger's File Launcher"""
+"""
+Rifle - Ranger's File Launcher
+
+You get the following helper functions for the configuration:
+
+1. app(<name>, fnc=<function>, cmd=<command>, flags=<flags>)
+  Specify information about the application called <name>.
+  You can either use a function OR a command (eg. "mplayer -fs %s").
+  <function> should take a <context> as an argument and return a
+  string: the command to be executed.
+2. appdef(<function>)
+  It's equivalent to app(<function>.__name__, fnc=<function>)
+  and can be used as a decorator.
+3. get_app(context, <name>)
+  Returns the command for the application <name>.
+4. find_app(context, name1, name2, ..., nameN)
+  Similarily to get_app, this returns the command for the first of the
+  given applications which is installed on the computer.
+"""
 
 import optparse
 import os.path
