@@ -250,10 +250,12 @@ bmap('gm', lambda: fm.cd('/media'))
 bmap('gM', lambda: fm.cd('/mnt'))
 bmap('go', lambda: fm.cd('/opt'))
 bmap('gr', 'g/', lambda: fm.cd('/'))
-bmap('gR', lambda: fm.cd(RANGERDIR))
 bmap('gs', lambda: fm.cd('/srv'))
 bmap('gu', lambda: fm.cd('/usr'))
 bmap('gv', lambda: fm.cd('/var'))
+
+from ranger import RANGERDIR
+bmap('gR', lambda: fm.cd(RANGERDIR))
 
 # Tabs:
 bmap('gc', '<C-W>',   fm.tab_close)
@@ -356,7 +358,7 @@ def commands_with_directions(key, drct):
 	bmap(key,       lambda arg: fm.move(narg=arg.n, **drct))
 	tmap(key,       lambda arg: fm.focused.move(narg=arg.n, **drct))
 	pmap(key,       lambda arg: fm.focused.move(narg=arg.n, **drct))
-	bmap('d' + key, lambda: fm.cut(dirarg=drct))
+	bmap('d' + key, lambda: fm.cut(dirarg=drct))  # TODO: d3j
 	bmap('y' + key, lambda: fm.copy(dirarg=drct))
 	bmap('<C-V>' + key,
 			lambda: fm.mark_in_direction(val=True, dirarg=drct))
