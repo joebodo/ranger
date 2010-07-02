@@ -76,8 +76,7 @@ settings.launch_script = '$libpath/data/rifle.py' + \
 settings.show_hidden_bookmarks = True
 
 # Which colorscheme to use?  These colorschemes are available by default:
-# default, default88, texas, jungle, snow
-# Snow is monochrome, texas and default88 use 88 colors.
+# default, default88 (88 colors), jungle, snow (monochrome)
 settings.colorscheme = 'default'
 
 # Save the console history on exit?
