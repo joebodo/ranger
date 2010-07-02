@@ -95,8 +95,7 @@ class FM(Actions, SignalDispatcher):
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)
-		self.run = Runner(ui=self.ui, apps=self.apps,
-				logfunc=mylogfunc)
+		self.run = Runner(ui=self.ui, logfunc=mylogfunc)
 
 		self.env.signal_bind('cd', self._update_current_tab)
 

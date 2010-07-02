@@ -96,20 +96,6 @@ def load_rc(fm):
 		pass
 
 
-def load_apps(fm, clean):
-	import ranger
-	if not clean:
-		allow_access_to_confdir(ranger.arg.confdir, True)
-		try:
-			import apps
-		except ImportError:
-			from ranger.defaults import apps
-		allow_access_to_confdir(ranger.arg.confdir, False)
-	else:
-		from ranger.defaults import apps
-	fm.apps = apps.CustomApplications()
-
-
 def main():
 	"""initialize objects and run the filemanager"""
 	try:
@@ -169,7 +155,6 @@ def main():
 		fm = FM()
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
-		load_apps(fm, ranger.arg.clean)
 		FileManagerAware._assign(fm)
 		load_rc(fm)
 		EnvironmentAware.env.init2()
