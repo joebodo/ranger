@@ -83,24 +83,27 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		flags is a string consisting of runner.ALLOWED_FLAGS
 		mode is a positive integer.
 		Both flags and mode specify how the program is run."""
+		self.ui.suspend()
+		self.execute_file_raw(files, **kw)
+		self.ui.initialize()
 
-		if isinstance(files, set):
-			files = list(files)
-		elif type(files) not in (list, tuple):
-			files = [files]
-
+	def execute_file_raw(self, files, **kw):
 		if self.settings.launch_script:
-			flags = kw['flags'] if 'flags' in kw else "''"
-			mode  = kw['mode']  if 'mode'  in kw else "''"
+			if isinstance(files, set):
+				files = list(files)
+			elif type(files) not in (list, tuple):
+				files = [files]
+			flags = kw['flags'] if 'flags' in kw else ""
+			mode  = kw['mode']  if 'mode'  in kw else ""
 			files = ' '.join(shell_quote(p.path) for p in files)
-			cmd = string.Template(self.settings.launch_script).safe_substitute(dict(
-				files=files, mode=mode, flags=flags, libpath=ranger.RANGERDIR,
-				confpath=ranger.arg.confdir))
+			cmd = string.Template(self.settings.launch_script).\
+					safe_substitute(dict(
+					files=files, mode=mode, flags=flags,
+					libpath=ranger.RANGERDIR,
+					confpath=ranger.arg.confdir))
 			self.log.append(cmd)
 			cmd = cmd + ' 2> /tmp/errorlog'
-			self.ui.suspend()
 			call(cmd, shell=True)
-			self.ui.initialize()
 
 	# --------------------------
 	# -- Moving Around

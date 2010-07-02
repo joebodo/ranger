@@ -141,11 +141,12 @@ def main():
 			print("File or directory doesn't exist: %s" % target)
 			sys.exit(1)
 		elif os.path.isfile(target):
-			def print_function(string):
-				print(string)
-			runner = Runner(logfunc=print_function)
-			load_apps(runner, ranger.arg.clean)
-			runner(files=[File(target)], mode=arg.mode, flags=arg.flags)
+			EnvironmentAware._assign(Environment(target))
+			fm = FM()
+			FileManagerAware._assign(fm)
+			load_rc(fm)
+			files = [File(path) for path in targets]
+			fm.execute_file_raw(files, mode=arg.mode, flags=arg.flags)
 			sys.exit(1 if arg.fail_unless_cd else 0)
 
 	crash_traceback = None

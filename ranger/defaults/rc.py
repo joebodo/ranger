@@ -66,7 +66,7 @@ settings.collapse_preview = True
 
 # Which program should be responsible for launching files?
 settings.launch_script = '$libpath/data/rifle.py' + \
-	' --config=$confpath/riflerc.py -f $flags -m $mode $files'
+	' --config=$confpath/riflerc.py -f "$flags" -m "$mode" $files'
 # Ranger ships with the file launcher "Rifle".
 # Alternatives include:  (uncomment to use)
 #launch_script = "gnome-open $files"  # The GNOME file launcher
