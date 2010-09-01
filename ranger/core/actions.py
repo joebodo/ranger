@@ -39,6 +39,33 @@ class _MacroTemplate(string.Template):
 class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	search_method = 'ctime'
 	search_forward = False
+	_commands = {}
+
+	# --------------------------
+	# -- New
+	# --------------------------
+
+	def add_commands_from_file(self, filename):
+		global fm
+		fm = self
+
+		code = compile(open(filename).read(), filename, 'exec')
+		exec(code, globals())
+
+	def run_commands_from_file(self, filename):
+		for line in open(filename, 'r'):
+			self.cmd(line.rstrip("\r\n"))
+
+	def cmd(self, line):
+		line = line.lstrip()
+		if not line or line[0] == '"' or line[0] == '#':
+			return
+		command_name = line.split(' ', 1)[0]
+		if command_name in self._commands:
+			command_entry = self._commands[command_name]
+			command_entry(line).execute()
+		else:
+			raise Exception("No such command: " + command_name)
 
 	# --------------------------
 	# -- Basic Commands

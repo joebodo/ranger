@@ -20,7 +20,7 @@ import socket
 from os.path import abspath, normpath, join, expanduser, isdir
 
 from ranger.fsobject import Directory
-from ranger.container import KeyBuffer, KeyManager, History
+from ranger.container import KeyBuffer, KeyManager
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger.shared import SettingsAware
 
@@ -54,7 +54,6 @@ class Environment(SettingsAware, SignalDispatcher):
 		self.keybuffer = KeyBuffer(None, None)
 		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
 		self.copy = set()
-		self.history = History(self.settings.max_history_size, unique=False)
 
 		try:
 			self.username = pwd.getpwuid(os.geteuid()).pw_name

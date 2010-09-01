@@ -24,6 +24,7 @@ import sys
 
 import ranger
 from ranger.core.actions import Actions
+from ranger.container import History
 from ranger.container.tags import Tags
 from ranger.gui.defaultui import DefaultUI
 from ranger.container import Bookmarks
@@ -89,9 +90,9 @@ class FM(Actions, SignalDispatcher):
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)
-		self.run = Runner(ui=self.ui, apps=self.apps,
-				logfunc=mylogfunc)
 
+		self.env.history = History(self.settings.max_history_size,
+				unique=False)
 		self.env.signal_bind('cd', self._update_current_tab)
 
 	def block_input(self, sec=0):

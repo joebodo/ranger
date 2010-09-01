@@ -182,8 +182,8 @@ def main():
 	from ranger.shared import (EnvironmentAware, FileManagerAware,
 			SettingsAware)
 
-	if not arg.debug:
-		curses_interrupt_handler.install_interrupt_handler()
+#	if not arg.debug:
+#		curses_interrupt_handler.install_interrupt_handler()
 	ranger.arg = arg
 
 	SettingsAware._setup()
@@ -196,13 +196,6 @@ def main():
 		if not os.access(target, os.F_OK):
 			print("File or directory doesn't exist: %s" % target)
 			sys.exit(1)
-		elif os.path.isfile(target):
-			def print_function(string):
-				print(string)
-			runner = Runner(logfunc=print_function)
-			load_apps(runner, ranger.arg.clean)
-			runner(files=[File(target)], mode=arg.mode, flags=arg.flags)
-			sys.exit(1 if arg.fail_unless_cd else 0)
 
 	crash_traceback = None
 	try:
@@ -211,9 +204,10 @@ def main():
 		fm = FM()
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
-		load_settings(fm, ranger.arg.clean)
 		FileManagerAware._assign(fm)
 		fm.ui = UI()
+		fm.add_commands_from_file(ranger.relpath('core/base_commands.py'))
+		fm.run_commands_from_file(ranger.relpath('defaults/rc'))
 
 		# Run the file manager
 		fm.initialize()

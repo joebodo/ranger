@@ -66,10 +66,10 @@ class SettingObject(SignalDispatcher):
 		if name[0] == '_':
 			self.__dict__[name] = value
 		else:
-			assert name in self._settings, "No such setting: {0}!".format(name)
+			assert name in ALLOWED_SETTINGS, "No such setting: {0}!".format(name)
 			assert self._check_type(name, value)
 			kws = dict(setting=name, value=value,
-					previous=self._settings[name])
+					previous=self._settings.get(name, None))
 			self.signal_emit('setopt', **kws)
 			self.signal_emit('setopt.'+name, **kws)
 
@@ -79,13 +79,6 @@ class SettingObject(SignalDispatcher):
 		try:
 			return self._settings[name]
 		except:
-			for struct in self._setting_sources:
-				try: value = getattr(struct, name)
-				except: pass
-				else: break
-			else:
-				raise Exception("The option `{0}' was not defined" \
-						" in the defaults!".format(name))
 			assert self._check_type(name, value)
 			self._raw_set(name, value)
 			self.__setattr__(name, value)
@@ -139,22 +132,4 @@ class SettingsAware(object):
 		from ranger.gui.colorscheme import _colorscheme_name_to_class
 		settings.signal_bind('setopt.colorscheme',
 				_colorscheme_name_to_class, priority=1)
-
-		if not ranger.arg.clean:
-			# overwrite single default options with custom options
-			sys.path[0:0] = [ranger.arg.confdir]
-			try:
-				import options as my_options
-			except ImportError:
-				pass
-			else:
-				settings._setting_sources.append(my_options)
-			del sys.path[0]
-
-		from ranger.defaults import options as default_options
-		settings._setting_sources.append(default_options)
-		assert all(hasattr(default_options, setting) \
-				for setting in ALLOWED_SETTINGS), \
-				"Ensure that all options are defined in the defaults!"
-
 		SettingsAware.settings = settings

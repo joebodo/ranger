@@ -1,0 +1,131 @@
+" ===================================================================
+" == Settings
+" ===================================================================
+set autosave_bookmarks true
+set collapse_preview true
+set colorscheme default
+set column_ratios 1 1 4 3
+set dirname_in_tabs false
+set display_size_in_main_column true
+set display_size_in_status_bar false
+set draw_bookmark_borders true
+set draw_borders false
+set flushinput true
+set hidden_filter ^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found
+set max_console_history_size 20
+set max_history_size 20
+set mouse_enabled true
+set preview_directories true
+set preview_files true
+set save_console_history true
+set scroll_offset 8
+set shorten_title 3
+set show_cursor false
+set show_hidden_bookmarks true
+set show_hidden true
+set sort basename
+set sort_case_insensitive false
+set sort_directories_first true
+set sort_reverse false
+set tilde_in_titlebar true
+set update_title true
+set xterm_alt_key false
+
+"" ===================================================================
+"" == Internal file launcher
+"" ===================================================================
+"" Define applications for each filetype.  In case of multiple matches,
+"" the first one is used.  If a command can't be run, the next match
+"" is tried until one is found.
+"macro def archive_ext tar,gz,zip
+"launcher glob    name  *.{html,xhtml,htm,swf}  firefox %s
+"launcher glob    name  *.pdf                   xpdf %s
+"launcher glob    name  *.nes                   fceux %s
+"launcher glob    name  *.s{w,m}c               zsnes %s
+"launcher glob    name  *.{%archive_ext}        aunpack -l %s
+"launcher glob    name  *.{%archive_ext}        file-roller %s
+"launcher glob    type  image/*                 feh %f
+"launcher glob    type  {audio,video}/*         mplayer -l %s
+"launcher glob    type  text/*                  vim %s
+"launcher compare name  README                  vim %s
+"launcher glob    name  *.xml                   vim %s
+"launcher compare name  Makefile                make
+
+" ===================================================================
+" == Browser Keybindings
+" ===================================================================
+map j move down
+map k move up
+map h move left
+map l execute
+map J move down 0.5 page
+map K move up 0.5 page
+map <C-D> move down 0.5 page
+map <C-U> move up 0.5 page
+map <C-F> move down 1 page
+map <C-B> move up 1 page
+map ] move_column -1 down
+map [ move_column -1 up
+map <CR> execute
+map gg move home
+map G move end
+
+map H history -1
+map L history 1
+
+map t tag toggle
+map T tag remove
+
+map <Space> mark toggle
+map v mark toggle all
+map V mark unmark all
+map uv mark unmark all
+map <C-V><dir> mark_in_direction
+map u<C-V><dir> mark_in_direction unmark
+
+map yy copy selection
+map y<dir> copy direction
+map ya copy selection add
+map yr copy selection remove
+
+" Midnight Commander
+map <F1> help
+map <F3> view
+map <F4> edit
+map <F5> copy selection
+map <F6> cut selection
+map <F7> console mkdir 
+map <F8> console delete seriously? 
+map <F10> quit
+
+" ===================================================================
+" == Console Keybindings
+" ===================================================================
+
+cmap <UP> history -1
+cmap <DOWN> history 1
+cmap <HOME> move home
+cmap <END> move end
+
+cmap <TAB> tab
+cmap <S-TAB> tab -1
+
+" Emacs
+cmap <C-B> move left
+cmap <C-F> move right
+cmap <C-A> move home
+cmap <C-E> move end
+cmap <C-D> delete here
+cmap <C-H> delete left
+cmap <C-P> history -1
+cmap <C-N> history 1
+
+" Line editing
+cmap <backspace> delete here
+cmap <delete> delete left
+cmap <C-W> console delete_word
+cmap <C-K> console delete_rest
+cmap <C-U> console delete_rest -1
+cmap <C-Y> console paste
+
+" vim: ft=vim

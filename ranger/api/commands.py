@@ -70,8 +70,10 @@ class Command(FileManagerAware):
 	"""Abstract command class"""
 	name = None
 	allow_abbrev = True
+	_shifted = 0
 	def __init__(self, line):
 		self.line = line
+		self.args = line.split()
 
 	def execute(self):
 		"""Override this"""
@@ -82,6 +84,24 @@ class Command(FileManagerAware):
 	def quick(self):
 		"""Override this"""
 
+	# Easy ways to get information
+	def arg(self, n):
+		try:
+			return self.args[n]
+		except IndexError:
+			return ""
+
+	def rest(self, n):
+		try:
+			return self.line.split(" ", n - self._shifted)[-1]
+		except IndexError:
+			return ""
+
+	def shift(self):
+		del self.args[0]
+		self._shifted += 1
+
+	# Tab stuff
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 
