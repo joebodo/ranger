@@ -71,8 +71,9 @@ class Command(FileManagerAware):
 	name = None
 	allow_abbrev = True
 	_shifted = 0
-	def __init__(self, line):
+	def __init__(self, line, n=None):
 		self.line = line
+		self.n = n
 		self.args = line.split()
 
 	def execute(self):
@@ -92,10 +93,18 @@ class Command(FileManagerAware):
 			return ""
 
 	def rest(self, n):
-		try:
-			return self.line.split(" ", n - self._shifted)[-1]
-		except IndexError:
-			return ""
+		got_space = False
+		word_count = 0
+		for i in range(len(self.line)):
+			if self.line[i] == " ":
+				if not got_space:
+					got_space = True
+					word_count += 1
+			elif got_space:
+				got_space = False
+				if word_count == n + self._shifted:
+					return self.line[i:]
+		return ""
 
 	def shift(self):
 		del self.args[0]

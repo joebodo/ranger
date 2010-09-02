@@ -144,10 +144,10 @@ class Console(Widget):
 
 		if kbuf.failure:
 			kbuf.clear()
+			self.type_key(key)
 			return
 		elif not cmd:
 			return
-
 		self.env.cmd = cmd
 
 		if cmd.function:
@@ -255,17 +255,17 @@ class Console(Widget):
 		self.line = left_part + ''.join(uc[upos+1:])
 		self.on_line_change()
 
-
 	def execute(self, cmd=None):
 		self.allow_close = True
-		if cmd is None:
-			cmd = self._get_cmd()
-
-		if cmd:
-			try:
-				cmd.execute()
-			except Exception as error:
-				self.fm.notify(error)
+		self.fm.cmd(self.line)
+#		if cmd is None:
+#			cmd = self._get_cmd()
+#
+#		if cmd:
+#			try:
+#				cmd.execute()
+#			except Exception as error:
+#				self.fm.notify(error)
 
 		if self.allow_close:
 			self.close()
@@ -316,6 +316,7 @@ class Console(Widget):
 			self.on_line_change()
 
 	def on_line_change(self):
+		return
 		self.history_search_pattern = self.line
 		try:
 			cls = self._get_cmd_class()

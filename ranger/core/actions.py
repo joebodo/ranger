@@ -56,14 +56,14 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		for line in open(filename, 'r'):
 			self.cmd(line.rstrip("\r\n"))
 
-	def cmd(self, line):
+	def cmd(self, line, n=None):
 		line = line.lstrip()
 		if not line or line[0] == '"' or line[0] == '#':
 			return
 		command_name = line.split(' ', 1)[0]
 		if command_name in self._commands:
 			command_entry = self._commands[command_name]
-			command_entry(line).execute()
+			command_entry(line, n=n).execute()
 		else:
 			raise Exception("No such command: " + command_name)
 
@@ -461,12 +461,12 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			return
 
 		sel = self.env.get_selection()
-		toggle(*tuple(map(lambda x: x.realpath, sel)))
+		toggle(*(x.realpath for x in sel))
 
 		if movedown is None:
 			movedown = len(sel) == 1
 		if movedown:
-			self.move(down=1)
+			self.cmd("move down")
 
 		if hasattr(self.ui, 'redraw_main_column'):
 			self.ui.redraw_main_column()

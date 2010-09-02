@@ -41,7 +41,7 @@ def redraw_window(self):
 
 @register_function
 def console(self):
-	position = 0
+	position = None
 	if self.arg(1)[0:2] == '-p':
 		self.shift()
 		if len(self.arg(0)) > 2:
@@ -81,6 +81,8 @@ def set(self):
 			value = list(int(i) for i in value.split())
 		elif typ == tuple:
 			value = tuple(int(i) for i in value.split())
+		elif typ == type(re.compile("")):
+			value = re.compile(value, re.I)
 		fm.settings[key] = value
 
 @register_function
@@ -90,25 +92,27 @@ def cd(self):
 @register_function
 def map(self):
 	fm.env.keymanager.get_context('browser')(self.arg(1),
-			lambda arg: fm.cmd(self.rest(2)))
+			lambda arg: fm.cmd(self.rest(2), n=arg.n))
 
 @register_function
 def cmap(self):
-	pass
+	fm.env.keymanager.get_context('console')(self.arg(1),
+			lambda arg: fm.cmd(self.rest(2), n=arg.n))
 
 @register_function
 def move(self):
 	direction = self.arg(1)
+	n = self.n
 	if direction == 'down':
-		fm.move(down=1)
+		fm.move(down=1 if n is None else n)
 	elif direction == 'up':
-		fm.move(up=1)
+		fm.move(up=1 if n is None else n)
 	elif direction == 'left':
 		fm.cmd("cd ..")
 	elif direction == 'home':
-		fm.move(down=0, absolute=True)
+		fm.move(down=0 if n is None else n, absolute=True)
 	elif direction == 'end':
-		fm.move(down=-1, absolute=True)
+		fm.move(down=-1 if n is None else n, absolute=True)
 
 @register_function
 def execute(self):
@@ -118,3 +122,14 @@ def execute(self):
 		fm.cmd("cd " + cf.path)
 	else:
 		fm.cmd("console open_with ")
+
+@register_function
+def tag(self):
+	argument = self.arg(1)
+	if argument == 'toggle':
+		fm.tag_toggle()
+	pass
+
+@register_function
+def console_execute(self):
+	fm.ui.console.execute()
