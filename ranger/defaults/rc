@@ -31,45 +31,12 @@ set tilde_in_titlebar true
 set update_title true
 set xterm_alt_key false
 
-"" ===================================================================
-"" == Internal file launcher
-"" ===================================================================
-"" Define applications for each filetype.  In case of multiple matches,
-"" the first one is used.  If a command can't be run, the next match
-"" is tried until one is found.
-"macro def archive_ext tar,gz,zip
-"launcher glob    name  *.{html,xhtml,htm,swf}  firefox %s
-"launcher glob    name  *.pdf                   xpdf %s
-"launcher glob    name  *.nes                   fceux %s
-"launcher glob    name  *.s{w,m}c               zsnes %s
-"launcher glob    name  *.{%archive_ext}        aunpack -l %s
-"launcher glob    name  *.{%archive_ext}        file-roller %s
-"launcher glob    type  image/*                 feh %f
-"launcher glob    type  {audio,video}/*         mplayer -l %s
-"launcher glob    type  text/*                  vim %s
-"launcher compare name  README                  vim %s
-"launcher glob    name  *.xml                   vim %s
-"launcher compare name  Makefile                make
+defmacro foo Test
+map x echo %foo
 
 " ===================================================================
 " == Browser Keybindings
 " ===================================================================
-map j move down
-map k move up
-map h move left
-map l execute
-map J move down 0.5 page
-map K move up 0.5 page
-map <C-D> move down 0.5 page
-map <C-U> move up 0.5 page
-map <C-F> move down 1 page
-map <C-B> move up 1 page
-map ] move_column -1 down
-map [ move_column -1 up
-map <CR> execute
-map gg move home
-map G move end
-
 map Q quit
 map L history 1
 
@@ -88,12 +55,67 @@ map y<dir> copy direction
 map ya copy selection add
 map yr copy selection remove
 
+map i shell -p cat %s
+map E shell %editor %s
+
+map ? help
+
+" Console
 map : console
+map ; console
 map ! console shell 
 map @ console -p6 shell  %s
 map # console shell -p
 map r console open_with 
 map / console search
+
+map f console find 
+map cw console readme 
+map cd console cd 
+
+map A eval_macros console rename %ff
+map I eval_macros console -p7 rename %ff
+
+" Goto
+map gh cd ~
+map ge cd /etc
+map gu cd /usr
+map gd cd /dev
+map gl cd -r .
+map gL cd -r %f
+map go cd /opt
+map gv cd /var
+map gm cd /media
+map gM cd /mnt
+map gs cd /srv
+map gR cd %rangerdir
+
+" Cycling
+map ct cycle tag
+map cc cycle time
+map cm cycle mimetype
+map cs cycle size
+map c<bg> hint *c*time *m*imetype *s*ize *t*ag *w*:rename *d*:chdir
+
+" VIM
+map j move down
+map k move up
+map h move left
+map l execute
+map J move down 0.5 page
+map K move up 0.5 page
+map <C-D> move down 0.5 page
+map <C-U> move up 0.5 page
+map <C-F> move down 1 page
+map <C-B> move up 1 page
+map ] move_column -1 down
+map [ move_column -1 up
+map <CR> execute
+map gg move home
+map G move end
+
+map n search -f
+map N search -b
 
 " Midnight Commander
 map <F1> help
@@ -108,33 +130,34 @@ map <F10> quit
 " ===================================================================
 " == Console Keybindings
 " ===================================================================
-
-cmap <UP> history -1
-cmap <DOWN> history 1
-cmap <HOME> move home
-cmap <END> move end
+cmap <UP> console_history -1
+cmap <DOWN> console_history 1
+cmap <HOME> console_move home
+cmap <END> console_move end
 
 cmap <CR> console_execute
+cmap <ESC> console_close
+cmap <C-c> console_close
 
-cmap <TAB> tab
-cmap <S-TAB> tab -1
+cmap <TAB> console_tab
+cmap <S-TAB> console_tab -1
 
 " Emacs
-cmap <C-B> move left
-cmap <C-F> move right
-cmap <C-A> move home
-cmap <C-E> move end
-cmap <C-D> delete here
-cmap <C-H> delete left
-cmap <C-P> history -1
-cmap <C-N> history 1
+cmap <C-B> console_move left
+cmap <C-F> console_move right
+cmap <C-A> console_move home
+cmap <C-E> console_move end
+cmap <C-D> console_delete here
+cmap <C-H> console_delete left
+cmap <C-P> console_history -1
+cmap <C-N> console_history 1
 
 " Line editing
-cmap <backspace> delete here
-cmap <delete> delete left
-cmap <C-W> console delete_word
-cmap <C-K> console delete_rest
-cmap <C-U> console delete_rest -1
-cmap <C-Y> console paste
+cmap <backspace> console_delete here
+cmap <delete> console_delete left
+cmap <C-W> console_delete_word
+cmap <C-K> console_delete_rest 1
+cmap <C-U> console_delete_rest -1
+cmap <C-Y> console_paste
 
 " vim: ft=vim

@@ -1,13 +1,13 @@
 def register(cls):
+	name = cls.name if cls.name is not None else cls.__name__
 	fm._commands[name] = cls
 
+from ranger.api.commands import Command
 def register_function(fnc):
 	import types
-	from ranger.api.commands import Command
 	name = fnc.__name__
 	cls = type(name, (Command, ), {})
 	cls.execute = fnc
-#	cls.execute = types.UnboundMethodType(fnc, cls)
 	fm._commands[name] = cls
 	return cls
 
@@ -49,7 +49,9 @@ def console(self):
 		else:
 			self.shift()
 			position = int(self.arg(0))
-	fm.ui.open_console(self.rest(1))
+	elif self.arg(1) == '-x':
+		return fm.cmd(self.rest(2))
+	fm.ui.open_console(self.rest(1), position=position)
 
 @register_function
 def command(self):
@@ -133,3 +135,97 @@ def tag(self):
 @register_function
 def console_execute(self):
 	fm.ui.console.execute()
+
+@register_function
+def console_close(self):
+	fm.ui.console.close()
+
+@register_function
+def console_delete(self):
+	if self.arg(1) == 'here':
+		fm.ui.console.delete(-1)
+	else:
+		fm.ui.console.delete(1)
+
+@register_function
+def help(self):
+	from ranger.help import get_help, get_help_by_index
+
+	scroll_to_line = 0
+	if self.n is not None:
+		chapter, subchapter = int(str(self.n)[0]), str(self.n)[1:]
+		help_text = get_help_by_index(chapter)
+		lines = help_text.split('\n')
+		if chapter:
+			chapternumber = str(chapter) + '.' + subchapter + '. '
+			skip_to_content = True
+			for line_number, line in enumerate(lines):
+				if skip_to_content:
+					if line[:10] == '==========':
+						skip_to_content = False
+				else:
+					if line.startswith(chapternumber):
+						scroll_to_line = line_number
+	else:
+		help_text = get_help('index')
+		lines = help_text.split('\n')
+
+	pager = fm.ui.open_pager()
+	pager.markup = 'help'
+	pager.set_source(lines)
+	pager.move(down=scroll_to_line)
+
+@register
+class shell(Command):
+	def execute(self):
+		if self.arg(1) and self.arg(1)[0] == '-':
+			flags = self.arg(1)[1:]
+			command = self.rest(2)
+		else:
+			flags = ''
+			command = self.rest(1)
+
+		if not command and 'p' in flags:
+			command = 'cat %f'
+		if command:
+			fm.execute_command(command, flags=flags)
+
+	def tab(self):
+		if self.arg(1) and self.arg(1)[0] == '-':
+			flags = self.arg(1)[1:]
+			command = self.rest(2)
+		else:
+			flags = ''
+			command = self.rest(1)
+		start = self.line[0:len(self.line) - len(command)]
+
+		try:
+			position_of_last_space = command.rindex(" ")
+		except ValueError:
+			return (start + program + ' ' for program \
+					in get_executables() if program.startswith(command))
+		if position_of_last_space == len(command) - 1:
+			return self.line + '%s '
+		else:
+			before_word, start_of_word = self.line.rsplit(' ', 1)
+			return (before_word + ' ' + file.shell_escaped_basename \
+					for file in self.fm.env.cwd.files \
+					if file.shell_escaped_basename.startswith(start_of_word))
+
+@register_function
+def eval_macros(self):
+	command = self.rest(1)
+	if '%' in self.line:
+		command = fm.substitute_macros(command)
+	return fm.cmd(command)
+
+@register_function
+def defmacro(self):
+	fm._custom_macros[self.arg(1)] = self.rest(2)
+
+@register_function
+def undefmacro(self):
+	try:
+		del fm._custom_macros[self.arg(1)]
+	except:
+		fm.notify("No such macro: " + self.arg(1))

@@ -206,6 +206,7 @@ def main():
 				in enumerate(targets[:9]))
 		FileManagerAware._assign(fm)
 		fm.ui = UI()
+		fm.run = Runner(ui=fm.ui, logfunc=fm.notify)
 		fm.add_commands_from_file(ranger.relpath('core/base_commands.py'))
 		fm.run_commands_from_file(ranger.relpath('defaults/rc'))
 

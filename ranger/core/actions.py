@@ -34,12 +34,13 @@ from ranger.core.loader import LoadableObject
 class _MacroTemplate(string.Template):
 	"""A template for substituting macros in commands"""
 	delimiter = '%'
-	idpattern = '\d?[a-z]'
+#	idpattern = '\d?[a-z]'
 
 class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	search_method = 'ctime'
 	search_forward = False
 	_commands = {}
+	_custom_macros = {}
 
 	# --------------------------
 	# -- New
@@ -63,10 +64,10 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		command_name = line.split(' ', 1)[0]
 		if command_name in self._commands:
 			command_entry = self._commands[command_name]
-			command_entry(line, n=n).execute()
+			command = command_entry(line, n=n)
+			command.execute()
 		else:
 			raise Exception("No such command: " + command_name)
-
 	# --------------------------
 	# -- Basic Commands
 	# --------------------------
@@ -91,9 +92,9 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 
 	def notify(self, text, duration=4, bad=False):
 		if isinstance(text, Exception):
-			if ranger.arg.debug:
+#			if ranger.arg.debug:
 				raise
-			bad = True
+#			bad = True
 		text = str(text)
 		self.log.appendleft(text)
 		if hasattr(self.ui, 'notify'):
@@ -118,12 +119,11 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		return _MacroTemplate(string).safe_substitute(self._get_macros())
 
 	def _get_macros(self):
-		macros = {}
+		macros = {'f': '', 'ff':'', 'd':'.'}
 
 		if self.fm.env.cf:
 			macros['f'] = shell_quote(self.fm.env.cf.basename)
-		else:
-			macros['f'] = ''
+			macros['ff'] = self.fm.env.cf.basename
 
 		macros['s'] = ' '.join(shell_quote(fl.basename) \
 				for fl in self.fm.env.get_selection())
@@ -137,8 +137,6 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 
 		if self.fm.env.cwd:
 			macros['d'] = shell_quote(self.fm.env.cwd.path)
-		else:
-			macros['d'] = '.'
 
 		# define d/f/s macros for each tab
 		for i in range(1,10):
@@ -174,8 +172,10 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		macros['S'] = ' '.join(shell_quote(fl.path)
 			for fl in next_tab.get_selection())
 
-		return macros
+		assert 'foo' not in self._custom_macros
+		macros.update(self._custom_macros)
 
+		return macros
 
 	def execute_file(self, files, **kw):
 		"""Execute a file.

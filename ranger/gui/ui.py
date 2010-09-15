@@ -95,8 +95,8 @@ class UI(DisplayableContainer):
 			curses.curs_set(1)
 		except:
 			pass
-		if self.settings.mouse_enabled:
-			_setup_mouse(dict(value=False))
+#		if self.settings.mouse_enabled:
+#			_setup_mouse(dict(value=False))
 		curses.endwin()
 
 	def set_load_mode(self, boolean):
