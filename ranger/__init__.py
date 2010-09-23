@@ -74,5 +74,88 @@ def relpath(*paths):
 	"""returns the path relative to rangers library directory"""
 	return _join(RANGERDIR, *paths)
 
+# The main function
+def main():
+	"""initialize objects and run the filemanager"""
+	try:
+		import curses
+	except ImportError as errormessage:
+		print(errormessage)
+		print('ranger requires the python curses module. Aborting.')
+		sys.exit(1)
+
+	try: locale.setlocale(locale.LC_ALL, '')
+	except: print("Warning: Unable to set locale.  Expect encoding problems.")
+
+	if not 'SHELL' in os.environ:
+		os.environ['SHELL'] = 'bash'
+
+	arg = parse_arguments()
+	if arg.clean:
+		sys.dont_write_bytecode = True
+
+	# Need to decide whether to write bytecode or not before importing.
+	import ranger
+	from ranger.ext import curses_interrupt_handler
+	from ranger.core.runner import Runner
+	from ranger.core.fm import FM
+	from ranger.core.environment import Environment
+	from ranger.gui.defaultui import DefaultUI as UI
+	from ranger.fsobject import File
+	from ranger.shared import (EnvironmentAware, FileManagerAware,
+			SettingsAware)
+
+#	if not arg.debug:
+#		curses_interrupt_handler.install_interrupt_handler()
+	ranger.arg = arg
+
+	SettingsAware._setup()
+
+	targets = arg.targets or ['.']
+	target = targets[0]
+	if arg.targets:
+		if target.startswith('file://'):
+			target = target[7:]
+		if not os.access(target, os.F_OK):
+			print("File or directory doesn't exist: %s" % target)
+			sys.exit(1)
+
+	crash_traceback = None
+	try:
+		# Initialize objects
+		EnvironmentAware._assign(Environment(target))
+		fm = FM()
+		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
+				in enumerate(targets[:9]))
+		FileManagerAware._assign(fm)
+		fm.ui = UI()
+		fm.run = Runner(ui=fm.ui, logfunc=fm.notify)
+		fm.add_commands_from_file(ranger.relpath('core/base_commands.py'))
+		fm.run_commands_from_file(ranger.relpath('defaults/config'))
+
+		# Run the file manager
+		fm.initialize()
+		if fm.env.username == 'root':
+			fm.settings.preview_files = False
+		fm.ui.initialize()
+		fm.loop()
+	except Exception:
+		import traceback
+		crash_traceback = traceback.format_exc()
+	except SystemExit as error:
+		return error.args[0]
+	finally:
+		try:
+			fm.ui.destroy()
+		except (AttributeError, NameError):
+			pass
+		if crash_traceback:
+			print(crash_traceback)
+			print("Ranger crashed.  " \
+					"Please report this (including the traceback) at:")
+			print("http://savannah.nongnu.org/bugs/?group=ranger&func=additem")
+			return 1
+		return 0
+
 # Clean up
 del environ, OpenStruct, argv

@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding=utf-8
-#
 # Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -24,68 +21,6 @@
 import locale
 import os.path
 import sys
-
-def parse_arguments():
-	"""Parse the program arguments"""
-	from optparse import OptionParser, SUPPRESS_HELP
-	from ranger import __version__, USAGE, DEFAULT_CONFDIR
-	from ranger.ext.openstruct import OpenStruct
-
-	minor_version = __version__[2:]  # assumes major version number is <10
-	if '.' in minor_version:
-		minor_version = minor_version[:minor_version.find('.')]
-	version_tag = ' (stable)' if int(minor_version) % 2 == 0 else ' (testing)'
-	if __version__.endswith('.0'):
-		version_string = 'ranger ' + __version__[:-2] + version_tag
-	else:
-		version_string = 'ranger ' + __version__ + version_tag
-
-	parser = OptionParser(usage=USAGE, version=version_string)
-
-	parser.add_option('-d', '--debug', action='store_true',
-			help="activate debug mode")
-	parser.add_option('-c', '--clean', action='store_true',
-			help="don't touch/require any config files. ")
-	parser.add_option('--fail-if-run', action='store_true', # COMPAT
-			help=SUPPRESS_HELP)
-	parser.add_option('--fail-unless-cd', action='store_true',
-			help="experimental: return the exit code 1 if ranger is" \
-					"used to run a file (with `ranger filename`)")
-	parser.add_option('-r', '--confdir', type='string',
-			metavar='dir', default=DEFAULT_CONFDIR,
-			help="the configuration directory. (%default)")
-	parser.add_option('-m', '--mode', type='int', default=0, metavar='n',
-			help="if a filename is supplied, run it with this mode")
-	parser.add_option('-f', '--flags', type='string', default='',
-			metavar='string',
-			help="if a filename is supplied, run it with these flags.")
-
-	options, positional = parser.parse_args()
-	arg = OpenStruct(options.__dict__, targets=positional)
-	arg.confdir = os.path.expanduser(arg.confdir)
-	if arg.fail_if_run:
-		arg.fail_unless_cd = arg.fail_if_run
-		del arg['fail_if_run']
-
-	return arg
-
-
-def allow_access_to_confdir(confdir, allow):
-	if allow:
-		try:
-			os.makedirs(confdir)
-		except OSError as err:
-			if err.errno != 17:  # 17 means it already exists
-				print("This configuration directory could not be created:")
-				print(confdir)
-				print("To run ranger without the need for configuration")
-				print("files, use the --clean option.")
-				raise SystemExit()
-		if not confdir in sys.path:
-			sys.path[0:0] = [confdir]
-	else:
-		if sys.path[0] == confdir:
-			del sys.path[0]
 
 
 def load_settings(fm, clean):
@@ -170,10 +105,6 @@ def main():
 	if not 'SHELL' in os.environ:
 		os.environ['SHELL'] = 'bash'
 
-	arg = parse_arguments()
-	if arg.clean:
-		sys.dont_write_bytecode = True
-
 	# Need to decide whether to write bytecode or not before importing.
 	import ranger
 	from ranger.ext import curses_interrupt_handler
@@ -187,7 +118,6 @@ def main():
 
 #	if not arg.debug:
 #		curses_interrupt_handler.install_interrupt_handler()
-	ranger.arg = arg
 
 	SettingsAware._setup()
 
@@ -204,6 +134,8 @@ def main():
 	try:
 		# Initialize objects
 		EnvironmentAware._assign(Environment(target))
+		if arg.clean:
+			sys.dont_write_bytecode = True
 		fm = FM()
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
@@ -211,7 +143,7 @@ def main():
 		fm.ui = UI()
 		fm.run = Runner(ui=fm.ui, logfunc=fm.notify)
 		fm.add_commands_from_file(ranger.relpath('core/base_commands.py'))
-		fm.run_commands_from_file(ranger.relpath('defaults/rc'))
+		fm.run_commands_from_file(ranger.relpath('defaults/config'))
 
 		# Run the file manager
 		fm.initialize()
@@ -236,10 +168,3 @@ def main():
 			print("http://savannah.nongnu.org/bugs/?group=ranger&func=additem")
 			return 1
 		return 0
-
-
-if __name__ == '__main__':
-	# The ranger directory can be executed directly, for example by typing
-	# python /usr/lib/python2.6/site-packages/ranger
-	sys.path.insert(0, os.path.dirname(sys.path[0]))
-	main()

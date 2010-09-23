@@ -23,6 +23,7 @@ from ranger.fsobject import Directory
 from ranger.container import KeyBuffer, KeyManager
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger.shared import SettingsAware
+import ranger
 
 ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
 		'console')
@@ -45,7 +46,7 @@ class Environment(SettingsAware, SignalDispatcher):
 	keybuffer = None
 	keymanager = None
 
-	def __init__(self, path):
+	def __init__(self, arguments):
 		SignalDispatcher.__init__(self)
 		self.path = abspath(expanduser(path))
 		self._cf = None
@@ -64,6 +65,46 @@ class Environment(SettingsAware, SignalDispatcher):
 
 		self.signal_bind('move', self._set_cf_from_signal, priority=0.1,
 				weak=True)
+
+	def parse_arguments(self, arguments):
+		"""Parse the program arguments"""
+		from optparse import OptionParser, SUPPRESS_HELP
+		from ranger import __version__, USAGE, DEFAULT_CONFDIR
+		from ranger.ext.openstruct import OpenStruct
+
+		minor_version = __version__[2:]  # assumes major version number is <10
+		if '.' in minor_version:
+			minor_version = minor_version[:minor_version.find('.')]
+		version_tag = int(minor_version) % 2 and ' (testing)' or ' (stable)'
+		if __version__.endswith('.0'):
+			version_string = 'ranger ' + __version__[:-2] + version_tag
+		else:
+			version_string = 'ranger ' + __version__ + version_tag
+
+		parser = OptionParser(usage=USAGE, version=version_string)
+
+		parser.add_option('-d', '--debug', action='store_true',
+				help="activate debug mode")
+		parser.add_option('-c', '--clean', action='store_true',
+				help="don't touch/require any config files. ")
+		parser.add_option('--fail-if-run', action='store_true', # COMPAT
+				help=SUPPRESS_HELP)
+		parser.add_option('--fail-unless-cd', action='store_true',
+				help="experimental: return the exit code 1 if ranger is" \
+						"used to run a file (with `ranger filename`)")
+		parser.add_option('-r', '--confdir', type='string',
+				metavar='dir', default=DEFAULT_CONFDIR,
+				help="the configuration directory. (%default)")
+		parser.add_option('-m', '--mode', type='int', default=0, metavar='n',
+				help="if a filename is supplied, run it with this mode")
+		parser.add_option('-f', '--flags', type='string', default='',
+				metavar='string',
+				help="if a filename is supplied, run it with these flags.")
+
+		options, positional = parser.parse_args(arguments)
+		arg = OpenStruct(options.__dict__, targets=positional)
+		arg.confdir = os.path.expanduser(arg.confdir)
+		ranger.arg = arg
 
 	def _set_cf_from_signal(self, signal):
 		self._cf = signal.new
