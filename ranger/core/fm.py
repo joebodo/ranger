@@ -17,72 +17,75 @@
 The File Manager, putting the pieces together
 """
 
+from ranger import CLEAN, DEBUG, confpath
+
 from time import time
 from collections import deque
 import os
 import sys
 
-import ranger
 from ranger.core.actions import Actions
 from ranger.container import History
 from ranger.container.tags import Tags
 from ranger.gui.defaultui import DefaultUI
 from ranger.container import Bookmarks
 from ranger.core.runner import Runner
-from ranger import relpath_conf
 from ranger.ext.get_executables import get_executables
 from ranger.fsobject import Directory
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger import __version__
 from ranger.core.loader import Loader
+from ranger.shared import (EnvironmentAware, FileManagerAware,
+			SettingsAware)
 
-CTRL_C = 3
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
 class FM(Actions, SignalDispatcher):
 	input_blocked = False
 	input_blocked_until = 0
-	def __init__(self, ui=None, bookmarks=None, tags=None):
+	def __init__(self):
 		"""Initialize FM."""
 		Actions.__init__(self)
 		SignalDispatcher.__init__(self)
-		self.ui = ui
 		self.log = deque(maxlen=20)
-		self.bookmarks = bookmarks
-		self.tags = tags
-		self.tabs = {}
-		self.current_tab = 1
-		self.loader = Loader()
-
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(__version__, os.getpid()))
 		self.log.append('Running on Python ' + sys.version.replace('\n',''))
 
-	# COMPAT
-	@property
-	def executables(self):
-		"""For compatibility. Calls get_executables()"""
-		return get_executables()
+		self.tabs = {}
+		self.current_tab = 1
+		self.loader = Loader()
+
+	def setup_environment(self):
+		"""
+		Create a ranger-friendly environment.
+
+		It should be enough to call this function once, even if you
+		run multiple ranger instances.
+		"""
+		try:
+			locale.setlocale(locale.LC_ALL, '')
+		except:
+			pass
+		if not 'SHELL' in os.environ:
+			os.environ['SHELL'] = 'bash'
 
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""
-		if self.bookmarks is None:
-			if ranger.arg.clean:
-				bookmarkfile = None
-			else:
-				bookmarkfile = relpath_conf('bookmarks')
-			self.bookmarks = Bookmarks(
-					bookmarkfile=bookmarkfile,
-					bookmarktype=Directory,
-					autosave=self.settings.autosave_bookmarks)
-			self.bookmarks.load()
-
+		SettingsAware._setup()
+		if CLEAN:
+			bookmarkfile = None
 		else:
-			self.bookmarks = bookmarks
+			bookmarkfile = confpath('bookmarks')
+		self.bookmarks = Bookmarks(
+				bookmarkfile=bookmarkfile,
+				bookmarktype=Directory,
+				autosave=False)#self.settings.autosave_bookmarks)
+		self.bookmarks.load()
 
-		if not ranger.arg.clean and self.tags is None:
-			self.tags = Tags(relpath_conf('tagged'))
+		if not CLEAN:
+			self.tags = Tags(confpath('tagged'))
 
 		if self.ui is None:
 			self.ui = DefaultUI()
@@ -91,7 +94,7 @@ class FM(Actions, SignalDispatcher):
 		def mylogfunc(text):
 			self.notify(text, bad=True)
 
-		self.env.history = History(self.settings.max_history_size,
+		self.env.history = History(10, #self.settings.max_history_size,
 				unique=False)
 		self.env.signal_bind('cd', self._update_current_tab)
 
@@ -155,3 +158,6 @@ class FM(Actions, SignalDispatcher):
 		finally:
 			bookmarks.remember(env.cwd)
 			bookmarks.save()
+
+	def clean_up(self):
+		pass

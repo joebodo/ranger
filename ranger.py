@@ -1,7 +1,5 @@
 #!/usr/bin/python -O
-# coding=utf-8
-#
-# Ranger: Explore your forest of files from inside your terminal
+# -*- coding: utf-8 -*-
 # Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,10 +31,19 @@ fi
 return 1
 """
 
+# When using the --clean option, nothing should be written to the disk,
+# not even python byte code.  We need to find out if the clean-option
+# is used before we do any importing. (import sys is ok)
+import sys
+argv = sys.argv
+if ('-c' in argv or '--clean' in argv) and ('--' not in argv or
+		(('-c' in argv and argv.index('-c') < argv.index('--')) or
+		('--clean' in argv and argv.index('--clean') < argv.index('--')))):
+	sys.dont_write_bytecode = True
+
 # Set the actual docstring
 __doc__ = """Ranger - file browser for the unix terminal"""
 
 # Start ranger
-import ranger.__main__
-exit_code = ranger.__main__.main() 
-raise SystemExit(exit_code)
+import ranger
+sys.exit(ranger.main())

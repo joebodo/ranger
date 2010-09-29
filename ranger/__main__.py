@@ -113,8 +113,6 @@ def main():
 	from ranger.core.environment import Environment
 	from ranger.gui.defaultui import DefaultUI as UI
 	from ranger.fsobject import File
-	from ranger.shared import (EnvironmentAware, FileManagerAware,
-			SettingsAware)
 
 #	if not arg.debug:
 #		curses_interrupt_handler.install_interrupt_handler()
