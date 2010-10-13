@@ -113,7 +113,7 @@ def _colorscheme_name_to_class(signal):
 	if isinstance(signal.value, ColorScheme): return
 
 	scheme_name = signal.value
-	usecustom = not ranger.arg.clean
+	usecustom = not ranger.info.clean
 
 	def exists(colorscheme):
 		return os.path.exists(colorscheme + '.py')

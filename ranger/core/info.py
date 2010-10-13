@@ -70,8 +70,7 @@ class Info(object):
 		self.python_version = sys.version_info
 		self.py3 = self.python_version >= (3, )
 		self.ui = None
-		self.fm = None
-		self.settings = None
+		self.commands = None
 
 		# Default/Dummy arguments
 		self.args_loaded = False
@@ -92,6 +91,20 @@ class Info(object):
 		else:
 			self.vmajor, self.vminor, self.vrevision, self.vsuffix = \
 					self.version_tuple = (0, 0, 0, "")
+
+	def setup_environment(self):
+		"""
+		Create a ranger-friendly environment.
+
+		It should be enough to call this function once, even if you
+		run multiple ranger instances.
+		"""
+		try:
+			locale.setlocale(locale.LC_ALL, '')
+		except:
+			pass
+		if not 'SHELL' in os.environ:
+			os.environ['SHELL'] = 'bash'
 
 	@property
 	def encoding(self):
@@ -161,13 +174,13 @@ class Info(object):
 			traceback.print_stack(file=open(self.logfile, 'a'))
 
 	def err(self, *args):
-		if self.ui:
+		if self.ui_runs:
 			self.ui.notify(string, bad=True)
 		else:
 			print(*args, file=sys.stderr)
 
 	def write(self, string):
-		if self.ui:
+		if self.ui_runs:
 			self.ui.notify(string)
 		else:
 			print(string)
@@ -233,3 +246,48 @@ class Info(object):
 		self.args_loaded = True
 
 		return arg
+
+	def load_commands(self):
+		import ranger.defaults.commands
+		import ranger.api.commands
+		container = ranger.api.commands.CommandConsole()
+		container.load_commands_from_module(ranger.defaults.commands)
+		if not clean:
+			self.allow_importing_from(self.confdir, True)
+			ranger.api.commands.alias = container.alias
+			try:
+				import commands
+			except ImportError:
+				pass
+			else:
+				container.load_commands_from_module(commands)
+			self.allow_importing_from(self.confdir, False)
+		self.commands = container
+		return container
+
+	def load_config(self):
+		try:
+			myconfig = open(self.confpath('config'), 'r').read()
+		except:
+			self.source_cmdlist(self.relpath('defaults/config'))
+		else:
+			if not re.match(r'^nodefaults(?:\s.*)?$', myconfig):
+				self.source_cmdlist(self.relpath('defaults/config'))
+			for line in myconfig.split("\n"):
+				self.cmd(line.rstrip("\r\n"))
+
+	def source_cmdlist(self, filename):
+		for line in open(filename, 'r'):
+			self.cmd(line.rstrip("\r\n"))
+
+	def cmd(self, line, n=None):
+		line = line.lstrip()
+		if not line or line[0] == '"' or line[0] == '#':
+			return
+		command_name = line.split(' ', 1)[0]
+		command_entry = self.commands.get_command(command_name)
+		if command_entry:
+			command = command_entry(line, n=n)
+			command.execute()
+		else:
+			raise Exception("No such command: " + command_name)

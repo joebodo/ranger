@@ -30,6 +30,7 @@ from ranger.container.tags import Tags
 from ranger.gui.defaultui import DefaultUI
 from ranger.container import Bookmarks
 from ranger.core.runner import Runner
+from ranger.core.info import Info
 from ranger.fsobject import Directory
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger import __version__
@@ -38,13 +39,15 @@ from ranger.core.loader import Loader
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
-class FM(Actions, SignalDispatcher):
+class FM(Actions, SignalDispatcher, Info):
 	input_blocked = False
 	input_blocked_until = 0
-	def __init__(self, ui=None, bookmarks=None, tags=None):
+	def __init__(self, infoinit=True):
 		"""Initialize FM."""
 		Actions.__init__(self)
 		SignalDispatcher.__init__(self)
+		if infoinit:
+			Info.__init__(self)
 		self.ui = ui
 		self.log = deque(maxlen=20)
 		self.bookmarks = bookmarks
@@ -61,7 +64,7 @@ class FM(Actions, SignalDispatcher):
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""
 		if self.bookmarks is None:
-			if ranger.arg.clean:
+			if self.clean:
 				bookmarkfile = None
 			else:
 				bookmarkfile = self.confpath('bookmarks')
@@ -74,7 +77,7 @@ class FM(Actions, SignalDispatcher):
 		else:
 			self.bookmarks = bookmarks
 
-		if not ranger.arg.clean and self.tags is None:
+		if not self.clean and self.tags is None:
 			self.tags = Tags(self.confpath('tagged'))
 
 		if self.ui is None:
@@ -83,8 +86,7 @@ class FM(Actions, SignalDispatcher):
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)
-		self.run = Runner(ui=self.ui, apps=self.apps,
-				logfunc=mylogfunc)
+		self.run = Runner(ui=self.ui, logfunc=mylogfunc)
 
 		self.env.signal_bind('cd', self._update_current_tab)
 

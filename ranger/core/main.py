@@ -17,8 +17,6 @@
 The main function responsible to initialize the FM object and stuff.
 """
 
-from ranger.core.helper import *
-
 def main():
 	"""initialize objects and run the filemanager"""
 	import locale
@@ -68,18 +66,21 @@ def main():
 
 	crash_traceback = None
 	try:
+		# Morph info object into FM
+		fm = info
+		fm.__class__ = FM
+		fm.__init__(infoinit=False)
+
 		# Initialize objects
-		fm = FM()
 		FileManagerAware.fm = fm
 		EnvironmentAware.env = Environment(target)
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
-		load_settings(fm, arg.clean)
 		if fm.env.username == 'root':
 			fm.settings.preview_files = False
 		fm.ui = UI()
-		if not arg.debug:
-			curses_interrupt_handler.install_interrupt_handler()
+#		if not arg.debug:
+#			curses_interrupt_handler.install_interrupt_handler()
 
 		# Run the file manager
 		fm.initialize()
