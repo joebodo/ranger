@@ -18,10 +18,12 @@ from curses import *
 from curses.ascii import *
 from inspect import getargspec, ismethod
 
-from ranger import RANGERDIR
+import ranger
 from ranger.api import *
 from ranger.container.bookmarks import ALLOWED_KEYS as ALLOWED_BOOKMARK_KEYS
 from ranger.container.keymap import KeyMap, Direction, KeyMapWithDirections
+
+RANGERDIR = ranger.info.rangerdir
 
 # A dummy that allows the generation of docstrings in ranger.defaults.keys
 class DummyKeyManager(object):

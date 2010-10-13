@@ -30,7 +30,6 @@ from ranger.container.tags import Tags
 from ranger.gui.defaultui import DefaultUI
 from ranger.container import Bookmarks
 from ranger.core.runner import Runner
-from ranger.ext.get_executables import get_executables
 from ranger.fsobject import Directory
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger import __version__
@@ -58,12 +57,6 @@ class FM(Actions, SignalDispatcher):
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(__version__, os.getpid()))
 		self.log.append('Running on Python ' + sys.version.replace('\n',''))
-
-	# COMPAT
-	@property
-	def executables(self):
-		"""For compatibility. Calls get_executables()"""
-		return get_executables()
 
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""
@@ -122,47 +115,6 @@ class FM(Actions, SignalDispatcher):
 		if self.input_blocked and time() > self.input_blocked_until:
 			self.input_blocked = False
 		return self.input_blocked
-
-	def copy_config_files(self, which):
-		if ranger.arg.clean:
-			sys.stderr.write("refusing to copy config files in clean mode\n")
-			return
-		import shutil
-		def copy(_from, to):
-			if os.path.exists(self.confpath(to)):
-				sys.stderr.write("already exists: %s\n" % self.confpath(to))
-			else:
-				sys.stderr.write("creating: %s\n" % self.confpath(to))
-				try:
-					shutil.copy(self.relpath(_from), self.confpath(to))
-				except Exception as e:
-					sys.stderr.write("  ERROR: %s\n" % str(e))
-		if which == 'apps' or which == 'all':
-			copy('defaults/apps.py', 'apps.py')
-		if which == 'commands' or which == 'all':
-			copy('defaults/commands.py', 'commands.py')
-		if which == 'keys' or which == 'all':
-			copy('defaults/keys.py', 'keys.py')
-		if which == 'options' or which == 'all':
-			copy('defaults/options.py', 'options.py')
-		if which == 'scope' or which == 'all':
-			copy('data/scope.sh', 'scope.sh')
-			os.chmod(self.confpath('scope.sh'),
-				os.stat(self.confpath('scope.sh')).st_mode | stat.S_IXUSR)
-		if which not in \
-				('all', 'apps', 'scope', 'commands', 'keys', 'options'):
-			sys.stderr.write("Unknown config file `%s'\n" % which)
-
-	def confpath(self, *paths):
-		"""returns the path relative to rangers configuration directory"""
-		if ranger.arg.clean:
-			assert 0, "Should not access relpath_conf in clean mode!"
-		else:
-			return os.path.join(ranger.arg.confdir, *paths)
-
-	def relpath(self, *paths):
-		"""returns the path relative to rangers library directory"""
-		return os.path.join(ranger.RANGERDIR, *paths)
 
 	def loop(self):
 		"""

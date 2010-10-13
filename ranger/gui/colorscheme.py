@@ -44,7 +44,6 @@ from curses import color_pair
 import ranger
 from ranger.gui.color import get_color
 from ranger.gui.context import Context
-from ranger.core.helper import allow_access_to_confdir
 from ranger.core.shared import SettingsAware
 
 # ColorScheme is not SettingsAware but it will gain access
@@ -148,10 +147,12 @@ def _colorscheme_name_to_class(signal):
 			signal.value = ColorScheme()
 		raise Exception("Cannot locate colorscheme `%s'" % scheme_name)
 	else:
-		if usecustom: allow_access_to_confdir(ranger.arg.confdir, True)
+		if usecustom:
+			ranger.info.allow_importing_from(ranger.info.confdir)
 		scheme_module = getattr(__import__(scheme_supermodule,
 				globals(), locals(), [scheme_name], 0), scheme_name)
-		if usecustom: allow_access_to_confdir(ranger.arg.confdir, False)
+		if usecustom:
+			ranger.info.allow_importing_from(ranger.info.confdir, False)
 		if hasattr(scheme_module, 'Scheme') \
 				and is_scheme(scheme_module.Scheme):
 			signal.value = scheme_module.Scheme()

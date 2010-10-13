@@ -71,7 +71,7 @@ class SettingsAware(Awareness):
 
 		if not clean:
 			# add the custom options to the list of setting sources
-			sys.path[0:0] = [ranger.arg.confdir]
+			sys.path[0:0] = [ranger.info.confdir]
 			try:
 				import options as my_options
 			except ImportError:

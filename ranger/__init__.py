@@ -24,14 +24,10 @@ The keybindings are similar to those of other console programs like
 vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 """
 
-import os
 from ranger.core.main import main
 
-# Information
 __license__ = 'GPL3'
 __version__ = '1.3.1'
 __author__ = __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
-
-# Constants
-RANGERDIR = os.path.dirname(__file__)
+info = None

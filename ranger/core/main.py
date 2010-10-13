@@ -24,6 +24,7 @@ def main():
 	import locale
 	import os.path
 	import ranger
+	from ranger.core.info import Info
 	from ranger.ext import curses_interrupt_handler
 	from ranger.core.runner import Runner
 	from ranger.core.fm import FM
@@ -41,10 +42,12 @@ def main():
 	if not 'SHELL' in os.environ:
 		os.environ['SHELL'] = 'bash'
 
-	ranger.arg = arg = parse_arguments()
+	ranger.info = info = Info()
+	info.parse_arguments()
+	arg = info.arg
+
 	if arg.copy_config is not None:
-		fm = FM()
-		fm.copy_config_files(arg.copy_config)
+		info.copy_config_files(arg.copy_config)
 		return 0
 
 	SettingsAware._setup(clean=arg.clean)
@@ -58,9 +61,7 @@ def main():
 			print("File or directory doesn't exist: %s" % target)
 			sys.exit(1)
 		elif os.path.isfile(target):
-			def print_function(string):
-				print(string)
-			runner = Runner(logfunc=print_function)
+			runner = Runner(logfunc=info.write)
 			load_apps(runner, arg.clean)
 			runner(files=[File(target)], mode=arg.mode, flags=arg.flags)
 			sys.exit(1 if arg.fail_unless_cd else 0)
