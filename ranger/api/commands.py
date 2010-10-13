@@ -53,11 +53,15 @@ class CommandContainer(object):
 					if cls.allow_abbrev and cmd.startswith(name) \
 					or cmd == name]
 			if len(lst) == 0:
-				raise KeyError
+				return None
 			if len(lst) == 1:
 				return lst[0]
-			if self.commands[name] in lst:
-				return self.commands[name]
+			try:
+				cmd = self.commands[name]
+			except:
+				return None
+			if cmd in lst:
+				return cmd
 			raise ValueError("Ambiguous command")
 		else:
 			try:
@@ -73,8 +77,11 @@ class Command(FileManagerAware):
 	"""Abstract command class"""
 	name = None
 	allow_abbrev = True
-	def __init__(self, line):
+	_shifted = 0
+	def __init__(self, line, n=None):
 		self.line = line
+		self.args = line.split()
+		self.n = n
 
 	def execute(self):
 		"""Override this"""
@@ -85,6 +92,32 @@ class Command(FileManagerAware):
 	def quick(self):
 		"""Override this"""
 
+	# Easy ways to get information
+	def arg(self, n):
+		try:
+			return self.args[n]
+		except IndexError:
+			return ""
+
+	def rest(self, n):
+		got_space = False
+		word_count = 0
+		for i in range(len(self.line)):
+			if self.line[i] == " ":
+				if not got_space:
+					got_space = True
+					word_count += 1
+			elif got_space:
+				got_space = False
+				if word_count == n + self._shifted:
+					return self.line[i:]
+		return ""
+
+	def shift(self):
+		del self.args[0]
+		self._shifted += 1
+
+	# Tab stuff
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 

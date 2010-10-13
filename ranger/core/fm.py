@@ -48,10 +48,7 @@ class FM(Actions, SignalDispatcher, Info):
 		SignalDispatcher.__init__(self)
 		if infoinit:
 			Info.__init__(self)
-		self.ui = ui
 		self.log = deque(maxlen=20)
-		self.bookmarks = bookmarks
-		self.tags = tags
 		self.tabs = {}
 		self.previews = {}
 		self.current_tab = 1
@@ -63,26 +60,23 @@ class FM(Actions, SignalDispatcher, Info):
 
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""
-		if self.bookmarks is None:
-			if self.clean:
-				bookmarkfile = None
-			else:
-				bookmarkfile = self.confpath('bookmarks')
-			self.bookmarks = Bookmarks(
-					bookmarkfile=bookmarkfile,
-					bookmarktype=Directory,
-					autosave=self.settings.autosave_bookmarks)
-			self.bookmarks.load()
-
+		if self.clean:
+			bookmarkfile = None
 		else:
-			self.bookmarks = bookmarks
+			bookmarkfile = self.confpath('bookmarks')
+		self.bookmarks = Bookmarks(
+				bookmarkfile=bookmarkfile,
+				bookmarktype=Directory,
+				autosave=self.settings.autosave_bookmarks)
+		self.bookmarks.load()
 
-		if not self.clean and self.tags is None:
+		if not self.clean:
 			self.tags = Tags(self.confpath('tagged'))
+		else:
+			self.tags = {}
 
-		if self.ui is None:
-			self.ui = DefaultUI()
-			self.ui.initialize()
+		self.ui = DefaultUI()
+		self.ui.initialize()
 
 		def mylogfunc(text):
 			self.notify(text, bad=True)

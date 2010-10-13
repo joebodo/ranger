@@ -76,6 +76,8 @@ def main():
 		EnvironmentAware.env = Environment(target)
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
+		info.load_commands()
+		info.load_config()
 		if fm.env.username == 'root':
 			fm.settings.preview_files = False
 		fm.ui = UI()

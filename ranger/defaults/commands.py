@@ -57,6 +57,7 @@ For a list of all actions, check /ranger/core/actions.py.
 from ranger.api.commands import *
 from ranger.ext.get_executables import get_executables
 from ranger.core.runner import ALLOWED_FLAGS
+import re
 
 alias('e', 'edit')
 alias('q', 'quit')
@@ -129,6 +130,27 @@ class shell(Command):
 			return (before_word + ' ' + file.shell_escaped_basename \
 					for file in self.fm.env.cwd.files \
 					if file.shell_escaped_basename.startswith(start_of_word))
+
+class map_(Command):
+	name = 'map'
+	def execute(self):
+		self.fm.env.keymanager.get_context('browser')(self.arg(1),
+				lambda arg: self.fm.cmd(self.rest(2), n=arg.n))
+
+class move(Command):
+	def execute(self):
+		direction = self.arg(1)
+		n = self.n
+		if direction == 'down':
+			self.fm.move(down=1 if n is None else n)
+		elif direction == 'up':
+			self.fm.move(up=1 if n is None else n)
+		elif direction == 'left':
+			self.fm.cmd("cd ..")
+		elif direction == 'home':
+			self.fm.move(down=0 if n is None else n, absolute=True)
+		elif direction == 'end':
+			self.fm.move(down=-1 if n is None else n, absolute=True)
 
 class open_with(Command):
 	def execute(self):
@@ -296,15 +318,29 @@ class set_(Command):
 	"""
 	name = 'set'  # don't override the builtin set class
 	def execute(self):
-		line = parse(self.line)
-		name = line.chunk(1)
-		name, value, _ = line.parse_setting_line()
-		if name and value:
-			try:
-				value = eval(value)
-			except:
-				pass
-			self.fm.settings[name] = value
+		if not len(self.args) >= 3:
+			return
+		from ranger.container.settingobject import ALLOWED_SETTINGS
+		key = self.arg(1)
+		value = self.rest(2)
+		try:
+			typ = ALLOWED_SETTINGS[key][0]
+		except:
+			raise
+		else:
+			if type(typ) == tuple:
+				typ = typ[0]
+			if typ == bool:
+				value = value not in ('false', 'False', '0')
+			elif typ == int:
+				value = int(value)
+			elif typ == list:
+				value = list(int(i) for i in value.split())
+			elif typ == tuple:
+				value = tuple(int(i) for i in value.split())
+			elif typ == type(re.compile("")):
+				value = re.compile(value, re.I)
+			self.fm.settings[key] = value
 
 	def tab(self):
 		line = parse(self.line)

@@ -175,7 +175,7 @@ class Info(object):
 
 	def err(self, *args):
 		if self.ui_runs:
-			self.ui.notify(string, bad=True)
+			self.ui.notify(*args, bad=True)
 		else:
 			print(*args, file=sys.stderr)
 
@@ -196,7 +196,7 @@ class Info(object):
 						self.err(directory)
 						raise SystemExit()
 
-	def allow_importing_from(directory, allow=True):
+	def allow_importing_from(self, directory, allow=True):
 		if allow:
 			if not directory in sys.path:
 				sys.path[0:0] = [directory]
@@ -250,9 +250,9 @@ class Info(object):
 	def load_commands(self):
 		import ranger.defaults.commands
 		import ranger.api.commands
-		container = ranger.api.commands.CommandConsole()
+		container = ranger.api.commands.CommandContainer()
 		container.load_commands_from_module(ranger.defaults.commands)
-		if not clean:
+		if not self.clean:
 			self.allow_importing_from(self.confdir, True)
 			ranger.api.commands.alias = container.alias
 			try:
@@ -271,21 +271,34 @@ class Info(object):
 		except:
 			self.source_cmdlist(self.relpath('defaults/config'))
 		else:
-			if not re.match(r'^nodefaults(?:\s.*)?$', myconfig):
+			lines = myconfig.split("\n")
+			if 'nodefaults' not in lines:
 				self.source_cmdlist(self.relpath('defaults/config'))
-			for line in myconfig.split("\n"):
-				self.cmd(line.rstrip("\r\n"))
+			for line in lines:
+				self.cmd_secure(line.rstrip("\r\n"))
 
 	def source_cmdlist(self, filename):
 		for line in open(filename, 'r'):
-			self.cmd(line.rstrip("\r\n"))
+			self.cmd_secure(line.rstrip("\r\n"))
+
+	def cmd_secure(self, line, lineno=None, n=None):
+		try:
+			self.cmd(line, n=n)
+		except Exception as e:
+			self.err(e)
 
 	def cmd(self, line, n=None):
+		if line == 'nodefaults':
+			return
 		line = line.lstrip()
 		if not line or line[0] == '"' or line[0] == '#':
 			return
 		command_name = line.split(' ', 1)[0]
-		command_entry = self.commands.get_command(command_name)
+		try:
+			command_entry = self.commands.get_command(command_name)
+		except Exception as e:
+			self.err(str(e))
+			return
 		if command_entry:
 			command = command_entry(line, n=n)
 			command.execute()

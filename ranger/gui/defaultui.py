@@ -66,7 +66,10 @@ class DefaultUI(UI):
 		self.console.resize(y - 1, 0, 1, x)
 
 	def notify(self, *a, **k):
-		return self.status.notify(*a, **k)
+		try:
+			return self.status.notify(*a, **k)
+		except AttributeError:
+			raise Exception(' | '.join(repr(b) for b in a))
 
 	def close_pager(self):
 		if self.console.visible:

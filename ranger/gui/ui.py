@@ -47,6 +47,7 @@ def _setup_mouse(signal):
 class UI(DisplayableContainer):
 	is_set_up = False
 	load_mode = False
+	runs = False
 	def __init__(self, env=None, fm=None):
 		self._draw_title = os.environ["TERM"] in TERMINALS_WITH_TITLE
 		os.environ['ESCDELAY'] = '25'   # don't know a cleaner way
@@ -64,6 +65,7 @@ class UI(DisplayableContainer):
 
 	def initialize(self):
 		"""initialize curses, then call setup (at the first time) and resize."""
+		self.runs = True
 		self.win.leaveok(0)
 		self.win.keypad(1)
 		self.load_mode = False
@@ -88,6 +90,7 @@ class UI(DisplayableContainer):
 
 	def suspend(self):
 		"""Turn off curses"""
+		self.runs = False
 		self.win.keypad(0)
 		curses.nocbreak()
 		curses.echo()

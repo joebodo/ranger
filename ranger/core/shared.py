@@ -69,20 +69,4 @@ class SettingsAware(Awareness):
 		settings.signal_bind('setopt.use_preview_script',
 				after_setting_use_preview_script, priority=1)
 
-		if not clean:
-			# add the custom options to the list of setting sources
-			sys.path[0:0] = [ranger.info.confdir]
-			try:
-				import options as my_options
-			except ImportError:
-				pass
-			else:
-				settings._setting_sources.append(my_options)
-			del sys.path[0]
-
-		from ranger.defaults import options as default_options
-		settings._setting_sources.append(default_options)
-		assert all(hasattr(default_options, setting) \
-				for setting in ALLOWED_SETTINGS), \
-				"Ensure that all options are defined in the defaults!"
 		SettingsAware.settings = settings

@@ -16,40 +16,42 @@
 from inspect import isfunction
 from ranger.ext.signal_dispatcher import SignalDispatcher
 from ranger.core.shared import FileManagerAware
+import re
 
 ALLOWED_SETTINGS = {
-	'autosave_bookmarks': bool,
-	'collapse_preview': bool,
-	'colorscheme_overlay': (type(None), type(lambda:0)),
-	'colorscheme': str,
-	'column_ratios': (tuple, list, set),
-	'dirname_in_tabs': bool,
-	'display_size_in_main_column': bool,
-	'display_size_in_status_bar': bool,
-	'draw_bookmark_borders': bool,
-	'draw_borders': bool,
-	'flushinput': bool,
-	'hidden_filter': lambda x: isinstance(x, str) or hasattr(x, 'match'),
-	'max_console_history_size': (int, type(None)),
-	'max_history_size': (int, type(None)),
-	'mouse_enabled': bool,
-	'preview_directories': bool,
-	'preview_files': bool,
-	'preview_script': (str, type(None)),
-	'save_console_history': bool,
-	'scroll_offset': int,
-	'shorten_title': int,  # Note: False is an instance of int
-	'show_cursor': bool,
-	'show_hidden_bookmarks': bool,
-	'show_hidden': bool,
-	'sort_case_insensitive': bool,
-	'sort_directories_first': bool,
-	'sort_reverse': bool,
-	'sort': str,
-	'tilde_in_titlebar': bool,
-	'update_title': bool,
-	'use_preview_script': bool,
-	'xterm_alt_key': bool,
+	'autosave_bookmarks': (bool, True),
+	'collapse_preview': (bool, True),
+	'colorscheme_overlay': ((type(None), type(lambda:0)), None),
+	'colorscheme': (str, 'default'),
+	'column_ratios': ((tuple, list, set), (1, 4, 3)),
+	'dirname_in_tabs': (bool, False),
+	'display_size_in_main_column': (bool, True),
+	'display_size_in_status_bar': (bool, False),
+	'draw_bookmark_borders': (bool, True),
+	'draw_borders': (bool, False),
+	'flushinput': (bool, True),
+	'hidden_filter': (type(re.compile("")),
+		re.compile(r"^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found")),
+	'max_console_history_size': ((int, type(None)), 200),
+	'max_history_size': ((int, type(None)), 40),
+	'mouse_enabled': (bool, True),
+	'preview_directories': (bool, True),
+	'preview_files': (bool, True),
+	'preview_script': ((str, type(None)), None),
+	'save_console_history': (bool, True),
+	'scroll_offset': (int, 8),
+	'shorten_title': (int, 3),
+	'show_cursor': (bool, False),
+	'show_hidden_bookmarks': (bool, True),
+	'show_hidden': (bool, False),
+	'sort_case_insensitive': (bool, False),
+	'sort_directories_first': (bool, True),
+	'sort_reverse': (bool, False),
+	'sort': (str, 'basename'),
+	'tilde_in_titlebar': (bool, True),
+	'update_title': (bool, True),
+	'use_preview_script': (bool, True),
+	'xterm_alt_key': (bool, False),
 }
 
 
@@ -57,7 +59,6 @@ class SettingObject(SignalDispatcher, FileManagerAware):
 	def __init__(self):
 		SignalDispatcher.__init__(self)
 		self.__dict__['_settings'] = dict()
-		self.__dict__['_setting_sources'] = list()
 		for name in ALLOWED_SETTINGS:
 			self.signal_bind('setopt.'+name,
 					self._raw_set_with_signal, priority=0.2)
@@ -67,11 +68,9 @@ class SettingObject(SignalDispatcher, FileManagerAware):
 			self.__dict__[name] = value
 		else:
 			assert name in ALLOWED_SETTINGS, "No such setting: {0}!".format(name)
-			if name not in self._settings:
-				getattr(self, name)
 			assert self._check_type(name, value)
 			kws = dict(setting=name, value=value,
-					previous=self._settings[name], fm=self.fm)
+					previous=self._settings.get(name, None), fm=self.fm)
 			self.signal_emit('setopt', **kws)
 			self.signal_emit('setopt.'+name, **kws)
 
@@ -81,13 +80,7 @@ class SettingObject(SignalDispatcher, FileManagerAware):
 		try:
 			return self._settings[name]
 		except:
-			for struct in self._setting_sources:
-				try: value = getattr(struct, name)
-				except: pass
-				else: break
-			else:
-				raise Exception("The option `{0}' was not defined" \
-						" in the defaults!".format(name))
+			value = ALLOWED_SETTINGS[name][1]
 			assert self._check_type(name, value)
 			self._raw_set(name, value)
 			self.__setattr__(name, value)
@@ -99,7 +92,7 @@ class SettingObject(SignalDispatcher, FileManagerAware):
 
 	def types_of(self, name):
 		try:
-			typ = ALLOWED_SETTINGS[name]
+			typ = ALLOWED_SETTINGS[name][0]
 		except KeyError:
 			return tuple()
 		else:
@@ -110,7 +103,7 @@ class SettingObject(SignalDispatcher, FileManagerAware):
 
 
 	def _check_type(self, name, value):
-		typ = ALLOWED_SETTINGS[name]
+		typ = ALLOWED_SETTINGS[name][0]
 		if isfunction(typ):
 			assert typ(value), \
 				"The option `" + name + "' has an incorrect type!"
