@@ -40,7 +40,7 @@ def main():
 
 	if arg.copy_config is not None:
 		info.copy_config_files(arg.copy_config)
-		return 0
+		return 1 if arg.fail_unless_cd else 0
 
 	SettingsAware._setup(clean=arg.clean)
 
@@ -51,14 +51,14 @@ def main():
 			target = target[7:]
 		if not os.access(target, os.F_OK):
 			print("File or directory doesn't exist: %s" % target)
-			sys.exit(1)
+			return 1
 		elif os.path.isfile(target):
 			from ranger.core.runner import Runner
 			from ranger.fsobject import File
 			runner = Runner(logfunc=info.write)
 			load_apps(runner, arg.clean)
 			runner(files=[File(target)], mode=arg.mode, flags=arg.flags)
-			sys.exit(1 if arg.fail_unless_cd else 0)
+			return 1 if arg.fail_unless_cd else 0
 
 	crash_traceback = None
 	try:
@@ -79,6 +79,7 @@ def main():
 		info.load_config()
 		if fm.env.username == 'root':
 			fm.settings.preview_files = False
+			fm.settings.use_preview_script = False
 		if not arg.debug:
 			from ranger.ext import curses_interrupt_handler
 			curses_interrupt_handler.install_interrupt_handler()
