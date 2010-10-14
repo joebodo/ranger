@@ -27,7 +27,6 @@ import os.path
 import sys
 
 _VERSION_RE = re.compile("(\d+)\.(\d+)\.(\d+)(.*)$")
-_NAME = 'ranger'
 
 class Unknown:
 	"""
@@ -136,16 +135,17 @@ class Info(object):
 		if self.clean:
 			self.err("refusing to copy config files in clean mode\n")
 			return
+		import stat
 		import shutil
 		def copy(_from, to):
 			if os.path.exists(self.confpath(to)):
-				self.err("already exists: %s\n" % self.confpath(to))
+				self.err("already exists: %s" % self.confpath(to))
 			else:
-				self.err("creating: %s\n" % self.confpath(to))
+				self.err("creating: %s" % self.confpath(to))
 				try:
 					shutil.copy(self.relpath(_from), self.confpath(to))
 				except Exception as e:
-					self.err("  ERROR: %s\n" % str(e))
+					self.err("  ERROR: %s" % str(e))
 		if which == 'apps' or which == 'all':
 			copy('defaults/apps.py', 'apps.py')
 		if which == 'commands' or which == 'all':
@@ -160,7 +160,7 @@ class Info(object):
 				os.stat(self.confpath('scope.sh')).st_mode | stat.S_IXUSR)
 		if which not in \
 				('all', 'apps', 'scope', 'commands', 'keys', 'options'):
-			self.err("unknown config file `%s'\n" % which)
+			self.err("unknown config file `%s'" % which)
 
 	def log(self, *args, **keywords):
 		if not self.clean:
@@ -284,6 +284,7 @@ class Info(object):
 	def load_plugin(self, filename):
 		import ranger
 
+		# Get the filename and its content
 		content = None
 		if '/' not in filename:
 			if filename[-3:] != '.py':
@@ -301,12 +302,15 @@ class Info(object):
 			except:
 				return False
 
+		# Set up the environment
 		remove_ranger_fm = hasattr(ranger, 'fm')
 		ranger.fm = self
 
+		# Compile and execute the code
 		code = compile(content, real_filename, 'exec')
 		exec(code)
 
+		# Clean up
 		if remove_ranger_fm and hasattr(ranger, 'fm'):
 			del ranger.fm
 

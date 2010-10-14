@@ -31,3 +31,4 @@ __version__ = '1.3.1'
 __author__ = __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 info = None
+fm = None
