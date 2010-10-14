@@ -21,7 +21,6 @@ and methods for manipulating it.
 from __future__ import print_function
 from ranger.ext.openstruct import OpenStruct
 from ranger.ext.shell_escape import shell_quote
-from ranger.ext.signal_dispatcher import SignalDispatcher
 import locale
 import ranger
 import re

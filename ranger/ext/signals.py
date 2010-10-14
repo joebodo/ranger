@@ -100,4 +100,4 @@ class SignalDispatcher(object):
 						return False
 				except ReferenceError:
 					handlers.remove(handler)
-		return not signal.stopped
+		return True
