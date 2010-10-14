@@ -143,6 +143,7 @@ class Console(Widget):
 
 		if kbuf.failure:
 			kbuf.clear()
+			self.type_key(key)
 			return
 		elif not cmd:
 			return
@@ -318,6 +319,8 @@ class Console(Widget):
 		self.history_search_pattern = self.line
 		try:
 			cls = self._get_cmd_class()
+			if cls is None:
+				raise KeyError
 		except (KeyError, ValueError, IndexError):
 			pass
 		else:

@@ -20,10 +20,13 @@ and methods for manipulating it.
 
 from __future__ import print_function
 from ranger.ext.openstruct import OpenStruct
+from ranger.ext.shell_escape import shell_quote
+from ranger.ext.signal_dispatcher import SignalDispatcher
 import locale
 import ranger
 import re
 import os.path
+import string
 import sys
 
 _VERSION_RE = re.compile("(\d+)\.(\d+)\.(\d+)(.*)$")
@@ -45,11 +48,16 @@ class Unknown:
 
 	__nonzero__ = __bool__
 
+
 class Info(object):
 	logfile = '/tmp/errorlog'
 	name = 'ranger'
 	rangerdir = os.path.dirname(os.path.dirname(__file__))
 	Unknown = Unknown
+
+	class MacroTemplate(string.Template):
+		"""A template for substituting macros in commands"""
+		delimiter = '%'
 
 	def __init__(self):
 		# Directories
@@ -70,6 +78,7 @@ class Info(object):
 		self.py3 = self.python_version >= (3, )
 		self.ui = None
 		self.commands = None
+		self.macros = {}
 
 		# Default/Dummy arguments
 		self.args_loaded = False
@@ -174,6 +183,8 @@ class Info(object):
 			traceback.print_stack(file=open(self.logfile, 'a'))
 
 	def err(self, *args):
+#		raise
+#		raise Exception(args)
 		if self.ui_runs:
 			self.ui.notify(*args, bad=True)
 		else:
@@ -254,7 +265,6 @@ class Info(object):
 		container.load_commands_from_module(ranger.defaults.commands)
 		if not self.clean:
 			self.allow_importing_from(self.confdir, True)
-			ranger.api.commands.alias = container.alias
 			try:
 				import commands
 			except ImportError:
@@ -264,6 +274,10 @@ class Info(object):
 			self.allow_importing_from(self.confdir, False)
 		self.commands = container
 		return container
+
+	def register_command(self, command):
+		if self.commands:
+			self.commands.register_command(command)
 
 	def load_config(self):
 		try:
@@ -314,11 +328,22 @@ class Info(object):
 		if remove_ranger_fm and hasattr(ranger, 'fm'):
 			del ranger.fm
 
+	def eval(self, code):
+		fm = self
+		try:
+			return eval(code)
+		except Exception as ex:
+			self.err(ex)
+			return None
+
 	def cmd_secure(self, line, lineno=None, n=None):
 		try:
 			self.cmd(line, n=n)
 		except Exception as e:
-			self.err(e)
+			if self.debug:
+				raise
+			else:
+				self.err('Error in line `%s\':\n  %s' % (line, str(e)))
 
 	def cmd(self, line, n=None):
 		if line == 'nodefaults':
@@ -327,13 +352,94 @@ class Info(object):
 		if not line or line[0] == '"' or line[0] == '#':
 			return
 		command_name = line.split(' ', 1)[0]
+		ok = self.signal_emit('command.pre', line=line,
+				command_name=command_name)
+		if not ok:
+			return
 		try:
 			command_entry = self.commands.get_command(command_name)
 		except Exception as e:
 			self.err(str(e))
 			return
 		if command_entry:
-			command = command_entry(line, n=n)
+			command = command_entry()
+			if command.resolve_macros and self.MacroTemplate.delimiter in line:
+				line = self.substitute_macros(line)
+			command.setargs(line, n=n)
 			command.execute()
 		else:
 			raise Exception("No such command: " + command_name)
+
+	def substitute_macros(self, string):
+		return self.MacroTemplate(string).safe_substitute(self._get_macros())
+
+	def _get_macros(self):
+		macros = {}
+
+		if self.env.cf:
+			macros['f'] = shell_quote(self.env.cf.basename)
+		else:
+			macros['f'] = ''
+
+		macros['s'] = ' '.join(shell_quote(fl.basename) \
+				for fl in self.env.get_selection())
+
+		macros['c'] = ' '.join(shell_quote(fl.path)
+				for fl in self.env.copy)
+
+
+		if self.env.cwd:
+			macros['d'] = shell_quote(self.env.cwd.path)
+			macros['t'] = ' '.join(shell_quote(fl.basename)
+					for fl in self.env.cwd.files
+					if fl.realpath in self.tags)
+		else:
+			macros['d'] = '.'
+			macros['t'] = ''
+
+		# define d/f/s macros for each tab
+		for i in range(1,10):
+			try:
+				tab_dir_path = self.tabs[i]
+			except:
+				continue
+			tab_dir = self.env.get_directory(tab_dir_path)
+			i = str(i)
+			if tab_dir and tab_dir.pointed_obj:
+				macros[i + 'd'] = shell_quote(tab_dir_path)
+				macros[i + 'f'] = shell_quote(tab_dir.pointed_obj.path)
+				macros[i + 's'] = ' '.join(shell_quote(fl.path)
+					for fl in tab_dir.get_selection())
+			else:
+				macros[i + 'd'] = ""
+				macros[i + 'f'] = ""
+				macros[i + 's'] = ""
+
+		# define D/F/S for the next tab
+		found_current_tab = False
+		next_tab_path = None
+		first_tab = None
+		for tab in self.tabs:
+			if not first_tab:
+				first_tab = tab
+			if found_current_tab:
+				next_tab_path = self.tabs[tab]
+				break
+			if self.current_tab == tab:
+				found_current_tab = True
+		if found_current_tab and not next_tab_path:
+			next_tab_path = self.tabs[first_tab]
+		next_tab = self.env.get_directory(next_tab_path)
+
+		if next_tab and next_tab.pointed_obj:
+			macros['D'] = shell_quote(next_tab)
+			macros['F'] = shell_quote(next_tab.pointed_obj.path)
+			macros['S'] = ' '.join(shell_quote(fl.path)
+				for fl in next_tab.get_selection())
+		else:
+			macros['D'] = ''
+			macros['F'] = ''
+			macros['S'] = ''
+		macros.update(self.macros)
+
+		return macros

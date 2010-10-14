@@ -24,17 +24,11 @@ from inspect import cleandoc
 import ranger
 from ranger.ext.direction import Direction
 from ranger.ext.relative_symlink import relative_symlink
-from ranger.ext.shell_escape import shell_quote
 from ranger import fsobject
 from ranger.core.shared import FileManagerAware, EnvironmentAware, \
 		SettingsAware
 from ranger.fsobject import File
 from ranger.core.loader import CommandLoader
-
-class _MacroTemplate(string.Template):
-	"""A template for substituting macros in commands"""
-	delimiter = '%'
-	idpattern = '\d?[a-z]'
 
 class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	search_method = 'ctime'
@@ -87,69 +81,6 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.open_console(string=string)
 		self.ui.console.line = string
 		self.ui.console.execute()
-
-	def substitute_macros(self, string):
-		return _MacroTemplate(string).safe_substitute(self._get_macros())
-
-	def _get_macros(self):
-		macros = {}
-
-		if self.fm.env.cf:
-			macros['f'] = shell_quote(self.fm.env.cf.basename)
-		else:
-			macros['f'] = ''
-
-		macros['s'] = ' '.join(shell_quote(fl.basename) \
-				for fl in self.fm.env.get_selection())
-
-		macros['c'] = ' '.join(shell_quote(fl.path)
-				for fl in self.fm.env.copy)
-
-		macros['t'] = ' '.join(shell_quote(fl.basename)
-				for fl in self.fm.env.cwd.files
-				if fl.realpath in self.fm.tags)
-
-		if self.fm.env.cwd:
-			macros['d'] = shell_quote(self.fm.env.cwd.path)
-		else:
-			macros['d'] = '.'
-
-		# define d/f/s macros for each tab
-		for i in range(1,10):
-			try:
-				tab_dir_path = self.fm.tabs[i]
-			except:
-				continue
-			tab_dir = self.fm.env.get_directory(tab_dir_path)
-			i = str(i)
-			macros[i + 'd'] = shell_quote(tab_dir_path)
-			macros[i + 'f'] = shell_quote(tab_dir.pointed_obj.path)
-			macros[i + 's'] = ' '.join(shell_quote(fl.path)
-				for fl in tab_dir.get_selection())
-
-		# define D/F/S for the next tab
-		found_current_tab = False
-		next_tab_path = None
-		first_tab = None
-		for tab in self.fm.tabs:
-			if not first_tab:
-				first_tab = tab
-			if found_current_tab:
-				next_tab_path = self.fm.tabs[tab]
-				break
-			if self.fm.current_tab == tab:
-				found_current_tab = True
-		if found_current_tab and not next_tab_path:
-			next_tab_path = self.fm.tabs[first_tab]
-		next_tab = self.fm.env.get_directory(next_tab_path)
-
-		macros['D'] = shell_quote(next_tab)
-		macros['F'] = shell_quote(next_tab.pointed_obj.path)
-		macros['S'] = ' '.join(shell_quote(fl.path)
-			for fl in next_tab.get_selection())
-
-		return macros
-
 
 	def execute_file(self, files, **kw):
 		"""Execute a file.

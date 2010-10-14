@@ -7,6 +7,7 @@ set preview_script %confdir/scope.sh
 " == Macros
 " ===================================================================
 defmacro editor vim
+defmacro pager less
 
 " ===================================================================
 " == Browser Keybindings
@@ -29,7 +30,7 @@ map y<dir> copy direction
 map ya copy selection add
 map yr copy selection remove
 
-map i shell -p cat %s
+map i shell cat %s | %pager
 map E shell %editor %s
 
 map ? help
@@ -75,7 +76,7 @@ map c<bg> hint *c*time *m*imetype *s*ize *t*ag *w*:rename *d*:chdir
 map j move down
 map k move up
 map h move left
-map l execute
+map l move right
 map J move down 0.5 page
 map K move up 0.5 page
 map <C-D> move down 0.5 page
@@ -106,6 +107,8 @@ map <F10> quit
 " ===================================================================
 cmap <UP> console_history -1
 cmap <DOWN> console_history 1
+cmap <LEFT> console_move left
+cmap <RIGHT> console_move right
 cmap <HOME> console_move home
 cmap <END> console_move end
 

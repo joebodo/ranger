@@ -59,10 +59,12 @@ from ranger.ext.get_executables import get_executables
 from ranger.core.runner import ALLOWED_FLAGS
 import re
 
-alias('e', 'edit')
-alias('q', 'quit')
-alias('q!', 'quitall')
-alias('qall', 'quitall')
+aliases = {
+	'e': 'edit',
+	'q': 'quit',
+	'q!': 'quitall',
+	'qall': 'quitall'
+}
 
 class cd(Command):
 	"""
@@ -92,30 +94,38 @@ class search(Command):
 		self.fm.search_file(parse(self.line).rest(1), regexp=True)
 
 
+class defmacro(Command):
+	def execute(self):
+		self.fm.macros[self.arg(1)] = self.rest(2)
+
+
+class load_(Command):
+	name = 'load'
+	def execute(self):
+		self.fm.load_plugin(self.rest(1))
+
+
 class shell(Command):
 	def execute(self):
-		line = parse(self.line)
-		if line.chunk(1) and line.chunk(1)[0] == '-':
-			flags = line.chunk(1)[1:]
-			command = line.rest(2)
+		if self.arg(1) and self.arg(1)[0] == '-':
+			flags = self.arg(1)[1:]
+			command = self.rest(2)
 		else:
 			flags = ''
-			command = line.rest(1)
+			command = self.rest(1)
 
-		if not command and 'p' in flags: command = 'cat %f'
+		if not command and 'p' in flags:
+			command = 'cat %f'
 		if command:
-			if '%' in command:
-				command = self.fm.substitute_macros(command)
 			self.fm.execute_command(command, flags=flags)
 
 	def tab(self):
-		line = parse(self.line)
-		if line.chunk(1) and line.chunk(1)[0] == '-':
-			flags = line.chunk(1)[1:]
-			command = line.rest(2)
+		if self.arg(1) and self.arg(1)[0] == '-':
+			flags = self.arg(1)[1:]
+			command = self.rest(2)
 		else:
 			flags = ''
-			command = line.rest(1)
+			command = self.rest(1)
 		start = self.line[0:len(self.line) - len(command)]
 
 		try:
@@ -133,9 +143,16 @@ class shell(Command):
 
 class map_(Command):
 	name = 'map'
+	resolve_macros = False
 	def execute(self):
 		self.fm.env.keymanager.get_context('browser')(self.arg(1),
-				lambda arg: self.fm.cmd(self.rest(2), n=arg.n))
+				lambda arg: arg.fm.cmd(self.rest(2), n=arg.n))
+
+class cmap(Command):
+	resolve_macros = False
+	def execute(self):
+		self.fm.env.keymanager.get_context('console')(self.arg(1),
+				lambda arg: arg.fm.cmd(self.rest(2), n=arg.n))
 
 class move(Command):
 	def execute(self):
@@ -147,6 +164,12 @@ class move(Command):
 			self.fm.move(up=1 if n is None else n)
 		elif direction == 'left':
 			self.fm.cmd("cd ..")
+		elif direction == 'right':
+			cf = self.fm.env.cf
+			selection = self.fm.env.get_selection()
+			if not self.fm.env.enter_dir(cf) and selection:
+				if self.fm.execute_file(selection, mode=self.n) is False:
+					self.fm.cmd("console open_with ")
 		elif direction == 'home':
 			self.fm.move(down=0 if n is None else n, absolute=True)
 		elif direction == 'end':
@@ -447,6 +470,47 @@ class delete(Command):
 		self.fm.delete()
 
 
+class console(Command):
+	def execute(self):
+		position = None
+		if self.arg(1)[0:2] == '-p':
+			self.shift()
+			if len(self.arg(0)) > 2:
+				position = int(self.arg(0)[2:])
+			else:
+				self.shift()
+				position = int(self.arg(0))
+		elif self.arg(1) == '-x':
+			return self.fm.cmd(self.rest(2))
+		self.fm.ui.open_console(self.rest(1), position=position)
+
+class console_execute(Command):
+	def execute(self):
+		self.fm.ui.console.execute()
+
+class console_delete(Command):
+	def execute(self):
+		if self.arg(1) == 'here':
+			self.fm.ui.console.delete(-1)
+		else:
+			self.fm.ui.console.delete(1)
+
+class console_close(Command):
+	def execute(self):
+		self.fm.ui.console.close()
+
+class console_move(Command):
+	def execute(self):
+		arg1 = self.arg(1)
+		if arg1 == 'left':
+			self.fm.ui.console.move(left=1)
+		elif arg1 == 'right':
+			self.fm.ui.console.move(right=1)
+		elif arg1 == 'home':
+			self.fm.ui.console.move(right=0, absolute=True)
+		elif arg1 == 'end':
+			self.fm.ui.console.move(right=-1, absolute=True)
+
 class mark(Command):
 	"""
 	:mark <regexp>
@@ -602,6 +666,9 @@ class eval_(Command):
 		except Exception as err:
 			p(err)
 
+class echo(Command):
+	def execute(self):
+		self.fm.write(self.rest(1))
 
 class rename(Command):
 	"""

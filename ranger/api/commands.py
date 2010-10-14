@@ -19,10 +19,6 @@ from ranger.api import *
 from ranger.core.shared import FileManagerAware
 from ranger.ext.command_parser import LazyParser as parse
 
-# A dummy that allows the generation of docstrings in ranger.defaults.commands
-def alias(*_):
-	pass
-
 class CommandContainer(object):
 	def __init__(self):
 		self.aliases = {}
@@ -34,18 +30,20 @@ class CommandContainer(object):
 	def alias(self, new, old):
 		self.aliases[new] = old
 
+	def register_command(self, command):
+		self.commands[command.name or command.__name__] = command
+
 	def load_commands_from_module(self, module):
-		for varname, var in vars(module).items():
+		for var in vars(module).values():
 			try:
 				if issubclass(var, Command) and var != Command:
-					self.commands[var.name or varname] = var
+					self.register_command(var)
 			except TypeError:
 				pass
-		for new, old in self.aliases.items():
-			try:
-				self.commands[new] = self.commands[old]
-			except:
-				pass
+		if hasattr(module, 'aliases'):
+			if hasattr(module.aliases, 'items'):
+				for key, val in module.aliases.items():
+					self.alias(key, val)
 
 	def get_command(self, name, abbrev=True):
 		if abbrev:
@@ -76,9 +74,11 @@ class CommandContainer(object):
 class Command(FileManagerAware):
 	"""Abstract command class"""
 	name = None
+	resolve_macros = True
 	allow_abbrev = True
 	_shifted = 0
-	def __init__(self, line, n=None):
+
+	def setargs(self, line, n=None):
 		self.line = line
 		self.args = line.split()
 		self.n = n
