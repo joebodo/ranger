@@ -21,7 +21,9 @@ def parse_keybinding(obj):
 	Translate a keybinding to a sequence of integers
 
 	Example:
-	lol<CR>   =>   (108, 111, 108, 10)
+	lol<CR>   =>   (ord('l'), ord('o'), ord('l'), ord('\n'))
+	          =>   (108, 111, 108, 10)
+	x<A-Left> =>   (120, (27, curses.KEY_LEFT))
 	"""
 	assert isinstance(obj, (tuple, int, str))
 	if isinstance(obj, tuple):
@@ -66,10 +68,13 @@ DIRKEY = 9001
 ANYKEY = 9002
 PASSIVE_ACTION = 9003
 
-special_keys = {
+very_special_keys = {
 	'dir': DIRKEY,
 	'any': ANYKEY,
 	'bg': PASSIVE_ACTION,
+}
+
+special_keys = {
 	'bs': curses.KEY_BACKSPACE,
 	'backspace': curses.KEY_BACKSPACE,
 	'backspace2': curses.ascii.DEL,
@@ -92,11 +97,16 @@ special_keys = {
 	's-tab': curses.KEY_BTAB,
 }
 
+for key, val in special_keys.items():
+	special_keys['a-' + key] = (27, val)
+
+for char in ascii_lowercase + '0123456789':
+	special_keys['a-' + char] = (27, ord(char))
+
 for char in ascii_lowercase:
 	special_keys['c-' + char] = ord(char) - 96
 
-for char in (ascii_lowercase + '0123456789'):
-	special_keys['a-' + char] = (27, ord(char))
-
 for n in range(64):
 	special_keys['f' + str(n)] = curses.KEY_F0 + n
+
+special_keys.update(very_special_keys)
