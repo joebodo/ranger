@@ -79,9 +79,9 @@ def main():
 		info.load_config()
 		if fm.env.username == 'root':
 			fm.settings.preview_files = False
-#		if not arg.debug:
-#			from ranger.ext import curses_interrupt_handler
-#			curses_interrupt_handler.install_interrupt_handler()
+		if not arg.debug:
+			from ranger.ext import curses_interrupt_handler
+			curses_interrupt_handler.install_interrupt_handler()
 
 		# Run the file manager
 		fm.initialize()
