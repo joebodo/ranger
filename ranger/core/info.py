@@ -281,6 +281,35 @@ class Info(object):
 		for line in open(filename, 'r'):
 			self.cmd_secure(line.rstrip("\r\n"))
 
+	def load_plugin(self, filename):
+		import ranger
+
+		content = None
+		if '/' not in filename:
+			if filename[-3:] != '.py':
+				real_filename = self.confpath('plugins', filename+'.py')
+			else:
+				real_filename = self.confpath('plugins', filename)
+			try:
+				content = open(real_filename).read()
+			except:
+				pass
+		if not content:
+			real_filename = filename
+			try:
+				content = open(filename).read()
+			except:
+				return False
+
+		remove_ranger_fm = hasattr(ranger, 'fm')
+		ranger.fm = self
+
+		code = compile(content, real_filename, 'exec')
+		exec(code)
+
+		if remove_ranger_fm and hasattr(ranger, 'fm'):
+			del ranger.fm
+
 	def cmd_secure(self, line, lineno=None, n=None):
 		try:
 			self.cmd(line, n=n)

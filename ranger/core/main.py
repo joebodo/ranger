@@ -77,6 +77,7 @@ def main():
 		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
 				in enumerate(targets[:9]))
 		info.load_commands()
+		info.load_plugin(info.confpath('config.py'))
 		info.load_config()
 		if fm.env.username == 'root':
 			fm.settings.preview_files = False
