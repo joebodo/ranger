@@ -96,11 +96,24 @@ class search(Command):
 
 class let(Command):
 	def execute(self):
+		macros = self.fm.macros
+		newval = self.rest(3)
 		if self.arg(1) == '-e':
 			self.shift()
-			self.fm.macros[self.arg(1)] = self.fm.eval(self.rest(3))
-		else:
-			self.fm.macros[self.arg(1)] = self.rest(3)
+			newval = self.fm.eval(self.rest(3))
+
+		try:
+			var = macros[self.arg(1)]
+		except:
+			var = 0
+		if self.arg(2) == '=':
+			macros[self.arg(1)] = newval
+		elif self.arg(2) == '+=':
+			macros[self.arg(1)] = str(int(var) + int(newval))
+		elif self.arg(2) == '-=':
+			macros[self.arg(1)] = str(int(var) - int(newval))
+		elif self.arg(2) == '.=':
+			macros[self.arg(1)] = str(var) + str(newval)
 
 class load_(Command):
 	name = 'load'
@@ -671,7 +684,7 @@ class eval_(Command):
 
 class echo(Command):
 	def execute(self):
-		self.fm.write(self.line)
+		self.fm.write(self.rest(1))
 
 class rename(Command):
 	"""

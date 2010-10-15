@@ -57,7 +57,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		if self.ui_runs:
 			self.ui.notify(string)
 		else:
-			Info.write(self, *args)
+			Info.write(self, string)
 
 	def reset(self):
 		"""Reset the filemanager, clearing the directory buffer"""
