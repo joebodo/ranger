@@ -174,16 +174,13 @@ class Info(object):
 			traceback.print_stack(file=open(self.logfile, 'a'))
 
 	def err(self, *args):
-		if self.ui_runs:
-			self.ui.notify(*args, bad=True)
+		if self.debug and isinstance(args[0], Exception):
+			raise
 		else:
 			print(*args, file=sys.stderr)
 
 	def write(self, string):
-		if self.ui_runs:
-			self.ui.notify(string)
-		else:
-			print(string)
+		print(string)
 
 	def create_directories(self):
 		if not self.clean:

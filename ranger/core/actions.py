@@ -23,6 +23,7 @@ from inspect import cleandoc
 
 import ranger
 from ranger.ext.direction import Direction
+from ranger.core.info import Info
 from ranger.ext.relative_symlink import relative_symlink
 from ranger import fsobject
 from ranger.core.shared import FileManagerAware, EnvironmentAware, \
@@ -33,6 +34,8 @@ from ranger.core.loader import CommandLoader
 class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	search_method = 'ctime'
 	search_forward = False
+	input_blocked = False
+	input_blocked_until = 0
 
 	# --------------------------
 	# -- Basic Commands
@@ -41,6 +44,20 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	def exit(self):
 		"""Exit the program"""
 		raise SystemExit()
+
+	def err(self, *args):
+		if self.debug and isinstance(args[0], Exception):
+			raise
+		elif self.ui_runs:
+			self.ui.notify(*args, bad=True)
+		else:
+			Info.err(self, *args)
+
+	def write(self, string):
+		if self.ui_runs:
+			self.ui.notify(string)
+		else:
+			Info.write(self, *args)
 
 	def reset(self):
 		"""Reset the filemanager, clearing the directory buffer"""
@@ -294,6 +311,15 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		cwd.correct_pointer()
 		for item in selected:
 			cwd.mark_item(item, val)
+
+	def block_input(self, sec=0):
+		self.input_blocked = sec != 0
+		self.input_blocked_until = time() + sec
+
+	def input_is_blocked(self):
+		if self.input_blocked and time() > self.input_blocked_until:
+			self.input_blocked = False
+		return self.input_blocked
 
 	# --------------------------
 	# -- Searching

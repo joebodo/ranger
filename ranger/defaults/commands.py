@@ -94,10 +94,13 @@ class search(Command):
 		self.fm.search_file(parse(self.line).rest(1), regexp=True)
 
 
-class defmacro(Command):
+class let(Command):
 	def execute(self):
-		self.fm.macros[self.arg(1)] = self.rest(2)
-
+		if self.arg(1) == '-e':
+			self.shift()
+			self.fm.macros[self.arg(1)] = self.fm.eval(self.rest(3))
+		else:
+			self.fm.macros[self.arg(1)] = self.rest(3)
 
 class load_(Command):
 	name = 'load'
@@ -668,7 +671,7 @@ class eval_(Command):
 
 class echo(Command):
 	def execute(self):
-		self.fm.write(self.rest(1))
+		self.fm.write(self.line)
 
 class rename(Command):
 	"""

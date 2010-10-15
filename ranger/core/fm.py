@@ -35,8 +35,6 @@ TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
 class FM(Actions, Info, SignalDispatcher):
-	input_blocked = False
-	input_blocked_until = 0
 	def __init__(self, infoinit=True):
 		"""Initialize FM."""
 		Actions.__init__(self)
@@ -107,15 +105,6 @@ class FM(Actions, Info, SignalDispatcher):
 			except:
 				if debug:
 					raise
-
-	def block_input(self, sec=0):
-		self.input_blocked = sec != 0
-		self.input_blocked_until = time() + sec
-
-	def input_is_blocked(self):
-		if self.input_blocked and time() > self.input_blocked_until:
-			self.input_blocked = False
-		return self.input_blocked
 
 	def loop(self):
 		"""
@@ -273,6 +262,9 @@ class FM(Actions, Info, SignalDispatcher):
 			return
 		try:
 			command_entry = self.commands.get_command(command_name)
+		except KeyError:
+			self.err("Invalid command! Press ? for help.")
+			return
 		except Exception as e:
 			self.err(str(e))
 			return
@@ -282,8 +274,6 @@ class FM(Actions, Info, SignalDispatcher):
 				line = self.substitute_macros(line)
 			command.setargs(line, n=n)
 			command.execute()
-		else:
-			raise Exception("No such command: " + command_name)
 
 	def substitute_macros(self, string):
 		return self.MacroTemplate(string).safe_substitute(self._get_macros())

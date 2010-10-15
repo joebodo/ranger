@@ -259,13 +259,8 @@ class Console(Widget):
 	def execute(self, cmd=None):
 		self.allow_close = True
 		if cmd is None:
-			cmd = self._get_cmd()
-
-		if cmd:
-			try:
-				cmd.execute()
-			except Exception as error:
-				self.fm.notify(error)
+			cmd = self.line
+		self.fm.cmd(cmd)
 
 		if self.allow_close:
 			self.close()
@@ -278,7 +273,7 @@ class Console(Widget):
 		except:
 			return None
 		else:
-			return command_class(self.line)
+			return command_class().setargs(self.line)
 
 	def _get_cmd_class(self):
 		return self.fm.commands.get_command(self.line.split()[0])
@@ -324,6 +319,6 @@ class Console(Widget):
 		except (KeyError, ValueError, IndexError):
 			pass
 		else:
-			cmd = cls(self.line)
+			cmd = cls().setargs(self.line)
 			if cmd and cmd.quick():
 				self.execute(cmd)

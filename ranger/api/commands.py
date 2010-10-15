@@ -51,13 +51,11 @@ class CommandContainer(object):
 					if cls.allow_abbrev and cmd.startswith(name) \
 					or cmd == name]
 			if len(lst) == 0:
-				return None
+				raise KeyError
 			if len(lst) == 1:
 				return lst[0]
-			try:
-				cmd = self.commands[name]
-			except:
-				return None
+			if self.commands[name] in lst:
+				return self.commands[name]
 			if cmd in lst:
 				return cmd
 			raise ValueError("Ambiguous command")
@@ -82,6 +80,7 @@ class Command(FileManagerAware):
 		self.line = line
 		self.args = line.split()
 		self.n = n
+		return self
 
 	def execute(self):
 		"""Override this"""

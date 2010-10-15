@@ -4,10 +4,10 @@
 set preview_script %confdir/scope.sh
 
 " ===================================================================
-" == Macros
+" == Definitions
 " ===================================================================
-defmacro editor vim
-defmacro pager less
+let editor = vim
+let pager = less
 
 " ===================================================================
 " == Browser Keybindings
