@@ -321,4 +321,4 @@ class Console(Widget):
 		else:
 			cmd = cls().setargs(self.line)
 			if cmd and cmd.quick():
-				self.execute(cmd)
+				self.execute()
