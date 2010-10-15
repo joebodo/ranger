@@ -1,7 +1,8 @@
 " ===================================================================
 " == Settings
 " ===================================================================
-set preview_script %confdir/scope.sh
+set preview_script = %confdir/scope.sh
+set column_ratios = 1, 1, 4, 3
 
 " ===================================================================
 " == Definitions
@@ -40,7 +41,7 @@ map ? help
 map : console
 map ; console
 map ! console shell 
-map @ console -p6 shell  %s
+map @ console -p6 shell  %%s
 map # console shell -p
 map r console open_with 
 map / console search
@@ -144,5 +145,18 @@ cmap <C-W> console_delete_word
 cmap <C-K> console_delete_rest 1
 cmap <C-U> console_delete_rest -1
 cmap <C-Y> console_paste
+
+" Typing numbers
+" Without this, numbers are treated as quantifiers for the following command
+cmap 0 console_type 0
+cmap 1 console_type 1
+cmap 2 console_type 2
+cmap 3 console_type 3
+cmap 4 console_type 4
+cmap 5 console_type 5
+cmap 6 console_type 6
+cmap 7 console_type 7
+cmap 8 console_type 8
+cmap 9 console_type 9
 
 " vim: ft=vim

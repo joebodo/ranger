@@ -23,7 +23,7 @@ ALLOWED_SETTINGS = {
 	'collapse_preview': (bool, True),
 	'colorscheme_overlay': ((type(None), type(lambda:0)), None),
 	'colorscheme': (str, 'default'),
-	'column_ratios': ((tuple, list, set), (1, 4, 3)),
+	'column_ratios': ((tuple, list, set), (1, 1, 4, 3)),
 	'dirname_in_tabs': (bool, False),
 	'display_size_in_main_column': (bool, True),
 	'display_size_in_status_bar': (bool, False),

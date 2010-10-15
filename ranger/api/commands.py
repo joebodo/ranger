@@ -17,7 +17,7 @@ import os
 from collections import deque
 from ranger.api import *
 from ranger.core.shared import FileManagerAware
-from ranger.ext.command_parser import LazyParser as parse
+from ranger.ext.lazy_property import lazy_property
 
 class CommandContainer(object):
 	def __init__(self):
@@ -76,10 +76,14 @@ class Command(FileManagerAware):
 	allow_abbrev = True
 	_shifted = 0
 
-	def setargs(self, line, n=None):
+	def setargs(self, line, pos=None, n=None):
 		self.line = line
 		self.args = line.split()
 		self.n = n
+		if pos is None:
+			self.pos = len(line)
+		else:
+			self.pos = pos
 		return self
 
 	def execute(self):
@@ -115,6 +119,20 @@ class Command(FileManagerAware):
 	def shift(self):
 		del self.args[0]
 		self._shifted += 1
+
+	def tabinsert(self, word):
+		return ''.join([self._tabinsert_left, word, self._tabinsert_right])
+
+	@lazy_property
+	def _tabinsert_left(self):
+		try:
+			return self.line[:self.line[0:self.pos].rindex(' ') + 1]
+		except ValueError:
+			return ''
+
+	@lazy_property
+	def _tabinsert_right(self):
+		return self.line[self.pos:]
 
 	# Tab stuff
 	def _tab_only_directories(self):

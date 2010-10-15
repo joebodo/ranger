@@ -95,7 +95,7 @@ class KeyBuffer(object):
 			tree = self.tree_pointer
 		else:
 			tree = self.dir_tree_pointer
-		if key in digitlist and ANYKEY not in tree:
+		if key in digitlist and ANYKEY not in tree and key not in tree:
 			attr = self.eval_command and 'quant' or 'direction_quant'
 			if getattr(self, attr) is None:
 				setattr(self, attr, 0)

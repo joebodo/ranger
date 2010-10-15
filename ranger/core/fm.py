@@ -29,6 +29,7 @@ import sys
 import ranger
 from ranger.core.actions import Actions
 from ranger.core.info import Info
+from ranger.container.settingobject import ALLOWED_SETTINGS
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
 
@@ -163,6 +164,10 @@ class FM(Actions, Info, SignalDispatcher):
 		"""A template for substituting macros in commands"""
 		delimiter = '%'
 
+	class SettingMacroTemplate(string.Template):
+		"""A template for substituting macros in commands"""
+		delimiter = '&'
+
 	def load_commands(self):
 		import ranger.defaults.commands
 		import ranger.api.commands
@@ -280,6 +285,11 @@ class FM(Actions, Info, SignalDispatcher):
 	def _get_macros(self):
 		macros = {}
 
+		macros['version'] = self.version
+		macros['confdir'] = self.confdir
+		macros['rangerdir'] = self.rangerdir
+		macros['cachedir'] = self.cachedir
+
 		if self.env.cf:
 			macros['f']  = shell_quote(self.env.cf.basename)
 			macros['ff'] = self.env.cf.basename
@@ -306,6 +316,9 @@ class FM(Actions, Info, SignalDispatcher):
 		else:
 			macros['d'] = '.'
 			macros['t'] = ''
+
+		for key in ALLOWED_SETTINGS:
+			macros[key] = repr(self.settings[key])
 
 		# define d/f/s macros for each tab
 		for i in range(1,10):

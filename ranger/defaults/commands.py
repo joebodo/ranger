@@ -96,7 +96,7 @@ class cd(Command):
 
 class search(Command):
 	def execute(self):
-		self.fm.search_file(parse(self.line).rest(1), regexp=True)
+		self.fm.search_file(self.rest(1), regexp=True)
 
 
 class let(Command):
@@ -175,6 +175,10 @@ class cmap(Command):
 		self.fm.env.keymanager.get_context('console')(self.arg(1),
 				lambda arg: arg.fm.cmd(self.rest(2), n=arg.n))
 
+class console_type(Command):
+	def execute(self):
+		self.fm.ui.console.type_key(self.rest(1))
+
 class move(Command):
 	def execute(self):
 		direction = self.arg(1)
@@ -211,8 +215,7 @@ class execute(Command):
 
 class open_with(Command):
 	def execute(self):
-		line = parse(self.line)
-		app, flags, mode = self._get_app_flags_mode(line.rest(1))
+		app, flags, mode = self._get_app_flags_mode(self.rest(1))
 		self.fm.execute_file(
 				files = [self.fm.env.cf],
 				app = app,
@@ -293,8 +296,7 @@ class open_with(Command):
 		return app, flags, int(mode)
 
 	def _get_tab(self):
-		line = parse(self.line)
-		data = line.rest(1)
+		data = self.rest(1)
 		if ' ' not in data:
 			all_apps = self.fm.apps.all()
 			if all_apps:
@@ -330,14 +332,13 @@ class find(Command):
 			self.fm.move(right=1)
 			self.fm.block_input(0.5)
 		else:
-			self.fm.cd(parse(self.line).rest(1))
+			self.fm.cd(self.rest(1))
 
 	def quick(self):
 		self.count = 0
-		line = parse(self.line)
 		cwd = self.fm.env.cwd
 		try:
-			arg = line.rest(1)
+			arg = self.rest(1)
 		except IndexError:
 			return False
 
@@ -374,12 +375,13 @@ class set_(Command):
 	Gives an option a new value.
 	"""
 	name = 'set'  # don't override the builtin set class
+	listre = re.compile('[, ]+')
 	def execute(self):
 		if not len(self.args) >= 3:
 			return
 		from ranger.container.settingobject import ALLOWED_SETTINGS
 		key = self.arg(1)
-		value = self.rest(2)
+		value = self.rest(3)
 		try:
 			typ = ALLOWED_SETTINGS[key][0]
 		except:
@@ -392,29 +394,30 @@ class set_(Command):
 			elif typ == int:
 				value = int(value)
 			elif typ == list:
-				value = list(int(i) for i in value.split())
+				value = list(int(i) for i in self.listre.split(value))
 			elif typ == tuple:
-				value = tuple(int(i) for i in value.split())
+				value = tuple(int(i) for i in self.listre.split(value))
 			elif typ == type(re.compile("")):
 				value = re.compile(value, re.I)
 			self.fm.settings[key] = value
 
 	def tab(self):
-		line = parse(self.line)
-		name, value, name_done = line.parse_setting_line()
+		name = self.arg(1)
+		name_done = ' ' in self.rest(1)
+		value = self.rest(2)
 		settings = self.fm.settings
 		if not name:
-			return (line + setting for setting in settings)
+			return (self.tabinsert(setting) for setting in settings)
 		if not value and not name_done:
-			return (line + setting for setting in settings \
+			return (self.tabinsert(setting) for setting in settings \
 					if setting.startswith(name))
 		if not value:
-			return line + repr(settings[name])
+			return self.tabinsert(repr(settings[name]))
 		if bool in settings.types_of(name):
 			if 'true'.startswith(value.lower()):
-				return line + 'True'
+				return self.tabinsert('True')
 			if 'false'.startswith(value.lower()):
-				return line + 'False'
+				return self.tabinsert('False')
 
 
 class quit(Command):
@@ -481,8 +484,7 @@ class delete(Command):
 	allow_abbrev = False
 
 	def execute(self):
-		line = parse(self.line)
-		lastword = line.chunk(-1)
+		lastword = self.arg(-1)
 
 		if lastword.startswith('y'):
 			# user confirmed deletion!
@@ -541,6 +543,10 @@ class history(Command):
 	def execute(self):
 		self.fm.history_go(int(self.arg(1)))
 
+class console_history(Command):
+	def execute(self):
+		self.fm.ui.console.history_move(int(self.arg(1)))
+
 class console_move(Command):
 	def execute(self):
 		arg1 = self.arg(1)
@@ -568,8 +574,7 @@ class mark(Command):
 	def execute(self):
 		import re
 		cwd = self.fm.env.cwd
-		line = parse(self.line)
-		input = line.rest(1)
+		input = self.rest(1)
 		searchflags = re.UNICODE
 		if input.lower() == input: # "smartcase"
 			searchflags |= re.IGNORECASE 
@@ -637,8 +642,7 @@ class mkdir(Command):
 		from os.path import join, expanduser, lexists
 		from os import mkdir
 
-		line = parse(self.line)
-		dirname = join(self.fm.env.cwd.path, expanduser(line.rest(1)))
+		dirname = join(self.fm.env.cwd.path, expanduser(self.rest(1)))
 		if not lexists(dirname):
 			mkdir(dirname)
 		else:
@@ -656,8 +660,7 @@ class touch(Command):
 		from os.path import join, expanduser, lexists
 		from os import mkdir
 
-		line = parse(self.line)
-		fname = join(self.fm.env.cwd.path, expanduser(line.rest(1)))
+		fname = join(self.fm.env.cwd.path, expanduser(self.rest(1)))
 		if not lexists(fname):
 			open(fname, 'a')
 		else:
@@ -672,11 +675,10 @@ class edit(Command):
 	"""
 
 	def execute(self):
-		line = parse(self.line)
-		if not line.chunk(1):
+		if not self.arg(1):
 			self.fm.edit_file(self.fm.env.cf.path)
 		else:
-			self.fm.edit_file(line.rest(1))
+			self.fm.edit_file(self.rest(1))
 
 	def tab(self):
 		return self._tab_directory_content()
@@ -698,7 +700,7 @@ class eval_(Command):
 	name = 'eval'
 
 	def execute(self):
-		code = parse(self.line).rest(1)
+		code = self.rest(1)
 		fm = self.fm
 		p = fm.notify
 		try:
@@ -725,11 +727,10 @@ class rename(Command):
 
 	def execute(self):
 		from ranger.fsobject import File
-		line = parse(self.line)
-		if not line.rest(1):
+		if not self.rest(1):
 			return self.fm.notify('Syntax: rename <newname>', bad=True)
-		self.fm.rename(self.fm.env.cf, line.rest(1))
-		f = File(line.rest(1))
+		self.fm.rename(self.fm.env.cf, self.rest(1))
+		f = File(self.rest(1))
 		self.fm.env.cwd.pointed_obj = f
 		self.fm.env.cf = f
 
@@ -751,8 +752,7 @@ class chmod(Command):
 	"""
 
 	def execute(self):
-		line = parse(self.line)
-		mode = line.rest(1)
+		mode = self.rest(1)
 
 		try:
 			mode = int(mode, 8)
@@ -784,8 +784,7 @@ class filter(Command):
 	"""
 
 	def execute(self):
-		line = parse(self.line)
-		self.fm.set_filter(line.rest(1))
+		self.fm.set_filter(self.rest(1))
 		self.fm.reload_cwd()
 
 
@@ -797,9 +796,8 @@ class grep(Command):
 	"""
 
 	def execute(self):
-		line = parse(self.line)
-		if line.rest(1):
+		if self.rest(1):
 			action = ['grep', '--color=always', '--line-number']
-			action.extend(['-e', line.rest(1), '-r'])
+			action.extend(['-e', self.rest(1), '-r'])
 			action.extend(f.path for f in self.fm.env.get_selection())
 			self.fm.execute_command(action, flags='p')
