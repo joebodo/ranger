@@ -13,6 +13,7 @@ let pager = less
 " == Browser Keybindings
 " ===================================================================
 map Q quit
+map H history -1
 map L history 1
 
 map t tag toggle
@@ -65,6 +66,11 @@ map gM cd /mnt
 map gs cd /srv
 map gR cd %rangerdir
 
+map '<bg> draw_bookmarks
+map `<bg> draw_bookmarks
+map m<bg> draw_bookmarks
+map um<bg> draw_bookmarks
+
 " Cycling
 map ct cycle tag
 map cc cycle time
@@ -76,13 +82,15 @@ map c<bg> hint *c*time *m*imetype *s*ize *t*ag *w*:rename *d*:chdir
 map j move down
 map k move up
 map h move left
-map l move right
-map J move down 0.5 page
-map K move up 0.5 page
-map <C-D> move down 0.5 page
-map <C-U> move up 0.5 page
-map <C-F> move down 1 page
-map <C-B> move up 1 page
+map l execute
+map J move down 0.5 pages
+map K move up 0.5 pages
+map <C-D> move down 0.5 pages
+map <C-U> move up 0.5 pages
+map <C-F> move down 1 pages
+map <C-B> move up 1 pages
+map <PAGEDOWN> move down 1 pages
+map <PAGEUP> move up 1 pages
 map ] move_column -1 down
 map [ move_column -1 up
 map <CR> execute

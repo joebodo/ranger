@@ -21,23 +21,23 @@ from ranger.ext.command_parser import LazyParser as parse
 
 class CommandContainer(object):
 	def __init__(self):
-		self.aliases = {}
 		self.commands = {}
 
 	def __getitem__(self, key):
 		return self.commands[key]
 
 	def alias(self, new, old):
-		self.aliases[new] = old
+		if old in self.commands:
+			self.commands[new] = self.commands[old]
 
-	def register_command(self, command):
+	def register(self, command):
 		self.commands[command.name or command.__name__] = command
 
 	def load_commands_from_module(self, module):
 		for var in vars(module).values():
 			try:
 				if issubclass(var, Command) and var != Command:
-					self.register_command(var)
+					self.register(var)
 			except TypeError:
 				pass
 		if hasattr(module, 'aliases'):

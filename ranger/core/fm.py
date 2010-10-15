@@ -19,6 +19,7 @@ The File Manager, putting the pieces together
 
 from time import time
 from collections import deque
+from os.path import exists
 import mimetypes
 import os
 import stat
@@ -167,7 +168,9 @@ class FM(Actions, Info, SignalDispatcher):
 		import ranger.api.commands
 		container = ranger.api.commands.CommandContainer()
 		container.load_commands_from_module(ranger.defaults.commands)
-		if not self.clean:
+		if not self.clean and (exists(self.confpath('commands.py')) or
+				exists(self.confpath('commands.pyo')) or
+				exists(self.confpath('commands.pyc'))):
 			self.allow_importing_from(self.confdir, True)
 			try:
 				import commands
@@ -178,10 +181,6 @@ class FM(Actions, Info, SignalDispatcher):
 			self.allow_importing_from(self.confdir, False)
 		self.commands = container
 		return container
-
-	def register_command(self, command):
-		if self.commands:
-			self.commands.register_command(command)
 
 	def load_config(self):
 		try:
@@ -282,9 +281,11 @@ class FM(Actions, Info, SignalDispatcher):
 		macros = {}
 
 		if self.env.cf:
-			macros['f'] = shell_quote(self.env.cf.basename)
+			macros['f']  = shell_quote(self.env.cf.basename)
+			macros['ff'] = self.env.cf.basename
 		else:
-			macros['f'] = ''
+			macros['f']  = ''
+			macros['ff'] = ''
 
 		macros['s'] = ' '.join(shell_quote(fl.basename) \
 				for fl in self.env.get_selection())
@@ -292,6 +293,10 @@ class FM(Actions, Info, SignalDispatcher):
 		macros['c'] = ' '.join(shell_quote(fl.path)
 				for fl in self.env.copy)
 
+		if self.ui:
+			macros['height'], macros['width'] = self.env.termsize
+		else:
+			macros['height'], macros['width'] = 24, 80
 
 		if self.env.cwd:
 			macros['d'] = shell_quote(self.env.cwd.path)

@@ -75,8 +75,13 @@ class cd(Command):
 	"""
 
 	def execute(self):
-		line = parse(self.line)
-		destination = line.rest(1)
+		if self.arg(1) == '-r':
+			import os.path
+			self.shift()
+			destination = os.path.realpath(self.rest(1))
+		else:
+			destination = self.rest(1)
+
 		if not destination:
 			destination = '~'
 
@@ -174,22 +179,35 @@ class move(Command):
 	def execute(self):
 		direction = self.arg(1)
 		n = self.n
+		kw = {}
+		try:
+			mult = float(self.arg(2))
+		except:
+			mult = 1
+		if 'pages' in self.args:
+			kw['pages'] = True
 		if direction == 'down':
-			self.fm.move(down=1 if n is None else n)
+			self.fm.move(down=(1 if n is None else n) * mult, **kw)
 		elif direction == 'up':
-			self.fm.move(up=1 if n is None else n)
+			self.fm.move(up=(1 if n is None else n) * mult, **kw)
 		elif direction == 'left':
 			self.fm.cmd("cd ..")
 		elif direction == 'right':
-			cf = self.fm.env.cf
-			selection = self.fm.env.get_selection()
-			if not self.fm.env.enter_dir(cf) and selection:
-				if self.fm.execute_file(selection, mode=self.n) is False:
-					self.fm.cmd("console open_with ")
+			self.fm.cmd("execute")
 		elif direction == 'home':
-			self.fm.move(down=0 if n is None else n, absolute=True)
+			self.fm.move(down=(0 if n is None else n) * mult,
+					absolute=True, **kw)
 		elif direction == 'end':
-			self.fm.move(down=-1 if n is None else n, absolute=True)
+			self.fm.move(down=(-1 if n is None else n) * mult,
+					absolute=True, **kw)
+
+class execute(Command):
+	def execute(self):
+		cf = self.fm.env.cf
+		selection = self.fm.env.get_selection()
+		if not self.fm.env.enter_dir(cf) and selection:
+			if self.fm.execute_file(selection, mode=self.n) is False:
+				self.fm.cmd("console open_with ")
 
 class open_with(Command):
 	def execute(self):
@@ -515,6 +533,14 @@ class console_close(Command):
 	def execute(self):
 		self.fm.ui.console.close()
 
+class eval_macros(Command):
+	def execute(self):
+		return self.fm.cmd(self.rest(1))
+
+class history(Command):
+	def execute(self):
+		self.fm.history_go(int(self.arg(1)))
+
 class console_move(Command):
 	def execute(self):
 		arg1 = self.arg(1)
@@ -526,6 +552,10 @@ class console_move(Command):
 			self.fm.ui.console.move(right=0, absolute=True)
 		elif arg1 == 'end':
 			self.fm.ui.console.move(right=-1, absolute=True)
+
+class draw_bookmarks(Command):
+	def execute(self):
+		self.fm.draw_bookmarks()
 
 class mark(Command):
 	"""
