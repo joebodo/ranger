@@ -51,7 +51,7 @@ class FM(Actions, Info, SignalDispatcher):
 		self.current_tab = 1
 
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
-				.format(self.version, os.getpid()))
+				.format(self.version, self.pid))
 		self.log.append('Running on Python ' + sys.version.replace('\n',''))
 
 	def initialize(self):
@@ -82,10 +82,7 @@ class FM(Actions, Info, SignalDispatcher):
 
 		self.ui = DefaultUI()
 		self.ui.initialize()
-
-		def mylogfunc(text):
-			self.notify(text, bad=True)
-		self.run = Runner(ui=self.ui, logfunc=mylogfunc)
+		self.run = Runner(ui=self.ui, logfunc=self.err)
 
 		self.env.signal_bind('cd', self._update_current_tab)
 
@@ -267,7 +264,13 @@ class FM(Actions, Info, SignalDispatcher):
 		try:
 			command_entry = self.commands.get_command(command_name)
 		except KeyError:
-			self.err("Invalid command! Press ? for help.")
+			if self.debug:
+				raise Exception("Command `%s' not found!" % command_name)
+			elif self.ui_runs:
+				self.err("Invalid command! Press ? for help.")
+			else:
+				self.err('Error in line `%s\':\n  %s' % \
+						(line, 'Invalid Command'))
 			return
 		except Exception as e:
 			self.err(str(e))

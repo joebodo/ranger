@@ -25,6 +25,7 @@ import ranger
 from ranger.ext.direction import Direction
 from ranger.core.info import Info
 from ranger.ext.relative_symlink import relative_symlink
+from ranger.ext.shell_escape import shell_quote
 from ranger import fsobject
 from ranger.core.shared import FileManagerAware, EnvironmentAware, \
 		SettingsAware
@@ -99,20 +100,6 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.ui.console.line = string
 		self.ui.console.execute()
 
-	def execute_file(self, files, **kw):
-		"""Execute a file.
-		app is the name of a method in Applications, without the "app_"
-		flags is a string consisting of runner.ALLOWED_FLAGS
-		mode is a positive integer.
-		Both flags and mode specify how the program is run."""
-
-		if isinstance(files, set):
-			files = list(files)
-		elif type(files) not in (list, tuple):
-			files = [files]
-
-		return self.run(files=list(files), **kw)
-
 	# --------------------------
 	# -- Moving Around
 	# --------------------------
@@ -152,8 +139,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 				cf = self.env.cf
 				selection = self.env.get_selection()
 				if not self.env.enter_dir(cf) and selection:
-					if self.execute_file(selection, mode=mode) is False:
-						self.open_console('open_with ')
+					pass
 			elif direction.vertical():
 				newpos = direction.move(
 						direction=direction.down(),
@@ -221,15 +207,12 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	def execute_command(self, cmd, **kw):
 		return self.run(cmd, **kw)
 
-	def edit_file(self, file=None):
+	def edit_file(self, path=None):
 		"""Calls execute_file with the current file and app='editor'"""
-		if file is None:
-			file = self.env.cf
-		elif isinstance(file, str):
-			file = File(os.path.expanduser(file))
-		if file is None:
-			return
-		self.execute_file(file, app = 'editor')
+		if path is None:
+			path = self.env.cf.path
+		self.execute_command("%s %s" % (self.macros['editor'],
+			shell_quote(path)))
 
 	def hint(self, text):
 		self.ui.hint(text)

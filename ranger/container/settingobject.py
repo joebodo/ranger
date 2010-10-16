@@ -29,6 +29,7 @@ ALLOWED_SETTINGS = {
 	'display_size_in_status_bar': (bool, False),
 	'draw_bookmark_borders': (bool, True),
 	'draw_borders': (bool, False),
+	'file_launcher': ((str, bool), 'vim'),
 	'flushinput': (bool, True),
 	'hidden_filter': (type(re.compile("")),
 		re.compile(r"^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found")),

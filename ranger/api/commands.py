@@ -97,12 +97,14 @@ class Command(FileManagerAware):
 
 	# Easy ways to get information
 	def arg(self, n):
+		"""Returns the nth space separated word"""
 		try:
 			return self.args[n]
 		except IndexError:
 			return ""
 
 	def rest(self, n):
+		"""Returns everything from and after arg(n)"""
 		got_space = False
 		word_count = 0
 		for i in range(len(self.line)):
@@ -115,6 +117,10 @@ class Command(FileManagerAware):
 				if word_count == n + self._shifted:
 					return self.line[i:]
 		return ""
+
+	def start(self, n):
+		"""Returns everything until (inclusively) arg(n)"""
+		return ' '.join(self.args[:n]) + " " # XXX
 
 	def shift(self):
 		del self.args[0]
@@ -138,11 +144,10 @@ class Command(FileManagerAware):
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 
-		line = parse(self.line)
 		cwd = self.fm.env.cwd.path
 
 		try:
-			rel_dest = line.rest(1)
+			rel_dest = self.rest(1)
 		except IndexError:
 			rel_dest = ''
 
@@ -178,20 +183,20 @@ class Command(FileManagerAware):
 
 			# one result. since it must be a directory, append a slash.
 			if len(dirnames) == 1:
-				return line.start(1) + join(rel_dirname, dirnames[0]) + '/'
+				return self.start(1) + join(rel_dirname, dirnames[0]) + '/'
 
 			# more than one result. append no slash, so the user can
 			# manually type in the slash to advance into that directory
-			return (line.start(1) + join(rel_dirname, dirname) for dirname in dirnames)
+			return (self.start(1) + join(rel_dirname, dirname) \
+				for dirname in dirnames)
 
 	def _tab_directory_content(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 
-		line = parse(self.line)
 		cwd = self.fm.env.cwd.path
 
 		try:
-			rel_dest = line.rest(1)
+			rel_dest = self.rest(1)
 		except IndexError:
 			rel_dest = ''
 
@@ -228,8 +233,8 @@ class Command(FileManagerAware):
 
 			# one result. since it must be a directory, append a slash.
 			if len(names) == 1:
-				return line.start(1) + join(rel_dirname, names[0]) + '/'
+				return self.start(1) + join(rel_dirname, names[0]) + '/'
 
 			# more than one result. append no slash, so the user can
 			# manually type in the slash to advance into that directory
-			return (line.start(1) + join(rel_dirname, name) for name in names)
+			return (self.start(1) + join(rel_dirname, name) for name in names)

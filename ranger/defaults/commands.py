@@ -205,115 +205,31 @@ class move(Command):
 			self.fm.move(down=(-1 if n is None else n) * mult,
 					absolute=True, **kw)
 
+class move_in_column(Command):
+	def execute(self):
+		col = int(self.arg(1))
+		n = self.n
+		if col == 0:
+			self.fm.cmd("move %s" % self.rest(2))
+		elif col == -1:
+			try:
+				mult = float(self.arg(3))
+			except:
+				mult = 1
+			if self.arg(2) == 'down':
+				self.fm.move_parent((1 if n is None else n) * mult)
+			elif self.arg(2) == 'up':
+				self.fm.move_parent(-(1 if n is None else n) * mult)
+
 class execute(Command):
 	def execute(self):
 		cf = self.fm.env.cf
 		selection = self.fm.env.get_selection()
-		if not self.fm.env.enter_dir(cf) and selection:
-			if self.fm.execute_file(selection, mode=self.n) is False:
-				self.fm.cmd("console open_with ")
-
-class open_with(Command):
-	def execute(self):
-		app, flags, mode = self._get_app_flags_mode(self.rest(1))
-		self.fm.execute_file(
-				files = [self.fm.env.cf],
-				app = app,
-				flags = flags,
-				mode = mode)
-
-	def _get_app_flags_mode(self, string):
-		"""
-		Extracts the application, flags and mode from a string.
-
-		examples:
-		"mplayer d 1" => ("mplayer", "d", 1)
-		"aunpack 4" => ("aunpack", "", 4)
-		"p" => ("", "p", 0)
-		"" => None
-		"""
-
-		app = ''
-		flags = ''
-		mode = 0
-		split = string.split()
-
-		if len(split) == 0:
-			pass
-
-		elif len(split) == 1:
-			part = split[0]
-			if self._is_app(part):
-				app = part
-			elif self._is_flags(part):
-				flags = part
-			elif self._is_mode(part):
-				mode = part
-
-		elif len(split) == 2:
-			part0 = split[0]
-			part1 = split[1]
-
-			if self._is_app(part0):
-				app = part0
-				if self._is_flags(part1):
-					flags = part1
-				elif self._is_mode(part1):
-					mode = part1
-			elif self._is_flags(part0):
-				flags = part0
-				if self._is_mode(part1):
-					mode = part1
-			elif self._is_mode(part0):
-				mode = part0
-				if self._is_flags(part1):
-					flags = part1
-
-		elif len(split) >= 3:
-			part0 = split[0]
-			part1 = split[1]
-			part2 = split[2]
-
-			if self._is_app(part0):
-				app = part0
-				if self._is_flags(part1):
-					flags = part1
-					if self._is_mode(part2):
-						mode = part2
-				elif self._is_mode(part1):
-					mode = part1
-					if self._is_flags(part2):
-						flags = part2
-			elif self._is_flags(part0):
-				flags = part0
-				if self._is_mode(part1):
-					mode = part1
-			elif self._is_mode(part0):
-				mode = part0
-				if self._is_flags(part1):
-					flags = part1
-
-		return app, flags, int(mode)
-
-	def _get_tab(self):
-		data = self.rest(1)
-		if ' ' not in data:
-			all_apps = self.fm.apps.all()
-			if all_apps:
-				return (app for app in all_apps if app.startswith(data))
-
-		return None
-
-	def _is_app(self, arg):
-		return self.fm.apps.has(arg) or \
-			(not self._is_flags(arg) and arg in get_executables())
-
-	def _is_flags(self, arg):
-		return all(x in ALLOWED_FLAGS for x in arg)
-
-	def _is_mode(self, arg):
-		return all(x in '0123456789' for x in arg)
-
+		if self.fm.env.enter_dir(cf):
+			return
+		elif selection:
+			self.fm.execute_command(self.fm.substitute_macros(
+				"%file_launcher %s"))
 
 class find(Command):
 	"""
@@ -620,6 +536,11 @@ class save_copy_buffer(Command):
 			return self.fm.notify("Cannot open file %s" % fname, bad=True)
 		f.write("\n".join(f.path for f in self.fm.env.copy))
 		f.close()
+
+
+class console_tab(Command):
+	def execute(self):
+		self.fm.ui.console.tab(int(self.arg(1) or 1))
 
 
 class unmark(mark):
