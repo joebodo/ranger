@@ -26,6 +26,7 @@ class BrowserView(Widget, DisplayableContainer):
 	preview = True
 	is_collapsed = False
 	draw_bookmarks = False
+	draw_hints = False
 	stretch_ratios = None
 	need_clear = False
 	old_collapse = False
@@ -93,6 +94,8 @@ class BrowserView(Widget, DisplayableContainer):
 	def draw(self):
 		if self.draw_bookmarks:
 			self._draw_bookmarks()
+		elif self.draw_hints:
+			self._draw_keyhints()
 		else:
 			if self.need_clear:
 				self.win.erase()
@@ -122,31 +125,54 @@ class BrowserView(Widget, DisplayableContainer):
 		self.color_reset()
 		self.need_clear = True
 
-		sorted_bookmarks = sorted(item for item in self.fm.bookmarks \
-			if self.settings.show_hidden_bookmarks or '/.' not in item[1].path)
+		sorted_bookmarks = sorted((item for item in self.fm.bookmarks \
+			if self.settings.show_hidden_bookmarks or \
+			'/.' not in item[1].path), key=lambda t: t[0].lower())
 
 		def generator():
 			return zip(range(self.hei-1), sorted_bookmarks)
+		hei = min(self.hei - 1, len(sorted_bookmarks))
+		ystart = self.hei - hei
 
-		try:
-			maxlen = max(len(item[1].path) for i, item in generator())
-		except ValueError:
-			return
-		maxlen = min(maxlen + 5, self.wid)
+		maxlen = self.wid
+		self.addnstr(ystart - 1, 0, "mark  path".ljust(self.wid), self.wid)
 
 		whitespace = " " * maxlen
 		for line, items in generator():
 			key, mark = items
-			string = " " + key + ": " + mark.path
-			self.addstr(line, 0, whitespace)
-			self.addnstr(line, 0, string, self.wid)
+			string = " " + key + "   " + mark.path
+			self.addstr(ystart + line, 0, whitespace)
+			self.addnstr(ystart + line, 0, string, self.wid)
 
-		if self.settings.draw_bookmark_borders:
-			self.win.hline(line+1, 0, curses.ACS_HLINE, maxlen)
+		self.win.chgat(ystart - 1, 0, curses.A_UNDERLINE)
 
-			if maxlen < self.wid:
-				self.win.vline(0, maxlen, curses.ACS_VLINE, line+1)
-				self.addch(line+1, maxlen, curses.ACS_LRCORNER)
+	def _draw_keyhints(self):
+		self.need_clear = True
+		hints = []
+		for k, v in self.fm.env.keymanager._keybuffer.tree_pointer.items():
+			try: k = chr(k)
+			except: k = str(k)
+			if isinstance(v, dict):
+				text = '...'
+			else:
+				text = v.actions['help']
+			if text.startswith('hint') or text.startswith('chain hint'):
+				continue
+			hints.append((k, text))
+		hints.sort(key=lambda t: t[1])
+
+		hei = min(self.hei - 1, len(hints))
+		ystart = self.hei - hei
+		self.addnstr(ystart - 1, 0, "key          command".ljust(self.wid),
+				self.wid)
+		self.win.chgat(ystart - 1, 0, curses.A_UNDERLINE)
+		whitespace = " " * self.wid
+		i = ystart
+		for key, cmd in hints:
+			string = " " + key.ljust(11) + " " + cmd
+			self.addstr(i, 0, whitespace)
+			self.addnstr(i, 0, string, self.wid)
+			i += 1
 
 	def _draw_borders(self):
 		win = self.win

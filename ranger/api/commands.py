@@ -31,7 +31,10 @@ class CommandContainer(object):
 			self.commands[new] = self.commands[old]
 
 	def register(self, command):
-		self.commands[command.name or command.__name__] = command
+		if hasattr(command.__class__, 'name'):
+			self.commands[command.__class__.name or command.__name__] = command
+		else:
+			self.commands[command.__name__] = command
 
 	def load_commands_from_module(self, module):
 		for var in vars(module).values():

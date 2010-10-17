@@ -30,10 +30,27 @@ map uv mark unmark all
 map <C-V><dir> mark_in_direction
 map u<C-V><dir> mark_in_direction unmark
 
+map dy cut selection
+map da cut selection add
+map dr cut selection remove
+map dd cut
+map dj cut down
+map dk cut up
+map dgg cut home
+map dG cut end
+map d<bg> hint
+map dg<bg> hint
+
 map yy copy selection
-map y<dir> copy direction
 map ya copy selection add
 map yr copy selection remove
+map yd copy
+map yj copy down
+map yk copy up
+map ygg copy home
+map yG copy end
+map y<bg> hint
+map yg<bg> hint
 
 map i shell cat %s | %pager
 map E shell %editor %s
@@ -47,10 +64,10 @@ map ! console shell
 map @ console -p6 shell  %%s
 map # console shell -p
 map r console open_with 
-map / console search
+map / console search 
 
 map f console find 
-map cw console readme 
+map cw console rename 
 map cd console cd 
 
 map A eval_macros console rename %ff
@@ -69,22 +86,43 @@ map gm cd /media
 map gM cd /mnt
 map gs cd /srv
 map gR cd %rangerdir
+map g<bg> hint
 
-map '<bg> draw_bookmarks
-map `<bg> draw_bookmarks
-map m<bg> draw_bookmarks
-map um<bg> draw_bookmarks
+map '<bg> hint bookmarks
+map `<bg> hint bookmarks
+map m<bg> hint bookmarks
+map um<bg> chain hint bookmarks | hint text delete which bookmark?
+map u<bg> hint
+map m<any> set_bookmark $1
+map um<any> unset_bookmark $1
+map `<any> enter_bookmark $1
+map '<any> enter_bookmark $1
 
 " Cycling
-map ct cycle tag
-map cc cycle time
-map cm cycle mimetype
-map cs cycle size
-map c<bg> hint *c*time *m*imetype *s*ize *t*ag *w*:rename *d*:chdir
+map n next
+map N previous
+
+map ct next tag
+map cc next ctime
+map cm next mimetype
+map cs next size
+map c<bg> hint
 
 " Settings
-map z<bg> [*cdfhimpPsv*] show_*h*idden *p*review_files *P*review_dirs *f*ilter flush*i*nput *m*ouse
-map zv set use_preview_script ^= true
+map z<bg> hint
+"map z<bg> hint [*cdfhimpPsv*] show_*h*idden *p*review_files *P*review_dirs *f*ilter flush*i*nput *m*ouse
+map zc toggle collapse_preview
+map zd toggle sort_directories_first
+map zf console filter 
+map zh toggle show_hidden
+map <C-h> toggle show_hidden
+map <backspace> toggle show_hidden
+map zi toggle flushinput
+map zm toggle mouse_enabled
+map zp toggle preview_files
+map zP toggle preview_directories
+map zs toggle sort_case_insensitive
+map zv toggle use_preview_script
 
 " VIM
 map j move down
@@ -104,12 +142,9 @@ map [ move_in_column -1 up
 map <CR> execute
 map gg move home
 map G move end
-
-map dd copy
-map dj copy down
-
-map n search -f
-map N search -b
+map ZZ quit
+map ZQ quit
+map Z<bg> hint
 
 " Midnight Commander
 map <F1> help
@@ -157,7 +192,8 @@ cmap <C-U> console_delete_rest -1
 cmap <C-Y> console_paste
 
 " Typing numbers
-" Without this, numbers are treated as quantifiers for the following command
+" Without this, numbers are treated as quantifiers for the following
+" command, like 3j = go down 3 times
 cmap 0 console_type 0
 cmap 1 console_type 1
 cmap 2 console_type 2

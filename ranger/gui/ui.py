@@ -147,7 +147,8 @@ class UI(DisplayableContainer):
 		kbuf = self.env.keybuffer
 		cmd = kbuf.command
 
-		self.fm.hide_bookmarks()
+		self.browser.draw_hints = False
+		self.browser.draw_bookmarks = False
 
 		if kbuf.failure:
 			kbuf.clear()

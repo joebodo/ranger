@@ -431,12 +431,6 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.bookmarks.update_if_outdated()
 		self.bookmarks.delete(key)
 
-	def draw_bookmarks(self):
-		self.ui.browser.draw_bookmarks = True
-
-	def hide_bookmarks(self):
-		self.ui.browser.draw_bookmarks = False
-
 	# --------------------------
 	# -- Pager
 	# --------------------------

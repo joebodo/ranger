@@ -143,20 +143,48 @@ class shell(Command):
 
 class map_(Command):
 	name = 'map'
+	context = 'browser'
 	resolve_macros = False
 	def execute(self):
-		self.fm.env.keymanager.get_context('browser')(self.arg(1),
-				lambda arg: arg.fm.cmd(self.rest(2), n=arg.n))
+		command = self.rest(2)
+		self.fm.env.keymanager.get_context(self.context)(self.arg(1),
+			func=(lambda arg: arg.fm.cmd(command, n=arg.n)), help=command)
 
-class cmap(Command):
-	resolve_macros = False
-	def execute(self):
-		self.fm.env.keymanager.get_context('console')(self.arg(1),
-				lambda arg: arg.fm.cmd(self.rest(2), n=arg.n))
+class cmap(map_):
+	context = 'console'
 
 class console_type(Command):
 	def execute(self):
 		self.fm.ui.console.type_key(self.rest(1))
+
+class next_(Command):
+	name = 'next'
+	forward = True
+	def execute(self):
+		method = self.arg(1)
+		if not method:
+			self.fm.search(forward=self.forward)
+		elif method in ('tag', 'ctime', 'mimetype', 'size', 'text'):
+			self.fm.search(order=method, forward=self.forward)
+		else:
+			self.fm.err("No such search method: `%s'" % method)
+
+class previous(next_):
+	forward = False
+
+class hint(Command):
+	def execute(self):
+		if self.arg(1) == 'bookmarks':
+			self.fm.ui.browser.draw_bookmarks = True
+		elif self.arg(1) == 'text':
+			self.fm.ui.hint(self.rest(2))
+		else:
+			self.fm.ui.browser.draw_hints = True
+
+class chain(Command):
+	def execute(self):
+		for command in self.rest(1).split("|"):
+			self.fm.cmd(command)
 
 class move(Command):
 	def execute(self):
@@ -267,6 +295,7 @@ class let(Command):
 	def execute(self):
 		macros = self.fm.macros
 		newval = self.rest(3)
+		op = self.arg(2)
 		if self.arg(1) == '-e':
 			self.shift()
 			newval = self.fm.eval(self.rest(3))
@@ -275,14 +304,16 @@ class let(Command):
 			var = macros[self.arg(1)]
 		except:
 			var = 0
-		if self.arg(2) == '=':
+		if op == '=':
 			macros[self.arg(1)] = newval
-		elif self.arg(2) == '+=':
+		elif op == '+=':
 			macros[self.arg(1)] = str(int(var) + int(newval))
-		elif self.arg(2) == '-=':
+		elif op == '-=':
 			macros[self.arg(1)] = str(int(var) - int(newval))
-		elif self.arg(2) == '.=':
+		elif op == '.=':
 			macros[self.arg(1)] = str(var) + str(newval)
+		else:
+			self.fm.err("unknown operation `%s'" % op)
 
 class set_(Command):
 	"""
@@ -297,6 +328,7 @@ class set_(Command):
 			return
 		from ranger.container.settingobject import ALLOWED_SETTINGS
 		key = self.arg(1)
+		op = self.arg(2)
 		value = self.rest(3)
 		try:
 			typ = ALLOWED_SETTINGS[key][0]
@@ -315,7 +347,10 @@ class set_(Command):
 				value = tuple(int(i) for i in self.listre.split(value))
 			elif typ == type(re.compile("")):
 				value = re.compile(value, re.I)
-			self.fm.settings[key] = value
+			if op == '=':
+				self.fm.settings[key] = value
+			elif op == '^=' and typ == bool:
+				self.fm.settings[key] ^= value
 
 	def tab(self):
 		name = self.arg(1)
@@ -335,6 +370,18 @@ class set_(Command):
 			if 'false'.startswith(value.lower()):
 				return self.tabinsert('False')
 
+class toggle(Command):
+	def execute(self):
+		from ranger.container.settingobject import ALLOWED_SETTINGS
+		key = self.arg(1)
+		try:
+			typ = ALLOWED_SETTINGS[key][0]
+		except:
+			return self.fm.err("No such setting: `%s'" % key)
+		if typ != bool:
+			return self.fm.err("Trying to toggle non-boolean setting `%s'" \
+					% key)
+		self.fm.settings[key] = not self.fm.settings[key]
 
 class quit(Command):
 	"""
@@ -474,10 +521,6 @@ class console_move(Command):
 			self.fm.ui.console.move(right=0, absolute=True)
 		elif arg1 == 'end':
 			self.fm.ui.console.move(right=-1, absolute=True)
-
-class draw_bookmarks(Command):
-	def execute(self):
-		self.fm.draw_bookmarks()
 
 class mark(Command):
 	"""
