@@ -267,7 +267,8 @@ class FM(Actions, Info, SignalDispatcher):
 			if self.debug:
 				raise Exception("Command `%s' not found!" % command_name)
 			elif self.ui_runs:
-				self.err("Invalid command! Press ? for help.")
+				self.err("Command `%s' not found! Press ? for help." \
+						% command_name)
 			else:
 				self.err('Error in line `%s\':\n  %s' % \
 						(line, 'Invalid Command'))

@@ -99,27 +99,6 @@ class search(Command):
 		self.fm.search_file(self.rest(1), regexp=True)
 
 
-class let(Command):
-	def execute(self):
-		macros = self.fm.macros
-		newval = self.rest(3)
-		if self.arg(1) == '-e':
-			self.shift()
-			newval = self.fm.eval(self.rest(3))
-
-		try:
-			var = macros[self.arg(1)]
-		except:
-			var = 0
-		if self.arg(2) == '=':
-			macros[self.arg(1)] = newval
-		elif self.arg(2) == '+=':
-			macros[self.arg(1)] = str(int(var) + int(newval))
-		elif self.arg(2) == '-=':
-			macros[self.arg(1)] = str(int(var) - int(newval))
-		elif self.arg(2) == '.=':
-			macros[self.arg(1)] = str(var) + str(newval)
-
 class load_(Command):
 	name = 'load'
 	def execute(self):
@@ -283,6 +262,27 @@ class find(Command):
 
 		return self.count == 1
 
+
+class let(Command):
+	def execute(self):
+		macros = self.fm.macros
+		newval = self.rest(3)
+		if self.arg(1) == '-e':
+			self.shift()
+			newval = self.fm.eval(self.rest(3))
+
+		try:
+			var = macros[self.arg(1)]
+		except:
+			var = 0
+		if self.arg(2) == '=':
+			macros[self.arg(1)] = newval
+		elif self.arg(2) == '+=':
+			macros[self.arg(1)] = str(int(var) + int(newval))
+		elif self.arg(2) == '-=':
+			macros[self.arg(1)] = str(int(var) - int(newval))
+		elif self.arg(2) == '.=':
+			macros[self.arg(1)] = str(var) + str(newval)
 
 class set_(Command):
 	"""
@@ -542,6 +542,9 @@ class console_tab(Command):
 	def execute(self):
 		self.fm.ui.console.tab(int(self.arg(1) or 1))
 
+class help(Command):
+	def execute(self):
+		self.fm.display_help(narg=self.n)
 
 class unmark(mark):
 	"""
@@ -550,7 +553,6 @@ class unmark(mark):
 	Unmark all files matching a regular expression.
 	"""
 	do_mark = False
-
 
 class mkdir(Command):
 	"""

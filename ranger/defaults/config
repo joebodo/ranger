@@ -82,6 +82,10 @@ map cm cycle mimetype
 map cs cycle size
 map c<bg> hint *c*time *m*imetype *s*ize *t*ag *w*:rename *d*:chdir
 
+" Settings
+map z<bg> [*cdfhimpPsv*] show_*h*idden *p*review_files *P*review_dirs *f*ilter flush*i*nput *m*ouse
+map zv set use_preview_script ^= true
+
 " VIM
 map j move down
 map k move up
