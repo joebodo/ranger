@@ -1,7 +1,7 @@
 #!/usr/bin/python -O
 # -*- coding: utf-8 -*-
-#
 # Ranger: Explore your forest of files from inside your terminal
+#
 # Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,18 +17,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Embed a script which allows you to change the directory of the parent shell
-# after you exit ranger.  Run it with the command: source ranger ranger
+# Embed a bash script which allows you to change the directory of the parent
+# shell after you exit ranger.  Run it with the command: source ranger ranger
 """":
 if [ ! -z "$1" ]; then
-	$@ --fail-unless-cd &&
-	if [ -z "$XDG_CONFIG_HOME" ]; then
-		cd "$(grep \^\' ~/.config/ranger/bookmarks | cut -b3-)"
+	_ranger="$1"
+	_before="$(pwd)"
+	_bookmarksfile="${XDG_CONFIG_HOME:-"$HOME"/.config}"/ranger/bookmarks
+	shift
+	if [ -z "$@" ]; then
+		$_ranger "$_before" --fail-unless-cd || return 1
 	else
-		cd "$(grep \^\' "$XDG_CONFIG_HOME"/ranger/bookmarks | cut -b3-)"
-	fi && return 0
+		$_ranger "$@" --fail-unless-cd || return 1
+	fi
+	_after="$(/bin/grep \^\' "$_bookmarksfile")"
+	/usr/bin/test "$_before" != "${_after:2}" && cd "${_after:2}"
+	return 0
 else
-	echo "usage: source path/to/ranger.py path/to/ranger.py"
+	/bin/echo 'Usage: source path/to/ranger.py path/to/ranger.py'
 fi
 return 1
 """
