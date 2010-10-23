@@ -31,7 +31,7 @@ if [ ! -z "$1" ]; then
 		$_ranger "$@" --fail-unless-cd || return 1
 	fi
 	_after="$(/bin/grep \^\' "$_bookmarksfile")"
-	/usr/bin/test "$_before" != "${_after:2}" && cd "${_after:2}"
+	test "$_before" != "${_after:2}" && cd "${_after:2}"
 	return 0
 else
 	/bin/echo 'Usage: source path/to/ranger.py path/to/ranger.py'
