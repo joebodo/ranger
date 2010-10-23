@@ -30,10 +30,9 @@ map uv mark unmark all
 map <C-V><dir> mark_in_direction
 map u<C-V><dir> mark_in_direction unmark
 
-map dy cut selection
+map dd cut selection
 map da cut selection add
 map dr cut selection remove
-map dd cut
 map dj cut down
 map dk cut up
 map dgg cut home
@@ -44,13 +43,18 @@ map dg<bg> hint
 map yy copy selection
 map ya copy selection add
 map yr copy selection remove
-map yd copy
 map yj copy down
 map yk copy up
 map ygg copy home
 map yG copy end
 map y<bg> hint
 map yg<bg> hint
+
+map pp paste
+map po paste overwrite
+map pl paste symlink
+map pL paste relative_symlink
+map p<bg> hint
 
 map i shell cat %s | %pager
 map E shell %editor %s

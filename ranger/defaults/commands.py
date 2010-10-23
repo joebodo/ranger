@@ -522,6 +522,38 @@ class console_move(Command):
 		elif arg1 == 'end':
 			self.fm.ui.console.move(right=-1, absolute=True)
 
+class copy(Command):
+	method = 'copy'
+	def execute(self):
+		from ranger.ext.direction import Direction
+		fnc = getattr(self.fm, self.method)
+		arg1 = self.arg(1)
+		if arg1 == 'selection' or not arg1:
+			mode = self.arg(2) in ('set', 'add', 'remove') \
+					and self.arg(2) or 'set'
+			self.fm.copy(narg=self.n, mode=mode)
+		elif arg1 == 'down':
+			self.fm.copy(dirarg=Direction(down=1), narg=self.n)
+		elif arg1 == 'up':
+			self.fm.copy(dirarg=Direction(up=1), narg=self.n)
+		elif arg1 == 'home':
+			self.fm.copy(dirarg=Direction(down=0, absolute=True), narg=self.n)
+		elif arg1 == 'end':
+			self.fm.copy(dirarg=Direction(down=-1, absolute=True), narg=self.n)
+
+class cut(copy):
+	method = 'cut'
+
+class paste(Command):
+	def execute(self):
+		overwrite = 'overwrite' in self.args
+		if 'symlink' in self.args:
+			self.fm.paste_symlink(relative=False)
+		elif 'relative_symlink' in self.args:
+			self.fm.paste_symlink(relative=True)
+		else:
+			self.fm.paste(overwrite=overwrite)
+
 class mark(Command):
 	"""
 	:mark <regexp>
@@ -579,7 +611,6 @@ class save_copy_buffer(Command):
 			return self.fm.notify("Cannot open file %s" % fname, bad=True)
 		f.write("\n".join(f.path for f in self.fm.env.copy))
 		f.close()
-
 
 class console_tab(Command):
 	def execute(self):
