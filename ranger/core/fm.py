@@ -53,7 +53,7 @@ class FM(Actions, Info, SignalDispatcher):
 
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(self.version, self.pid))
-		self.log.append('Running on Python ' + sys.version.replace('\n',''))
+		self.log.append('Running on Python ' + sys.version.split('\n')[0])
 
 	def initialize(self):
 		"""If ui/bookmarks are None, they will be initialized here."""

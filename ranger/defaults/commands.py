@@ -168,6 +168,9 @@ class pass_(Command):
 class cmap(map_):
 	context = 'console'
 
+class tmap(map_):
+	context = 'taskview'
+
 class console_type(Command):
 	def execute(self):
 		self.fm.ui.console.type_key(self.rest(1))
@@ -688,9 +691,14 @@ class console_tab(Command):
 	def execute(self):
 		self.fm.ui.console.tab(int(self.arg(1) or 1))
 
-class help(Command):
+class display_help(Command):
 	def execute(self):
-		self.fm.display_help(narg=self.n)
+		from ranger.help import get_help_by_index
+		self.fm.display_in_pager(get_help_by_index(self.n or 0))
+
+class display_log(Command):
+	def execute(self):
+		self.fm.display_in_pager("\n".join(reversed(self.fm.log)))
 
 class mkdir(Command):
 	"""
@@ -761,7 +769,12 @@ class eval_(Command):
 	name = 'eval'
 
 	def execute(self):
-		code = self.rest(1)
+		if self.arg(1) == '-q':
+			code = self.rest(2)
+			quiet = True
+		else:
+			code = self.rest(1)
+			quiet = False
 		fm = self.fm
 		p = fm.notify
 		try:
@@ -770,10 +783,11 @@ class eval_(Command):
 			except SyntaxError:
 				exec(code)
 			else:
-				if result:
+				if result and not quiet:
 					p(result)
 		except Exception as err:
-			p(err)
+			if not quiet:
+				p(err)
 
 class echo(Command):
 	def execute(self):
@@ -856,6 +870,9 @@ class reset(Command):
 	def execute(self):
 		self.fm.reset()
 
+class redraw(Command):
+	def execute(self):
+		self.fm.redraw_window()
 
 class grep(Command):
 	"""

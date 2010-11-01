@@ -18,11 +18,13 @@ let pager = less
 " ===================================================================
 map R reload
 map <c-r> reset
+map <c-l> redraw
 map Q quit
 map H history -1
 map L history 1
 map <c-c> break
 map <ESC><bg> escape
+map ? help
 
 " External Programs
 map du shell -p du --max-depth=1 -h --apparent-size
@@ -73,8 +75,6 @@ map po paste overwrite
 map pl paste symlink
 map pL paste relative_symlink
 map p<bg> hint
-
-map ? help
 
 " Console
 map : console
@@ -192,12 +192,14 @@ map [ move_in_column -1 up
 map <CR> execute
 map gg move home
 map G move end
+map <HOME> move home
+map <END> move end
 map ZZ quit
 map ZQ quit
 map Z<bg> hint
 
 " Midnight Commander
-map <F1> help
+map <F1> display_help
 map <F3> view
 map <F4> edit
 map <F5> copy selection
@@ -205,6 +207,35 @@ map <F6> cut selection
 map <F7> console mkdir 
 map <F8> console delete seriously? 
 map <F10> quit
+
+map w eval fm.ui.open_taskview()
+map W display_log
+
+" ===================================================================
+" == Taskview Keybindings
+" ===================================================================
+" No need to bother with these, usually:
+tmap j eval -q fm.ui.taskview.move(down=1)
+tmap k eval -q fm.ui.taskview.move(up=1)
+tmap gg eval -q fm.ui.taskview.move(down=0, absolute=True)
+tmap G eval -q fm.ui.taskview.move(down=-1, absolute=True)
+tmap <down> eval -q fm.ui.taskview.move(down=1)
+tmap <up> eval -q fm.ui.taskview.move(up=1)
+tmap <home> eval -q fm.ui.taskview.move(down=0, absolute=True)
+tmap <end> eval -q fm.ui.taskview.move(down=-1, absolute=True)
+
+tmap J eval -q fm.ui.taskview.task_move(-1)
+tmap K eval -q fm.ui.taskview.task_move(0)
+tmap dd eval -q fm.ui.taskview.task_remove()
+tmap <pagedown> eval -q fm.ui.taskview.task_move(-1)
+tmap <pageup> eval -q fm.ui.taskview.task_move(0)
+tmap <delete> eval -q fm.ui.taskview.task_remove()
+
+tmap w eval -q fm.ui.close_taskview()
+tmap q eval -q fm.ui.close_taskview()
+tmap Q eval -q fm.ui.close_taskview()
+tmap <esc> eval -q fm.ui.close_taskview()
+tmap <c-c> eval -q fm.ui.close_taskview()
 
 " ===================================================================
 " == Console Keybindings
