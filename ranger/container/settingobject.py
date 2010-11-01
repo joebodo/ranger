@@ -36,6 +36,7 @@ ALLOWED_SETTINGS = {
 	'max_console_history_size': ((int, type(None)), 200),
 	'max_history_size': ((int, type(None)), 40),
 	'mouse_enabled': (bool, True),
+	'padding_right': (bool, True),
 	'preview_directories': (bool, True),
 	'preview_files': (bool, True),
 	'preview_script': ((str, type(None)), None),
