@@ -500,6 +500,7 @@ class delete(Command):
 
 		if lastword.startswith('y'):
 			# user confirmed deletion!
+			self.fm.visual = None
 			return self.fm.delete()
 		elif self.line.startswith(DELETE_WARNING):
 			# user did not confirm deletion

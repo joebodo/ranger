@@ -66,6 +66,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		old_path = self.env.cwd.path
 		self.previews = {}
 		self.env.garbage_collect(-1)
+		self.fm.visual = None
 		self.enter_dir(old_path)
 
 	def reload_cwd(self):
@@ -144,6 +145,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 				directory = os.path.join(*(['..'] * steps))
 			except:
 				return
+			self.fm.visual = None
 			self.env.enter_dir(directory)
 		if cwd and cwd.accessible and cwd.content_loaded:
 			if 'right' in direction:
@@ -152,6 +154,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 					mode = narg
 				cf = self.env.cf
 				selection = self.env.get_selection()
+				self.fm.visual = None
 				if not self.env.enter_dir(cf) and selection:
 					pass
 			elif direction.vertical():
@@ -174,6 +177,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		if parent.pointer + n < 0:
 			n = 0 - parent.pointer
 		try:
+			self.fm.visual = None
 			self.env.enter_dir(parent.files[parent.pointer+n])
 		except IndexError:
 			pass
@@ -191,6 +195,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	def enter_dir(self, path, remember=False, history=True):
 		"""Enter the directory at the given path"""
 		if remember:
+			self.fm.visual = None
 			cwd = self.env.cwd
 			result = self.env.enter_dir(path, history=history)
 			self.bookmarks.remember(cwd)
@@ -199,12 +204,14 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 
 	def cd(self, path, remember=True):
 		"""enter the directory at the given path, remember=True"""
+		self.fm.visual = None
 		self.enter_dir(path, remember=remember)
 
 	def traverse(self):
 		cf = self.env.cf
 		cwd = self.env.cwd
 		if cf is not None and cf.is_directory:
+			self.fm.visual = None
 			self.enter_dir(cf.path)
 		elif cwd.pointer >= len(cwd) - 1:
 			while True:
@@ -570,6 +577,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		do_emit_signal = name != self.current_tab
 		self.current_tab = name
 		if path or (name in self.tabs):
+			self.fm.visual = None
 			self.enter_dir(path or self.tabs[name])
 		else:
 			self._update_current_tab()
