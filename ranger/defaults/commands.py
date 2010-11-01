@@ -623,6 +623,17 @@ class escape(Command):
 	def execute(self):
 		self.fm.visual = None
 
+class break_(Command):
+	name = 'break'
+	def execute(self):
+		try:
+			item = self.fm.loader.queue[0]
+		except:
+			self.fm.write("Type Q or :quit<Enter> to exit Ranger")
+		else:
+			self.fm.write("Aborting: " + item.get_description())
+			self.fm.loader.remove(index=0)
+
 class load_copy_buffer(Command):
 	"""
 	:load_copy_buffer
@@ -821,6 +832,14 @@ class filter(Command):
 	def execute(self):
 		self.fm.set_filter(self.rest(1))
 		self.fm.reload_cwd()
+
+class reload(Command):
+	def execute(self):
+		self.fm.reload_cwd()
+
+class reset(Command):
+	def execute(self):
+		self.fm.reset()
 
 
 class grep(Command):
