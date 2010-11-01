@@ -115,6 +115,25 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		waitpid_no_intr(p.pid)
 		self.ui.initialize()
 
+	def compile_command_list(self):
+		from inspect import cleandoc
+		sorted_cmds = list(sorted(self.commands.commands.items(),
+			key=lambda (a,b): a))
+
+		content = "List of currently available commands:\n\n"
+		for name, cmd in sorted_cmds:
+			if cmd.__doc__:
+				doc = cleandoc(cmd.__doc__).split("\n")
+				for i in range(2, len(doc)):
+					doc[i] = "   " + doc[i]
+				if doc[1] == "":
+					del doc[1]
+				content += "\n".join(doc) + "\n\n\n"
+			else:
+				content += ":%s\n   no description.\n\n\n" % name
+		return content
+
+
 	# --------------------------
 	# -- Moving Around
 	# --------------------------

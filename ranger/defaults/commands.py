@@ -695,7 +695,11 @@ class console_tab(Command):
 class display_help(Command):
 	def execute(self):
 		from ranger.help import get_help_by_index
-		self.fm.display_in_pager(get_help_by_index(self.n or 0))
+		index = self.n or 0
+		if index == 9:
+			self.fm.display_in_pager(self.fm.compile_command_list())
+		else:
+			self.fm.display_in_pager(get_help_by_index(index))
 
 class display_log(Command):
 	def execute(self):

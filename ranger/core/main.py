@@ -62,10 +62,10 @@ def main():
 			return 1 if arg.fail_unless_cd else 0
 
 	crash_traceback = None
+	fm = info
 	try:
 		# Morph info object into FM
 		from ranger.core.fm import FM
-		fm = info
 		fm.__class__ = FM
 		fm.__init__(infoinit=False)
 
@@ -96,7 +96,10 @@ def main():
 		return error.args[0]
 	finally:
 		if crash_traceback:
-			filepath = fm.env.cf.path if fm.env.cf else "None"
+			try:
+				filepath = fm.env.cf.path
+			except:
+				filepath = "None"
 		try:
 			fm.ui.destroy()
 		except (AttributeError, NameError):

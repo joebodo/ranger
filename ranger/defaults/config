@@ -24,7 +24,7 @@ map H history -1
 map L history 1
 map <c-c> break
 map <ESC><bg> escape
-map ? help
+map ? display_help
 
 " External Programs
 map du shell -p du --max-depth=1 -h --apparent-size
