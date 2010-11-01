@@ -158,7 +158,7 @@ class map_(Command):
 	resolve_macros = False
 	def execute(self):
 		command = self.rest(2)
-		self.fm.env.keymanager.get_context(self.context)(self.arg(1),
+		self.fm.env.keymanager.map(self.context, self.arg(1),
 			func=(lambda arg: arg.fm.cmd(command, n=arg.n, any=arg.matches)),
 			help=command)
 
