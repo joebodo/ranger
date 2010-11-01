@@ -186,6 +186,37 @@ class chain(Command):
 		for command in self.rest(1).split("|"):
 			self.fm.cmd(command)
 
+class tab(Command):
+	def execute(self):
+		self.fm.tab_new(path=self.rest(1) or None)
+
+class tabnext(Command):
+	def execute(self):
+		self.fm.tab_move(1)
+
+class tabprevious(Command):
+	def execute(self):
+		self.fm.tab_move(-1)
+
+class tabclose(Command):
+	def execute(self):
+		self.fm.tab_close()
+
+class tabopen(Command):
+	def execute(self):
+		name = self.arg(1)
+		if name.isdigit():
+			name = int(name)
+		self.fm.tab_open(name=name)
+
+class tag(Command):
+	def execute(self):
+		self.fm.tag_toggle()
+
+class untag(Command):
+	def execute(self):
+		self.fm.tag_remove()
+
 class move(Command):
 	def execute(self):
 		direction = self.arg(1)
@@ -557,27 +588,40 @@ class paste(Command):
 			self.fm.paste(overwrite=overwrite)
 
 class mark(Command):
-	"""
-	:mark <regexp>
-
-	Mark all files matching a regular expression.
-	"""
 	do_mark = True
-
 	def execute(self):
-		import re
-		cwd = self.fm.env.cwd
-		input = self.rest(1)
-		searchflags = re.UNICODE
-		if input.lower() == input: # "smartcase"
-			searchflags |= re.IGNORECASE 
-		pattern = re.compile(input, searchflags)
-		for fileobj in cwd.files:
-			if pattern.search(fileobj.basename):
-				cwd.mark_item(fileobj, val=self.do_mark)
-		self.fm.ui.status.need_redraw = True
-		self.fm.ui.need_redraw = True
+		subcommand = self.arg(1)
+		if subcommand == 'toggle':
+			self.fm.mark(toggle=True, all=self.arg(2) == 'all',
+					val=self.do_mark)
+		elif subcommand == 'all':
+			self.fm.mark(all=True, val=self.do_mark)
+		elif subcommand == 'regexp':
+			import re
+			cwd = self.fm.env.cwd
+			input = self.rest(2)
+			searchflags = re.UNICODE
+			if input.lower() == input: # "smartcase"
+				searchflags |= re.IGNORECASE
+			pattern = re.compile(input, searchflags)
+			for fileobj in cwd.files:
+				if pattern.search(fileobj.basename):
+					cwd.mark_item(fileobj, val=self.do_mark)
+			self.fm.ui.status.need_redraw = True
+			self.fm.ui.need_redraw = True
 
+class unmark(mark):
+	do_mark = False
+
+class visual(Command):
+	def execute(self):
+		value = self.arg(1) != 'reverse'
+		self.fm.visual = value
+		self.fm.mark(val=value, movedown=False)
+
+class escape(Command):
+	def execute(self):
+		self.fm.visual = None
 
 class load_copy_buffer(Command):
 	"""
@@ -621,14 +665,6 @@ class console_tab(Command):
 class help(Command):
 	def execute(self):
 		self.fm.display_help(narg=self.n)
-
-class unmark(mark):
-	"""
-	:unmark <regexp>
-
-	Unmark all files matching a regular expression.
-	"""
-	do_mark = False
 
 class mkdir(Command):
 	"""

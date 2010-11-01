@@ -37,6 +37,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	search_forward = False
 	input_blocked = False
 	input_blocked_until = 0
+	visual = None
 
 	# --------------------------
 	# -- Basic Commands
@@ -141,6 +142,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 				if not self.env.enter_dir(cf) and selection:
 					pass
 			elif direction.vertical():
+				oldpos = cwd.pointer
 				newpos = direction.move(
 						direction=direction.down(),
 						override=narg,
@@ -148,6 +150,11 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 						current=cwd.pointer,
 						pagesize=self.ui.browser.hei)
 				cwd.move(to=newpos)
+				if self.visual is not None:
+					_, selection = direction.select(cwd.files, oldpos,
+							self.ui.browser.hei, narg)
+					for f in selection:
+						cwd.mark_item(f, self.visual)
 
 	def move_parent(self, n):
 		parent = self.env.at_level(-1)
@@ -606,10 +613,10 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		if newtab != self.current_tab:
 			self.tab_open(newtab)
 
-	def tab_new(self):
+	def tab_new(self, path=None):
 		for i in range(1, 10):
 			if not i in self.tabs:
-				self.tab_open(i)
+				self.tab_open(i, path)
 				break
 
 	def _get_tab_list(self):

@@ -38,6 +38,7 @@ class StatusBar(Widget):
 	hint = None
 	msg = None
 
+	old_visual = None
 	old_cf = None
 	old_mtime = None
 	old_du = None
@@ -58,6 +59,10 @@ class StatusBar(Widget):
 
 	def draw(self):
 		"""Draw the statusbar"""
+
+		if self.old_visual != self.fm.visual:
+			self.need_redraw = True
+			self.old_visual = self.fm.visual
 
 		if self.hint and isinstance(self.hint, str):
 			if self.old_hint != self.hint:
@@ -139,6 +144,13 @@ class StatusBar(Widget):
 
 	def _get_left_part(self, bar):
 		left = bar.left
+
+		if self.old_visual is not None:
+			if self.old_visual:
+				left.add('-- VISUAL --', 'mode', 'good')
+			else:
+				left.add('-- VISUAL REVERSE --', 'mode', 'bad')
+			return
 
 		if self.column is not None and self.column.target is not None\
 				and self.column.target.is_directory:

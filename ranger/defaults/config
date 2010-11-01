@@ -19,16 +19,16 @@ let pager = less
 map Q quit
 map H history -1
 map L history 1
+map <ESC><bg> escape
 
-map t tag toggle
-map T tag remove
+map t tag
+map ut untag
 
 map <Space> mark toggle
 map v mark toggle all
-map V mark unmark all
-map uv mark unmark all
-map <C-V><dir> mark_in_direction
-map u<C-V><dir> mark_in_direction unmark
+map uv unmark all
+map V visual
+map uV visual reverse
 
 map dd cut selection
 map da cut selection add
@@ -39,7 +39,7 @@ map dgg cut home
 map dG cut end
 map d<bg> hint
 map dg<bg> hint
-map ud cut clear
+map ud copy clear
 
 map yy copy selection
 map ya copy selection add
@@ -103,6 +103,23 @@ map m<any> set_bookmark $1
 map um<any> unset_bookmark $1
 map `<any> enter_bookmark $1
 map '<any> enter_bookmark $1
+
+" Tabs
+map gn tab
+map <c-n> tab
+map gc tabclose
+map <c-w> tabclose
+map <tab> tabnext
+map <s-tab> tabprevious
+map <a-1> tabopen 1
+map <a-2> tabopen 2
+map <a-3> tabopen 3
+map <a-4> tabopen 4
+map <a-5> tabopen 5
+map <a-6> tabopen 6
+map <a-7> tabopen 7
+map <a-8> tabopen 8
+map <a-9> tabopen 9
 
 " Cycling
 map n next
