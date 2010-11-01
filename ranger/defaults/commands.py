@@ -531,15 +531,17 @@ class copy(Command):
 		if arg1 == 'selection' or not arg1:
 			mode = self.arg(2) in ('set', 'add', 'remove') \
 					and self.arg(2) or 'set'
-			self.fm.copy(narg=self.n, mode=mode)
+			fnc(narg=self.n, mode=mode)
 		elif arg1 == 'down':
-			self.fm.copy(dirarg=Direction(down=1), narg=self.n)
+			fnc(dirarg=Direction(down=1), narg=self.n)
 		elif arg1 == 'up':
-			self.fm.copy(dirarg=Direction(up=1), narg=self.n)
+			fnc(dirarg=Direction(up=1), narg=self.n)
 		elif arg1 == 'home':
-			self.fm.copy(dirarg=Direction(down=0, absolute=True), narg=self.n)
+			fnc(dirarg=Direction(down=0, absolute=True), narg=self.n)
 		elif arg1 == 'end':
-			self.fm.copy(dirarg=Direction(down=-1, absolute=True), narg=self.n)
+			fnc(dirarg=Direction(down=-1, absolute=True), narg=self.n)
+		elif arg1 == 'clear':
+			self.fm.uncut()
 
 class cut(copy):
 	method = 'cut'

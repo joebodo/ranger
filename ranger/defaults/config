@@ -39,6 +39,7 @@ map dgg cut home
 map dG cut end
 map d<bg> hint
 map dg<bg> hint
+map ud cut clear
 
 map yy copy selection
 map ya copy selection add
@@ -49,6 +50,7 @@ map ygg copy home
 map yG copy end
 map y<bg> hint
 map yg<bg> hint
+map uy copy clear
 
 map pp paste
 map po paste overwrite

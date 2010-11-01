@@ -92,18 +92,17 @@ class BrowserView(Widget, DisplayableContainer):
 		self.need_clear = True
 
 	def draw(self):
+		if self.need_clear:
+			self.win.erase()
+			self.need_redraw = True
+			self.need_clear = False
+		DisplayableContainer.draw(self)
+		if self.settings.draw_borders:
+			self._draw_borders()
 		if self.draw_bookmarks:
 			self._draw_bookmarks()
 		elif self.draw_hints:
 			self._draw_keyhints()
-		else:
-			if self.need_clear:
-				self.win.erase()
-				self.need_redraw = True
-				self.need_clear = False
-			DisplayableContainer.draw(self)
-			if self.settings.draw_borders:
-				self._draw_borders()
 
 	def finalize(self):
 		if self.pager.visible:
