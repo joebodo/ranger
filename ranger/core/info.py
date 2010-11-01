@@ -209,8 +209,8 @@ class Info(object):
 		usage = '%prog [options] [path/filename]'
 		version_tag = ' (stable)' if int(self.vminor) % 2 == 0 \
 				else ' (testing)'
-		version_string = 'ranger ' + self.version + ' (stable)' \
-				if self.vminor % 2 == 0 else ' (testing)'
+		version_string = 'ranger ' + self.version + (' (stable)' \
+				if self.vminor % 2 == 0 else ' (testing)')
 		parser = OptionParser(usage=usage, version=version_string)
 
 		# Define options
