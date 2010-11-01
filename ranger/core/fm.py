@@ -194,10 +194,10 @@ class FM(Actions, Info, SignalDispatcher):
 		for name, cmd in sorted_cmds:
 			if cmd.__doc__:
 				doc = cleandoc(cmd.__doc__).split("\n")
-				for i in range(2, len(doc)):
-					doc[i] = "   " + doc[i]
 				if doc[1] == "":
 					del doc[1]
+				for i in range(1, len(doc)):
+					doc[i] = "   " + doc[i]
 				content += "\n".join(doc) + "\n\n\n"
 			else:
 				content += ":%s\n   no description.\n\n\n" % name

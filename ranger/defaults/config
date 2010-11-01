@@ -166,7 +166,6 @@ map zd toggle sort_directories_first
 map zf console filter 
 map zh toggle show_hidden
 map <C-h> toggle show_hidden
-map <backspace> toggle show_hidden
 map zi toggle flushinput
 map zm toggle mouse_enabled
 map zp toggle preview_files

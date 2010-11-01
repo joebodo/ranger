@@ -420,6 +420,8 @@ class set_(Command):
 				return self.tabinsert('False')
 
 class toggle(Command):
+	""":toggle <option>
+	Toggles the value of a boolean option."""
 	def execute(self):
 		from ranger.container.settingobject import ALLOWED_SETTINGS
 		key = self.arg(1)
@@ -620,6 +622,8 @@ class escape(Command):
 		self.fm.visual = None
 
 class break_(Command):
+	""":break
+	executed when pressing Ctrl+C, aborts loading/copying/..."""
 	name = 'break'
 	def execute(self):
 		try:
