@@ -267,7 +267,8 @@ class BrowserView(Widget, DisplayableContainer):
 
 				if cut_off:
 					self.columns[i].resize(pad, left, hei - pad * 2, \
-							max(1, self.wid - left - pad))
+							max(1, self.wid - left - pad - 1))
+					left += wid
 					continue
 
 			try:
