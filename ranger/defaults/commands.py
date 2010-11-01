@@ -93,6 +93,17 @@ class cd(Command):
 	def tab(self):
 		return self._tab_only_directories()
 
+class enter_bookmark(Command):
+	def execute(self):
+		self.fm.enter_bookmark(self.arg(1))
+
+class unset_bookmark(Command):
+	def execute(self):
+		self.fm.unset_bookmark(self.arg(1))
+
+class set_bookmark(Command):
+	def execute(self):
+		self.fm.set_bookmark(self.arg(1))
 
 class search(Command):
 	def execute(self):
@@ -148,7 +159,11 @@ class map_(Command):
 	def execute(self):
 		command = self.rest(2)
 		self.fm.env.keymanager.get_context(self.context)(self.arg(1),
-			func=(lambda arg: arg.fm.cmd(command, n=arg.n)), help=command)
+			func=(lambda arg: arg.fm.cmd(command, n=arg.n, any=arg.matches)),
+			help=command)
+
+class pass_(Command):
+	name = 'pass'
 
 class cmap(map_):
 	context = 'console'
@@ -183,7 +198,7 @@ class hint(Command):
 
 class chain(Command):
 	def execute(self):
-		for command in self.rest(1).split("|"):
+		for command in self.rest(1).split(";"):
 			self.fm.cmd(command)
 
 class tab(Command):
@@ -381,7 +396,7 @@ class set_(Command):
 			if op == '=':
 				self.fm.settings[key] = value
 			elif op == '^=' and typ == bool:
-				self.fm.settings[key] ^= value
+				self.fm.settings[key] ^= bool(value)
 
 	def tab(self):
 		name = self.arg(1)

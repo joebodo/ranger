@@ -32,6 +32,7 @@ map yp shell -d echo -n %d/%f | xsel -i
 map yd shell -d echo -n %d | xsel -i
 map yn shell -d echo -n %f | xsel -i
 
+map S shell $SHELL
 map i shell cat %s | %pager
 map E shell %editor %s
 
@@ -108,16 +109,16 @@ map g<bg> hint
 map '<bg> hint bookmarks
 map `<bg> hint bookmarks
 map m<bg> hint bookmarks
-map um<bg> chain hint bookmarks | hint text delete which bookmark?
+map um<bg> chain hint bookmarks; hint text delete which bookmark?
 map u<bg> hint
-map m<any> set_bookmark $1
-map um<any> unset_bookmark $1
-map `<any> enter_bookmark $1
-map '<any> enter_bookmark $1
+map m<any> set_bookmark %any
+map um<any> unset_bookmark %any
+map `<any> enter_bookmark %any
+map '<any> enter_bookmark %any
 
 " Tabs
-map gn chain tab | cd ~
-map <c-n> chain tab | cd ~
+map gn chain tab; cd ~
+map <c-n> chain tab; cd ~
 map gc tabclose
 map <c-w> tabclose
 map <tab> tabnext
@@ -144,9 +145,22 @@ map cm next mimetype
 map cs next size
 map c<bg> hint
 
+" Sorting
+map o<bg> chain hint; hint text short how?
+map os chain set sort = size;      set sort_reverse = false
+map ob chain set sort = basename;  set sort_reverse = false
+map on chain set sort = natural;   set sort_reverse = false
+map om chain set sort = mtime;     set sort_reverse = false
+map ot chain set sort = type;      set sort_reverse = false
+map oS chain set sort = size;      set sort_reverse = true
+map oB chain set sort = basename;  set sort_reverse = true
+map oN chain set sort = natural;   set sort_reverse = true
+map oM chain set sort = mtime;     set sort_reverse = true
+map oT chain set sort = type;      set sort_reverse = true
+map or set sort_reverse ^= true
+
 " Settings
 map z<bg> hint
-"map z<bg> hint [*cdfhimpPsv*] show_*h*idden *p*review_files *P*review_dirs *f*ilter flush*i*nput *m*ouse
 map zc toggle collapse_preview
 map zd toggle sort_directories_first
 map zf console filter 

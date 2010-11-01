@@ -20,6 +20,7 @@ The main function responsible to initialize the FM object and stuff.
 def main():
 	"""initialize objects and run the filemanager"""
 	import locale
+	import sys
 	import os.path
 	import ranger
 	from ranger.core.info import Info

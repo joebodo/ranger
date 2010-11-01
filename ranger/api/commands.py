@@ -31,8 +31,9 @@ class CommandContainer(object):
 			self.commands[new] = self.commands[old]
 
 	def register(self, command):
-		if hasattr(command.__class__, 'name'):
-			self.commands[command.__class__.name or command.__name__] = command
+		classdict = command.__mro__[0].__dict__
+		if 'name' in classdict and classdict['name']:
+			self.commands[classdict['name']] = command
 		else:
 			self.commands[command.__name__] = command
 
@@ -59,8 +60,6 @@ class CommandContainer(object):
 				return lst[0]
 			if self.commands[name] in lst:
 				return self.commands[name]
-			if cmd in lst:
-				return cmd
 			raise ValueError("Ambiguous command")
 		else:
 			try:

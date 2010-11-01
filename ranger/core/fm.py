@@ -32,6 +32,7 @@ from ranger.core.info import Info
 from ranger.container.settingobject import ALLOWED_SETTINGS
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
+from ranger.ext.keybinding_parser import construct_keybinding
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
@@ -250,7 +251,7 @@ class FM(Actions, Info, SignalDispatcher):
 			else:
 				self.err('Error in line `%s\':\n  %s' % (line, str(e)))
 
-	def cmd(self, line, n=None):
+	def cmd(self, line, n=None, any=[]):
 		if line == 'nodefaults':
 			return
 		line = line.lstrip()
@@ -279,20 +280,31 @@ class FM(Actions, Info, SignalDispatcher):
 		if command_entry:
 			command = command_entry()
 			if command.resolve_macros and self.MacroTemplate.delimiter in line:
-				line = self.substitute_macros(line)
+				line = self.substitute_macros(line, any=any)
 			command.setargs(line, n=n)
 			command.execute()
 
-	def substitute_macros(self, string):
-		return self.MacroTemplate(string).safe_substitute(self._get_macros())
+	def substitute_macros(self, string, any=[]):
+		return self.MacroTemplate(string).safe_substitute(
+				self._get_macros(any=any))
 
-	def _get_macros(self):
+	def _get_macros(self, any=[]):
 		macros = {}
 
 		macros['version'] = self.version
 		macros['confdir'] = self.confdir
 		macros['rangerdir'] = self.rangerdir
 		macros['cachedir'] = self.cachedir
+
+		for i in range(0, 10):
+			if i < len(any):
+				macros['any' + str(i+1)] = construct_keybinding([any[i]])
+			else:
+				macros['any' + str(i+1)] = ""
+		if any:
+			macros['any'] = construct_keybinding([any[0]])
+		else:
+			macros['any'] = ""
 
 		if self.env.cf:
 			macros['f']  = shell_quote(self.env.cf.basename)

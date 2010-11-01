@@ -63,6 +63,18 @@ def parse_keybinding(obj):
 			for c in bracket_content:
 				yield ord(c)
 
+def construct_keybinding(iterable):
+	"""
+	Does the reverse of parse_keybinding
+	"""
+	result = []
+	for c in iterable:
+		try:
+			result.append(chr(c))
+		except:
+			result.append("?")
+	return ''.join(result)
+
 # Arbitrary numbers which are not used with curses.KEY_XYZ
 DIRKEY = 9001
 ANYKEY = 9002
