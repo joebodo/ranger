@@ -1,4 +1,4 @@
-Ranger v.1.3.1
+Ranger v.1.3.2
 ==============
 
 Ranger is a free console file manager that gives you greater flexibility
@@ -129,5 +129,5 @@ Check the man page for information on common features and hotkeys.
 The most detailed manual is accessible by pressing "?" from inside ranger.
 It is also available at ranger/help/, contained in the *.py files.
 
-The file ranger/defaults/keys.py contains all key combinations, so that's
+The file ranger/defaults/config contains all key combinations, so that's
 another place you may want to check out.

@@ -27,7 +27,7 @@ vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 from ranger.core.main import main
 
 __license__ = 'GPL3'
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 __author__ = __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 info = None
