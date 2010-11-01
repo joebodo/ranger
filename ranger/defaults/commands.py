@@ -537,13 +537,6 @@ class console_execute(Command):
 	def execute(self):
 		self.fm.ui.console.execute()
 
-class console_delete(Command):
-	def execute(self):
-		if self.arg(1) == 'here':
-			self.fm.ui.console.delete(-1)
-		else:
-			self.fm.ui.console.delete(1)
-
 class console_close(Command):
 	def execute(self):
 		self.fm.ui.console.close()
@@ -555,22 +548,6 @@ class eval_macros(Command):
 class history(Command):
 	def execute(self):
 		self.fm.history_go(int(self.arg(1)))
-
-class console_history(Command):
-	def execute(self):
-		self.fm.ui.console.history_move(int(self.arg(1)))
-
-class console_move(Command):
-	def execute(self):
-		arg1 = self.arg(1)
-		if arg1 == 'left':
-			self.fm.ui.console.move(left=1)
-		elif arg1 == 'right':
-			self.fm.ui.console.move(right=1)
-		elif arg1 == 'home':
-			self.fm.ui.console.move(right=0, absolute=True)
-		elif arg1 == 'end':
-			self.fm.ui.console.move(right=-1, absolute=True)
 
 class copy(Command):
 	method = 'copy'
@@ -687,10 +664,6 @@ class save_copy_buffer(Command):
 			return self.fm.notify("Cannot open file %s" % fname, bad=True)
 		f.write("\n".join(f.path for f in self.fm.env.copy))
 		f.close()
-
-class console_tab(Command):
-	def execute(self):
-		self.fm.ui.console.tab(int(self.arg(1) or 1))
 
 class display_help(Command):
 	def execute(self):

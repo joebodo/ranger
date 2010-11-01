@@ -243,37 +243,37 @@ tmap <c-c> eval -q fm.ui.close_taskview()
 " ===================================================================
 " == Console Keybindings
 " ===================================================================
-cmap <UP> console_history -1
-cmap <DOWN> console_history 1
-cmap <LEFT> console_move left
-cmap <RIGHT> console_move right
-cmap <HOME> console_move home
-cmap <END> console_move end
+cmap <UP> eval -q fm.ui.console.history_go(-1)
+cmap <DOWN> eval -q fm.ui.console.history_go(1)
+cmap <LEFT> eval -q fm.ui.console.move(left=1)
+cmap <RIGHT> eval -q fm.ui.console.move(right=1)
+cmap <HOME> eval -q fm.ui.console.move(right=-1, absolute=True)
+cmap <END> eval -q fm.ui.console.move(right=0, absolute=True)
 
 cmap <CR> console_execute
 cmap <ESC> console_close
 cmap <C-c> console_close
 
-cmap <TAB> console_tab
-cmap <S-TAB> console_tab -1
+cmap <TAB> eval -q fm.ui.console.tab(1)
+cmap <S-TAB> eval -q fm.ui.console.tab(-1)
 
 " Emacs
-cmap <C-B> console_move left
-cmap <C-F> console_move right
-cmap <C-A> console_move home
-cmap <C-E> console_move end
-cmap <C-D> console_delete here
-cmap <C-H> console_delete left
-cmap <C-P> console_history -1
-cmap <C-N> console_history 1
+cmap <C-B> eval -q fm.ui.console.move(left=1)
+cmap <C-F> eval -q fm.ui.console.move(right=1)
+cmap <C-E> eval -q fm.ui.console.move(right=-1, absolute=True)
+cmap <C-A> eval -q fm.ui.console.move(right=0, absolute=True)
+cmap <C-D> eval -q fm.ui.console.delete(0)
+cmap <C-H> eval -q fm.ui.console.delete(-1)
+cmap <C-P> eval -q fm.ui.console.history_go(-1)
+cmap <C-N> eval -q fm.ui.console.history_go(1)
 
 " Line editing
-cmap <backspace> console_delete here
-cmap <delete> console_delete left
-cmap <C-W> console_delete_word
-cmap <C-K> console_delete_rest 1
-cmap <C-U> console_delete_rest -1
-cmap <C-Y> console_paste
+cmap <backspace> eval -q fm.ui.console.delete(-1)
+cmap <delete> eval -q fm.ui.console.delete(0)
+cmap <C-W> eval -q fm.ui.console.delete_word()
+cmap <C-K> eval -q fm.ui.console.delete_rest(1)
+cmap <C-U> eval -q fm.ui.console.delete_rest(-1)
+cmap <C-Y> eval -q fm.ui.console.paste()
 
 " Typing numbers
 " Without this, numbers are treated as quantifiers for the following
