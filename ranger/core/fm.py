@@ -206,6 +206,8 @@ class FM(Actions, Info, SignalDispatcher):
 
 		content = header
 		for name, cmd in sorted_cmds:
+			if name in self.commands.aliases:
+				continue
 			if cmd.__doc__:
 				doc = cleandoc(cmd.__doc__).split("\n")
 				if doc[1] == "":
@@ -216,6 +218,9 @@ class FM(Actions, Info, SignalDispatcher):
 			else:
 				content += nodescr % name
 		return content
+
+	def compile_plugin_list(self):
+		return "List of loaded plugins:\n" + "\n".join(self.plugins)
 
 	def load_config(self):
 		try:

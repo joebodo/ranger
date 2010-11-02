@@ -22,6 +22,7 @@ from ranger.ext.lazy_property import lazy_property
 class CommandContainer(object):
 	def __init__(self):
 		self.commands = {}
+		self.aliases = {}
 
 	def __getitem__(self, key):
 		return self.commands[key]
@@ -29,6 +30,7 @@ class CommandContainer(object):
 	def alias(self, new, old):
 		if old in self.commands:
 			self.commands[new] = self.commands[old]
+			self.aliases[new] = old
 
 	def register(self, command):
 		classdict = command.__mro__[0].__dict__

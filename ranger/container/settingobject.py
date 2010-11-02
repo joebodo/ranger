@@ -32,7 +32,7 @@ ALLOWED_SETTINGS = {
 	'file_launcher': ((str, bool), 'vim'),
 	'flushinput': (bool, True),
 	'hidden_filter': (type(re.compile("")),
-		re.compile(r"^\.|\.(?:pyc|pyo|bak|swp)$|~$|lost\+found")),
+		re.compile(r"^\.|(pyc|pyo|bak|swp)$|lost\+found")),
 	'max_console_history_size': ((int, type(None)), 200),
 	'max_history_size': ((int, type(None)), 40),
 	'mouse_enabled': (bool, True),

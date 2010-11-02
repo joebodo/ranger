@@ -201,6 +201,8 @@ class tmap(map_):
 	context = 'taskview'
 
 class console_type(Command):
+	""":console_type <text>
+	Type the given text into the console"""
 	def execute(self):
 		self.fm.ui.console.type_key(self.rest(1))
 
@@ -227,9 +229,9 @@ class previous(next_):
 class hint(Command):
 	""":hint [<method> [<text>]]
 	Display information to help the user.
-	:hint without arguments displays all keys which can follow in the key combination.
-	:hint bookmarks displays all bookmarks
-	:hint text <text> displays the given text in the statusbar.
+	":hint" displays all keys which can follow with this key combination.
+	":hint bookmarks" displays all bookmarks
+	":hint text <text>" displays the given text in the statusbar.
 	"""
 	def execute(self):
 		if self.arg(1) == 'bookmarks':
@@ -802,7 +804,9 @@ class help(Command):
 		else:
 			from ranger.help import get_help_by_index
 			index = self.n or 0
-			if index == 9:
+			if index == 8:
+				self.fm.display_in_pager(self.fm.compile_plugin_list())
+			elif index == 9:
 				self.fm.display_in_pager(self.fm.compile_command_list())
 			else:
 				self.fm.display_in_pager(get_help_by_index(index))

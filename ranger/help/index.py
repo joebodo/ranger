@@ -27,7 +27,8 @@
 	|3?|	The console
 	|4?|	File operations
 	|5?|	Ranger invocation
-	|9?|	Dynamically generated list of commands
+	|8?|	List of loaded plugins
+	|9?|	List of existing commands
 
 
 ==============================================================================
