@@ -109,8 +109,12 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.ui.suspend()
 		p = Popen(self.macros['pager'], stdin=PIPE)
 		bytes = 1024
+		py3 = self.fm.py3
 		for i in range(int(math.ceil(len(string) / float(bytes)))):
-			p.stdin.write(string[i*bytes:i*bytes+bytes])
+			if py3:
+				p.stdin.write(string[i*bytes:i*bytes+bytes].encode('utf-8'))
+			else:
+				p.stdin.write(string[i*bytes:i*bytes+bytes])
 		p.stdin.close()
 		waitpid_no_intr(p.pid)
 		self.ui.initialize()

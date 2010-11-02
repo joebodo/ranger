@@ -94,14 +94,20 @@ class cd(Command):
 		return self._tab_only_directories()
 
 class enter_bookmark(Command):
+	""":enter_bookmark <key>
+	Enter the given bookmark."""
 	def execute(self):
 		self.fm.enter_bookmark(self.arg(1))
 
 class unset_bookmark(Command):
+	""":enter_bookmark <key>
+	Delete the given bookmark."""
 	def execute(self):
 		self.fm.unset_bookmark(self.arg(1))
 
 class set_bookmark(Command):
+	""":enter_bookmark <key>
+	Set the given bookmark to the current directory."""
 	def execute(self):
 		self.fm.set_bookmark(self.arg(1))
 
@@ -111,6 +117,8 @@ class search(Command):
 
 
 class load_(Command):
+	""":load <file/plugin>
+	Loads a plugin or python file."""
 	name = 'load'
 	def execute(self):
 		self.fm.load_plugin(self.rest(1))
@@ -153,6 +161,13 @@ class shell(Command):
 					if file.shell_escaped_basename.startswith(start_of_word))
 
 class map_(Command):
+	""":map <keysequence> <command>
+	Maps a command to a keysequence in the "browser" context.
+
+	Example:
+	map j move down
+	map J move down 10
+	"""
 	name = 'map'
 	context = 'browser'
 	resolve_macros = False
@@ -163,12 +178,28 @@ class map_(Command):
 			help=command)
 
 class pass_(Command):
+	""":pass
+	Null command, does nothing."""
 	name = 'pass'
 
 class cmap(map_):
+	""":cmap <keysequence> <command>
+	Maps a command to a keysequence in the "console" context.
+
+	Example:
+	map <ESC> console_close
+	map <C-x> console_type test
+	"""
 	context = 'console'
 
 class tmap(map_):
+	""":tmap <keysequence> <command>
+	Maps a command to a keysequence in the "taskview" context.
+
+	Example:
+	map <ESC> console_close
+	map <C-x> console_type test
+	"""
 	context = 'taskview'
 
 class console_type(Command):
@@ -176,6 +207,11 @@ class console_type(Command):
 		self.fm.ui.console.type_key(self.rest(1))
 
 class next_(Command):
+	""":next [<method>]
+	Go to the next object with a given method.
+	With no method, move to the next object with the previously used method.
+	Methods are: tag, ctime, mimetype, size, text
+	"""
 	name = 'next'
 	forward = True
 	def execute(self):
@@ -191,6 +227,12 @@ class previous(next_):
 	forward = False
 
 class hint(Command):
+	""":hint [<method> [<text>]]
+	Display information to help the user.
+	:hint without arguments displays all keys which can follow in the key combination.
+	:hint bookmarks displays all bookmarks
+	:hint text <text> displays the given text in the statusbar.
+	"""
 	def execute(self):
 		if self.arg(1) == 'bookmarks':
 			self.fm.ui.browser.draw_bookmarks = True
@@ -200,27 +242,40 @@ class hint(Command):
 			self.fm.ui.browser.draw_hints = True
 
 class chain(Command):
+	""":chain <command1>; <command2>; ...
+	Calls multiple commands at once, separated by semicolons.
+	"""
 	def execute(self):
 		for command in self.rest(1).split(";"):
 			self.fm.cmd(command)
 
 class tab(Command):
+	""":tab <path>
+	Open a new tab and move to the given path"""
 	def execute(self):
 		self.fm.tab_new(path=self.rest(1) or None)
 
 class tabnext(Command):
+	""":tabnext
+	Move to the next tab"""
 	def execute(self):
 		self.fm.tab_move(1)
 
 class tabprevious(Command):
+	""":tabprevious
+	Move to the previous tab"""
 	def execute(self):
 		self.fm.tab_move(-1)
 
 class tabclose(Command):
+	""":tabclose
+	Close the current tab."""
 	def execute(self):
 		self.fm.tab_close()
 
 class tabopen(Command):
+	""":tabopen <name>
+	Open the tab with the given name"""
 	def execute(self):
 		name = self.arg(1)
 		if name.isdigit():
@@ -228,14 +283,24 @@ class tabopen(Command):
 		self.fm.tab_open(name=name)
 
 class tag(Command):
+	""":tag
+	Toggle whether a file is tagged or not.
+	Tagged files will have a * sign left of them.  The meaning of tagged files
+	is up to you.  Use it to tag unread papers, unheared songs,...
+	"""
 	def execute(self):
 		self.fm.tag_toggle()
 
 class untag(Command):
+	""":untag
+	Remove the tag-status of a file.
+	"""
 	def execute(self):
 		self.fm.tag_remove()
 
 class move(Command):
+	""":move <direction>
+	move inside the current column."""
 	def execute(self):
 		direction = self.arg(1)
 		n = self.n
@@ -262,6 +327,9 @@ class move(Command):
 					absolute=True, **kw)
 
 class move_in_column(Command):
+	""":move_in_column <column> <direction>
+	move inside the given column.
+	column 0 is the current column, -1 is the parent column"""
 	def execute(self):
 		col = int(self.arg(1))
 		n = self.n
@@ -278,14 +346,16 @@ class move_in_column(Command):
 				self.fm.move_parent(-(1 if n is None else n) * mult)
 
 class execute(Command):
+	""":execute
+	Start the files with the program defined in %file_launcher.
+	"""
 	def execute(self):
 		cf = self.fm.env.cf
 		selection = self.fm.env.get_selection()
 		if self.fm.env.enter_dir(cf):
 			return
 		elif selection:
-			self.fm.execute_command(self.fm.substitute_macros(
-				"%file_launcher %s"))
+			self.fm.cmd("shell %file_launcher %s")
 
 class find(Command):
 	"""
@@ -341,6 +411,17 @@ class find(Command):
 
 
 class let(Command):
+	""":let <name> <operator> <value>
+	Change the value of a macro.  Macros are words that start with a % sign.
+	When used in commands, they are replaced with their value.
+	Operators are: =, +=, -=, .=
+
+	Example:
+	:let foo = hello
+	:let foo .= _world
+	:echo %foo
+	=> hello_world
+	"""
 	def execute(self):
 		macros = self.fm.macros
 		newval = self.rest(3)
@@ -522,6 +603,9 @@ class delete(Command):
 
 
 class console(Command):
+	""":console [-p <position>] <text>
+	Opens the console and inserts the given text.
+	If -p is used, the cursor position is set to the given number."""
 	def execute(self):
 		position = None
 		if self.arg(1)[0:2] == '-p':
@@ -536,22 +620,41 @@ class console(Command):
 		self.fm.ui.open_console(self.rest(1), position=position)
 
 class console_execute(Command):
+	""":console_execute
+	Execute the command in the console."""
 	def execute(self):
 		self.fm.ui.console.execute()
 
 class console_close(Command):
+	""":console_close
+	Close the console"""
 	def execute(self):
 		self.fm.ui.console.close()
 
 class eval_macros(Command):
+	""":eval_macros <command>
+	Run the given command with macros evaluated.
+
+	Example:
+	:let foo = macro evaluated!
+	:echo %%foo
+	:eval_macros echo %%foo"""
 	def execute(self):
 		return self.fm.cmd(self.rest(1))
 
 class history(Command):
+	""":history <offset>
+	Move in the history by the given offset.  -1 for back, 1 for forward."""
 	def execute(self):
 		self.fm.history_go(int(self.arg(1)))
 
 class copy(Command):
+	""":copy <direction> <mode>
+	Operates on the files in the given direction and either sets, adds or removes
+	those files to/from the copy buffer.
+	mode is one of set, add, remove
+	direction is one of up, down, home, end, selection, clear
+	"""
 	method = 'copy'
 	def execute(self):
 		from ranger.ext.direction import Direction
@@ -573,9 +676,20 @@ class copy(Command):
 			self.fm.uncut()
 
 class cut(copy):
+	""":cut <direction> <mode>
+	Operates on the files in the given direction and either sets, adds or removes
+	those files to/from the copy buffer.
+	The difference to :copy is: the files are moved instead of copied.
+	mode is one of set, add, remove
+	direction is one of up, down, home, end, selection, clear
+	"""
 	method = 'cut'
 
 class paste(Command):
+	""":paste [<method>]
+	Pastes the copied or cut files.
+	Methods: overwrite, symlink, relative_symlink
+	"""
 	def execute(self):
 		overwrite = 'overwrite' in self.args
 		if 'symlink' in self.args:
@@ -612,12 +726,19 @@ class unmark(mark):
 	do_mark = False
 
 class visual(Command):
+	""":visual [reverse]
+	Enable the visual mode: All movement will select every file between the starting
+	point and the end point of the movement.
+	If the first argument is "reverse", the files are unselected instead.
+	Use :escape to return to the normal mode."""
 	def execute(self):
 		value = self.arg(1) != 'reverse'
 		self.fm.visual = value
 		self.fm.mark(val=value, movedown=False)
 
 class escape(Command):
+	""":escape
+	Escape to the normal mode, if you have changed it to e.g. the visual mode."""
 	def execute(self):
 		self.fm.visual = None
 
@@ -670,6 +791,8 @@ class save_copy_buffer(Command):
 		f.close()
 
 class display_help(Command):
+	""":display_help
+	Displays the help text in the pager."""
 	def execute(self):
 		from ranger.help import get_help_by_index
 		index = self.n or 0
@@ -679,6 +802,8 @@ class display_help(Command):
 			self.fm.display_in_pager(get_help_by_index(index))
 
 class display_log(Command):
+	""":display_log
+	Displays the current log of ranger in the pager."""
 	def execute(self):
 		self.fm.display_in_pager("\n".join(reversed(self.fm.log)))
 
@@ -772,6 +897,8 @@ class eval_(Command):
 				p(err)
 
 class echo(Command):
+	""":echo <text>
+	Displays the given text in the statusbar."""
 	def execute(self):
 		self.fm.write(self.rest(1))
 
@@ -845,14 +972,20 @@ class filter(Command):
 		self.fm.reload_cwd()
 
 class reload(Command):
+	""":reload
+	Reload the current directory"""
 	def execute(self):
 		self.fm.reload_cwd()
 
 class reset(Command):
+	""":reset
+	Reset the file manager, clearing caches.  Usually mapped to <C-R>"""
 	def execute(self):
 		self.fm.reset()
 
 class redraw(Command):
+	""":redraw
+	Redraw the window.  Usually mapped to <C-L>"""
 	def execute(self):
 		self.fm.redraw_window()
 

@@ -50,6 +50,7 @@ ALLOWED_SETTINGS = {
 	'sort_directories_first': (bool, True),
 	'sort_reverse': (bool, False),
 	'sort': (str, 'basename'),
+	'syntax_highlighting': (bool, True),
 	'tilde_in_titlebar': (bool, True),
 	'update_title': (bool, True),
 	'use_preview_script': (bool, True),

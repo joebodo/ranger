@@ -188,19 +188,32 @@ class FM(Actions, Info, SignalDispatcher):
 	def compile_command_list(self):
 		from inspect import cleandoc
 		sorted_cmds = list(sorted(self.commands.commands.items(),
-			key=lambda (a,b): a))
+			key=lambda item: item[0]))
 
-		content = "List of currently available commands:\n\n"
+		if self.settings.syntax_highlighting:
+			header = "[4mList of currently available commands:[0m\n\n"
+			seperator = "[0m\n   "
+			blockstart = "[1m"
+			blockend = "\n\n\n"
+			nodescr = "[1m:%s[0m\n   No description.\n\n\n"
+		else:
+			header = "List of currently available commands:\n\n"
+			seperator = "\n   "
+			blockstart = ""
+			blockend = "\n\n\n"
+			nodescr = ":%s\n   No description.\n\n\n"
+
+		content = header
 		for name, cmd in sorted_cmds:
 			if cmd.__doc__:
 				doc = cleandoc(cmd.__doc__).split("\n")
 				if doc[1] == "":
 					del doc[1]
 				for i in range(1, len(doc)):
-					doc[i] = "   " + doc[i]
-				content += "\n".join(doc) + "\n\n\n"
+					doc[i] = doc[i]
+				content += blockstart + seperator.join(doc) + blockend
 			else:
-				content += ":%s\n   no description.\n\n\n" % name
+				content += nodescr % name
 		return content
 
 	def load_config(self):

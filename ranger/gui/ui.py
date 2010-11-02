@@ -162,7 +162,10 @@ class UI(DisplayableContainer):
 			try:
 				cmd.function(CommandArgs.from_widget(self.fm))
 			except Exception as error:
-				self.fm.notify(error)
+				if self.fm.debug:
+					raise
+				else:
+					self.fm.notify(error)
 			if kbuf.done:
 				kbuf.clear()
 		else:
