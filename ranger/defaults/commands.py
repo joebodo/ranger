@@ -115,7 +115,6 @@ class search(Command):
 	def execute(self):
 		self.fm.search_file(self.rest(1), regexp=True)
 
-
 class load_(Command):
 	""":load <file/plugin>
 	Loads a plugin or python file."""
@@ -773,7 +772,6 @@ class load_copy_buffer(Command):
 		f.close()
 		self.fm.ui.redraw_main_column()
 
-
 class save_copy_buffer(Command):
 	"""
 	:save_copy_buffer
@@ -832,7 +830,6 @@ class mkdir(Command):
 		else:
 			self.fm.notify("file/directory exists!", bad=True)
 
-
 class touch(Command):
 	"""
 	:touch <fname>
@@ -850,11 +847,9 @@ class touch(Command):
 		else:
 			self.fm.notify("file/directory exists!", bad=True)
 
-
 class edit(Command):
 	"""
 	:edit <filename>
-
 	Opens the specified file in vim
 	"""
 
@@ -866,7 +861,6 @@ class edit(Command):
 
 	def tab(self):
 		return self._tab_directory_content()
-
 
 class eval_(Command):
 	"""
@@ -928,45 +922,6 @@ class rename(Command):
 
 	def tab(self):
 		return self._tab_directory_content()
-
-
-class chmod(Command):
-	"""
-	:chmod <octal number>
-
-	Sets the permissions of the selection to the octal number.
-
-	The octal number is between 0 and 777. The digits specify the
-	permissions for the user, the group and others.
-
-	A 1 permits execution, a 2 permits writing, a 4 permits reading.
-	Add those numbers to combine them. So a 7 permits everything.
-	"""
-
-	def execute(self):
-		mode = self.rest(1)
-
-		try:
-			mode = int(mode, 8)
-			if mode < 0 or mode > 0o777:
-				raise ValueError
-		except ValueError:
-			self.fm.notify("Need an octal number between 0 and 777!", bad=True)
-			return
-
-		for file in self.fm.env.get_selection():
-			try:
-				os.chmod(file.path, mode)
-			except Exception as ex:
-				self.fm.notify(ex)
-
-		try:
-			# reloading directory.  maybe its better to reload the selected
-			# files only.
-			self.fm.env.cwd.load_content()
-		except:
-			pass
-
 
 class filter(Command):
 	"""
