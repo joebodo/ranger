@@ -11,7 +11,7 @@ set colorscheme = default
 " == Definitions
 " ===================================================================
 let editor = vim
-let pager = less
+let pager = less -R
 
 " ===================================================================
 " == Browser Keybindings
@@ -24,7 +24,7 @@ map H history -1
 map L history 1
 map <c-c> break
 map <ESC><bg> escape
-map ? display_help
+map ? help
 
 " External Programs
 map du shell -p du --max-depth=1 -h --apparent-size
@@ -198,8 +198,8 @@ map ZQ quit
 map Z<bg> hint
 
 " Midnight Commander
-map <F1> display_help
-map <F3> view
+map <F1> help
+map <F3> shell cat %s | %pager
 map <F4> edit
 map <F5> copy selection
 map <F6> cut selection
@@ -263,8 +263,8 @@ cmap <C-E> eval -q fm.ui.console.move(right=-1, absolute=True)
 cmap <C-A> eval -q fm.ui.console.move(right=0, absolute=True)
 cmap <C-D> eval -q fm.ui.console.delete(0)
 cmap <C-H> eval -q fm.ui.console.delete(-1)
-cmap <C-P> eval -q fm.ui.console.history_go(-1)
-cmap <C-N> eval -q fm.ui.console.history_go(1)
+cmap <C-P> eval -q fm.ui.console.history_move(-1)
+cmap <C-N> eval -q fm.ui.console.history_move(1)
 
 " Line editing
 cmap <backspace> eval -q fm.ui.console.delete(-1)

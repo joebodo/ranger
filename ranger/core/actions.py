@@ -52,12 +52,14 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			raise
 		elif self.ui_runs:
 			self.ui.notify(*args, bad=True)
+			self.log.append(str(args))
 		else:
 			Info.err(self, *args)
 
 	def write(self, string):
 		if self.ui_runs:
 			self.ui.notify(string)
+			self.log.append(str(string))
 		else:
 			Info.write(self, string)
 
@@ -107,7 +109,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		from ranger.ext.waitpid_no_intr import waitpid_no_intr
 		import math
 		self.ui.suspend()
-		p = Popen(self.macros['pager'], stdin=PIPE)
+		p = Popen(self.macros['pager'], shell=True, stdin=PIPE)
 		bytes = 1024
 		py3 = self.fm.py3
 		for i in range(int(math.ceil(len(string) / float(bytes)))):

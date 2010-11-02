@@ -1,22 +1,26 @@
-# A proof-of-concept plugin which implements control flow commands
-# that support nesting: if, else, endif, while, endwhile.
-# if and while take python expressions as arguments and use their
-# boolean value to determine the flow.
-#
-# Example:
-# let foo = 5
-# while %foo
-#     echo %foo
-#     let foo -= 1
-# endwhile
-# echo finished!
-#
-# put this file at ~/.config/ranger/plugins/flow.py
-# and add the command "load flow" in your ~/.config/ranger/config
+"""
+A proof-of-concept plugin which implements control flow commands
+that support nesting: if, else, endif, while, endwhile.
+if and while take python expressions as arguments and use their
+boolean value to determine the flow.
+
+Example:
+let foo = 5
+while %foo
+    echo %foo
+    let foo -= 1
+endwhile
+echo finished!
+
+put this file at ~/.config/ranger/plugins/flow.py
+and add the command "load flow" in your ~/.config/ranger/config
+"""
 
 from ranger import fm
 from ranger.api.commands import *
 import collections
+
+fm.register_plugin(name='flow', version='1', help=__doc__)
 
 register = fm.commands.register
 command_flow_stack = collections.deque()

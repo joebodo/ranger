@@ -258,7 +258,9 @@ class BrowserView(Widget, DisplayableContainer):
 
 			cut_off = self.is_collapsed and not self.settings.padding_right
 			if i == last_i:
-				if not cut_off:
+				if cut_off:
+					wid = 1
+				else:
 					wid = int(self.wid - left + 1 - pad)
 
 			if i == last_i - 1:

@@ -387,6 +387,7 @@ else:
 	except:
 		pass
 	else:
+		fm.register_plugin(name='rifle', version=__version__, help=__doc__)
 		from ranger.api.commands import Command
 		from ranger.ext.shell_escape import shell_escape
 		register = fm.commands.register

@@ -123,7 +123,6 @@ class load_(Command):
 	def execute(self):
 		self.fm.load_plugin(self.rest(1))
 
-
 class shell(Command):
 	def execute(self):
 		if self.arg(1) and self.arg(1)[0] == '-':
@@ -790,16 +789,25 @@ class save_copy_buffer(Command):
 		f.write("\n".join(f.path for f in self.fm.env.copy))
 		f.close()
 
-class display_help(Command):
-	""":display_help
+class help(Command):
+	""":help
 	Displays the help text in the pager."""
 	def execute(self):
-		from ranger.help import get_help_by_index
-		index = self.n or 0
-		if index == 9:
-			self.fm.display_in_pager(self.fm.compile_command_list())
+		if self.arg(1):
+			try:
+				data = self.fm.plugins[self.arg(1)]['help']
+			except:
+				self.fm.err("No data available on a plugin named `%s'" \
+						% self.arg(1))
+			else:
+				self.fm.display_in_pager(data)
 		else:
-			self.fm.display_in_pager(get_help_by_index(index))
+			from ranger.help import get_help_by_index
+			index = self.n or 0
+			if index == 9:
+				self.fm.display_in_pager(self.fm.compile_command_list())
+			else:
+				self.fm.display_in_pager(get_help_by_index(index))
 
 class display_log(Command):
 	""":display_log

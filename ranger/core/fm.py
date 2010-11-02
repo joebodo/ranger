@@ -44,6 +44,7 @@ class FM(Actions, Info, SignalDispatcher):
 		SignalDispatcher.__init__(self)
 		if infoinit:
 			Info.__init__(self)
+		self.plugins = {}
 		self.commands = None
 		self.macros = {}
 		self.log = deque(maxlen=20)
@@ -231,6 +232,10 @@ class FM(Actions, Info, SignalDispatcher):
 	def source_cmdlist(self, filename):
 		for line in open(filename, 'r'):
 			self.cmd_secure(line.rstrip("\r\n"))
+
+	def register_plugin(self, name, version, help):
+		from inspect import cleandoc
+		self.plugins[name] = {'version': version, 'help': cleandoc(help)}
 
 	def load_plugin(self, filename):
 		import ranger
