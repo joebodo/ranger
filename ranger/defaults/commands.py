@@ -583,7 +583,7 @@ class delete(Command):
 
 		if lastword.startswith('y'):
 			# user confirmed deletion!
-			self.fm.visual = None
+			self.fm.visual_end()
 			return self.fm.delete()
 		elif self.line.startswith(DELETE_WARNING):
 			# user did not confirm deletion
@@ -732,15 +732,13 @@ class visual(Command):
 	If the first argument is "reverse", the files are unselected instead.
 	Use :escape to return to the normal mode."""
 	def execute(self):
-		value = self.arg(1) != 'reverse'
-		self.fm.visual = value
-		self.fm.mark(val=value, movedown=False)
+		self.fm.visual_start(self.arg(1) != 'reverse')
 
 class escape(Command):
 	""":escape
 	Escape to the normal mode, if you have changed it to e.g. the visual mode."""
 	def execute(self):
-		self.fm.visual = None
+		self.fm.visual_end()
 
 class break_(Command):
 	""":break

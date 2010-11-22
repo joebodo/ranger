@@ -38,6 +38,9 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	input_blocked = False
 	input_blocked_until = 0
 	visual = None
+	_visual_start = None
+	_visual_start_pos = None
+	_previous_selection = None
 
 	# --------------------------
 	# -- Basic Commands
@@ -70,6 +73,17 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.env.garbage_collect(-1)
 		self.fm.visual = None
 		self.enter_dir(old_path)
+
+	def visual_start(self, reverse=False):
+		"""Start the visual mode"""
+		self.visual = reverse
+		self._visual_start = self.env.cwd.pointed_obj
+		self._visual_start_pos = self.env.cwd.pointer
+		self._previous_selection = set(self.env.cwd.marked_items)
+		self.mark(val=reverse, movedown=False)
+
+	def visual_end(self):
+		self.visual = None
 
 	def reload_cwd(self):
 		try:
@@ -174,10 +188,25 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 						pagesize=self.ui.browser.hei)
 				cwd.move(to=newpos)
 				if self.visual is not None:
-					_, selection = direction.select(cwd.files, oldpos,
-							self.ui.browser.hei, narg)
-					for f in selection:
-						cwd.mark_item(f, self.visual)
+					try:
+						startpos = cwd.index(self._visual_start)
+					except:
+						self._visual_start = None
+						startpos = min(self._visual_start_pos, len(cwd))
+					new_selection = set(cwd.files[min(startpos, newpos):\
+							max(startpos, newpos) + 1])
+					old_selection = self._previous_selection
+					cur_selection = set(cwd.marked_items)
+					if self.visual:
+						for f in new_selection - cur_selection:
+							cwd.mark_item(f, True)
+						for f in cur_selection - old_selection - new_selection:
+							cwd.mark_item(f, False)
+					else:
+						for f in old_selection - cur_selection - new_selection:
+							cwd.mark_item(f, True)
+						for f in new_selection - cur_selection:
+							cwd.mark_item(f, False)
 
 	def move_parent(self, n):
 		parent = self.env.at_level(-1)
