@@ -132,7 +132,7 @@ class Environment(SettingsAware, SignalDispatcher):
 	def get_selection(self):
 		if self.cwd:
 			return self.cwd.get_selection()
-		return set()
+		return []
 
 	def get_directory(self, path):
 		"""Get the directory object at the given path"""
