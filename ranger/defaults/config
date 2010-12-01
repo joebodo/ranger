@@ -242,12 +242,12 @@ tmap <c-c> eval -q fm.ui.close_taskview()
 " ===================================================================
 " == Console Keybindings
 " ===================================================================
-cmap <UP> eval -q fm.ui.console.history_go(-1)
-cmap <DOWN> eval -q fm.ui.console.history_go(1)
+cmap <UP> eval -q fm.ui.console.history_move(-1)
+cmap <DOWN> eval -q fm.ui.console.history_move(1)
 cmap <LEFT> eval -q fm.ui.console.move(left=1)
 cmap <RIGHT> eval -q fm.ui.console.move(right=1)
-cmap <HOME> eval -q fm.ui.console.move(right=-1, absolute=True)
-cmap <END> eval -q fm.ui.console.move(right=0, absolute=True)
+cmap <HOME> eval -q fm.ui.console.move(right=0, absolute=True)
+cmap <END> eval -q fm.ui.console.move(right=-1, absolute=True)
 
 cmap <CR> console_execute
 cmap <ESC> console_close
