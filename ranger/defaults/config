@@ -30,9 +30,9 @@ map ? help
 map du shell -p du --max-depth=1 -h --apparent-size
 map dU shell -p du --max-depth=1 -h --apparent-size | sort -rh
 
-map yp shell -d echo -n %d/%f | xsel -i
-map yd shell -d echo -n %d | xsel -i
-map yn shell -d echo -n %f | xsel -i
+map yp shell -d echo -n %d/%f | xsel
+map yd shell -d echo -n %d | xsel
+map yn shell -d echo -n %f | xsel
 
 map S shell $SHELL
 map i shell cat %s | %pager
@@ -81,8 +81,10 @@ map : console
 map ; console
 map ! console shell 
 map @ console -p6 shell  %%s
-map # console shell -p
+map # console shell -p 
 map / console search 
+map <DEL> console delete
+map <INS> touch 
 
 map f console find 
 map cw console rename 
