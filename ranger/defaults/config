@@ -273,7 +273,10 @@ cmap <C-P> eval -q fm.ui.console.history_move(-1)
 cmap <C-N> eval -q fm.ui.console.history_move(1)
 
 " Line editing
-cmap <backspace> eval -q fm.ui.console.delete(-1)
+" Note: There are multiple ways to express backspaces.  <backspace> (code 263)
+" and <backspace2> (code 127).  To be sure, use both.
+cmap <backspace>  eval -q fm.ui.console.delete(-1)
+cmap <backspace2> eval -q fm.ui.console.delete(-1)
 cmap <delete> eval -q fm.ui.console.delete(0)
 cmap <C-W> eval -q fm.ui.console.delete_word()
 cmap <C-K> eval -q fm.ui.console.delete_rest(1)
