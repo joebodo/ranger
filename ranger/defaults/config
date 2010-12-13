@@ -180,6 +180,17 @@ map h move left
 map l execute
 map J move down 0.5 pages
 map K move up 0.5 pages
+map gg move home
+map G move end
+map ZZ quit
+map ZQ quit
+map Z<bg> hint
+
+" Movement
+map <DOWN> move down
+map <UP> move up
+map <LEFT> move left
+map <RIGHT> execute
 map <C-D> move down 0.5 pages
 map <C-U> move up 0.5 pages
 map <C-F> move down 1 pages
@@ -189,13 +200,8 @@ map <PAGEUP> move up 1 pages
 map ] move_in_column -1 down
 map [ move_in_column -1 up
 map <CR> execute
-map gg move home
-map G move end
 map <HOME> move home
 map <END> move end
-map ZZ quit
-map ZQ quit
-map Z<bg> hint
 
 " Midnight Commander
 map <F1> help
