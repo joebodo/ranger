@@ -271,7 +271,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		return self.run(cmd, **kw)
 
 	def edit_file(self, path=None):
-		"""Calls execute_file with the current file and app='editor'"""
+		"""Opens the current file with %editor"""
 		if path is None:
 			path = self.env.cf.path
 		self.execute_command("%s %s" % (self.macros['editor'],
