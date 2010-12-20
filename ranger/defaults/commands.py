@@ -316,7 +316,7 @@ class move(Command):
 		elif direction == 'up':
 			self.fm.move(up=(1 if n is None else n) * mult, **kw)
 		elif direction == 'left':
-			self.fm.cmd("cd ..")
+			self.fm.enter_dir("..")
 		elif direction == 'right':
 			self.fm.cmd("execute")
 		elif direction == 'home':
