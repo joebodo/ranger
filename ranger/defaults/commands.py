@@ -122,6 +122,11 @@ class load_(Command):
 	def execute(self):
 		self.fm.load_plugin(self.rest(1))
 
+class search_inc(Command):
+	def quick(self):
+		self.fm.search_file(parse(self.line).rest(1), regexp=True, offset=0)
+
+
 class shell(Command):
 	def execute(self):
 		if self.arg(1) and self.arg(1)[0] == '-':

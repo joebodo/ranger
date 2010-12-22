@@ -17,7 +17,7 @@ import os
 import re
 import shutil
 import string
-from os.path import join, isdir
+from os.path import join, isdir, realpath
 from os import symlink, getcwd
 from inspect import cleandoc
 
@@ -371,16 +371,16 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	# -- Searching
 	# --------------------------
 
-	def search_file(self, text, regexp=True):
+	def search_file(self, text, offset=1, regexp=True):
 		if isinstance(text, str) and regexp:
 			try:
 				text = re.compile(text, re.L | re.U | re.I)
 			except:
 				return False
 		self.env.last_search = text
-		self.search(order='search')
+		self.search(order='search', offset=offset)
 
-	def search(self, order=None, forward=True):
+	def search(self, order=None, offset=1, forward=True):
 		original_order = order
 		if self.search_forward:
 			direction = bool(forward)
@@ -404,7 +404,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			elif order == 'tag':
 				fnc = lambda x: x.realpath in self.tags
 
-			return self.env.cwd.search_fnc(fnc=fnc, forward=forward)
+			return self.env.cwd.search_fnc(fnc=fnc, offset=offset, forward=forward)
 
 		elif order in ('size', 'mimetype', 'ctime'):
 			cwd = self.env.cwd
@@ -433,39 +433,33 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	# Tags are saved in ~/.config/ranger/tagged and simply mark if a
 	# file is important to you in any context.
 
-	def tag_toggle(self, movedown=None):
-		try:
-			toggle = self.tags.toggle
-		except AttributeError:
+	def tag_toggle(self, paths=None, value=None, movedown=None):
+		if not self.tags:
 			return
-
-		sel = self.env.get_selection()
-		toggle(*tuple(map(lambda x: x.realpath, sel)))
+		if paths is None:
+			tags = tuple(x.realpath for x in self.env.get_selection())
+		else:
+			tags = [realpath(path) for path in paths]
+		if value is True:
+			self.tags.add(*tags)
+		elif value is False:
+			self.tags.remove(*tags)
+		else:
+			self.tags.toggle(*tags)
 
 		if movedown is None:
-			movedown = len(sel) == 1
+			movedown = len(tags) == 1 and paths is None
 		if movedown:
 			self.move(down=1)
 
 		if hasattr(self.ui, 'redraw_main_column'):
 			self.ui.redraw_main_column()
 
-	def tag_remove(self, movedown=None):
-		try:
-			remove = self.tags.remove
-		except AttributeError:
-			return
+	def tag_remove(self, paths=None, movedown=None):
+		self.tag_toggle(paths=paths, value=False, movedown=movedown)
 
-		sel = self.env.get_selection()
-		remove(*tuple(map(lambda x: x.realpath, sel)))
-
-		if movedown is None:
-			movedown = len(sel) == 1
-		if movedown:
-			self.move(down=1)
-
-		if hasattr(self.ui, 'redraw_main_column'):
-			self.ui.redraw_main_column()
+	def tag_add(self, paths=None, movedown=None):
+		self.tag_toggle(paths=paths, value=True, movedown=movedown)
 
 	# --------------------------
 	# -- Bookmarks
@@ -535,6 +529,8 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	def display_file(self):
 		if not hasattr(self.ui, 'open_embedded_pager'):
 			return
+		if not self.env.cf or not self.env.cf.is_file:
+			return
 
 		pager = self.ui.open_embedded_pager()
 		pager.set_source(self.env.cf.get_preview_source(pager.wid, pager.hei))
@@ -542,6 +538,13 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 	# --------------------------
 	# -- Previews
 	# --------------------------
+	def update_preview(self, path):
+		try:
+			del self.previews[path]
+			self.ui.need_redraw = True
+		except:
+			return False
+
 	def get_preview(self, path, width, height):
 		if self.settings.preview_script and self.settings.use_preview_script:
 			# self.previews is a 2 dimensional dict:
@@ -586,6 +589,10 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 					if self.env.cf.realpath == path:
 						self.ui.browser.need_redraw = True
 					data['loading'] = False
+					pager = self.ui.browser.pager
+					if self.env.cf and self.env.cf.is_file:
+						pager.set_source(self.env.cf.get_preview_source(
+							pager.wid, pager.hei))
 				def on_destroy(signal):
 					try:
 						del self.previews[path]

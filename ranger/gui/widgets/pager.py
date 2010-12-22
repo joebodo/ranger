@@ -169,19 +169,20 @@ class Pager(Widget):
 
 		if isinstance(source, str):
 			self.source_is_stream = False
-			self.markup = 'ansi'
 			self.lines = source.splitlines()
+			self.max_width = max(len(line) for line in self.lines)
 		elif hasattr(source, '__getitem__'):
 			self.source_is_stream = False
 			self.lines = source
+			self.max_width = max(len(line) for line in source)
 		elif hasattr(source, 'readline'):
 			self.source_is_stream = True
-			self.markup = 'ansi'
 			self.lines = []
 		else:
 			self.source = None
 			self.source_is_stream = False
 			return False
+		self.markup = 'ansi'
 
 		if not self.source_is_stream and strip:
 			self.lines = map(lambda x: x.strip(), self.lines)

@@ -40,7 +40,7 @@ class StatusBar(Widget):
 
 	old_visual = None
 	old_cf = None
-	old_mtime = None
+	old_ctime = None
 	old_du = None
 	old_hint = None
 	result = None
@@ -83,10 +83,14 @@ class StatusBar(Widget):
 				self.msg = None
 				self.need_redraw = True
 
-		try:
-			mtime = self.env.cf.stat.st_mtime
-		except:
-			mtime = -1
+		if self.env.cf:
+			self.env.cf.load_if_outdated()
+			try:
+				ctime = self.env.cf.stat.st_ctime
+			except:
+				ctime = -1
+		else:
+			ctime = -1
 
 		if not self.result:
 			self.need_redraw = True
@@ -99,8 +103,8 @@ class StatusBar(Widget):
 			self.old_cf = self.env.cf
 			self.need_redraw = True
 
-		if self.old_mtime != mtime:
-			self.old_mtime = mtime
+		if self.old_ctime != ctime:
+			self.old_ctime = ctime
 			self.need_redraw = True
 
 		if self.need_redraw:
@@ -188,7 +192,7 @@ class StatusBar(Widget):
 			left.add_space()
 
 			left.add(strftime(self.timeformat,
-					localtime(stat.st_mtime)), 'mtime')
+					localtime(stat.st_ctime)), 'mtime')
 
 	def _get_owner(self, target):
 		uid = target.stat.st_uid

@@ -49,6 +49,7 @@ class FM(Actions, Info, SignalDispatcher):
 		self.macros = {}
 		self.log = deque(maxlen=20)
 		self.tabs = {}
+		self.py3 = sys.version_info >= (3, )
 		self.previews = {}
 		self.current_tab = 1
 

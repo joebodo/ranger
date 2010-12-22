@@ -109,6 +109,10 @@ class FileSystemObject(FileManagerAware):
 		return [c if i % 3 == 1 else (int(c) if c else 0) for i, c in \
 			enumerate(_extract_number_re.split(self.basename_lower))]
 
+	for attr in ('video', 'audio', 'image', 'media', 'document', 'container'):
+		exec("%s = lazy_property("
+			"lambda self: self.set_mimetype() or self.%s)" % (attr, attr))
+
 	def __str__(self):
 		"""returns a string containing the absolute path"""
 		return str(self.path)
@@ -177,9 +181,11 @@ class FileSystemObject(FileManagerAware):
 		filesystem and caches it for later use
 		"""
 
+		self.fm.update_preview(self.path)
 		self.loaded = True
 
 		# Get the stat object, either from preload or from [l]stat
+		self.permissions = None
 		new_stat = None
 		path = self.path
 		is_link = False
@@ -275,10 +281,10 @@ class FileSystemObject(FileManagerAware):
 			self.load()
 			return True
 		try:
-			real_mtime = lstat(self.path).st_mtime
+			real_ctime = lstat(self.path).st_ctime
 		except OSError:
-			real_mtime = None
-		if not self.stat or self.stat.st_mtime != real_mtime:
+			real_ctime = None
+		if not self.stat or self.stat.st_ctime != real_ctime:
 			self.load()
 			return True
 		return False
