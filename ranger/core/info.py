@@ -19,6 +19,8 @@ and methods for manipulating it.
 """
 
 from __future__ import print_function
+
+from ranger.core import *
 from ranger.ext.openstruct import OpenStruct
 import locale
 import ranger

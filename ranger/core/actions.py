@@ -21,6 +21,8 @@ from os.path import join, isdir, realpath
 from os import symlink, getcwd
 from inspect import cleandoc
 
+from ranger.core import *
+
 import ranger
 from ranger.ext.direction import Direction
 from ranger.core.info import Info

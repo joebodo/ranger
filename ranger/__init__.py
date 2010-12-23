@@ -24,11 +24,11 @@ The keybindings are similar to those of other console programs like
 vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 """
 
-from ranger.core.main import main
-
 __license__ = 'GPL3'
 __version__ = '1.5.0'
 __author__ = __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 info = None
 fm = None
+
+from ranger.core.main import main
