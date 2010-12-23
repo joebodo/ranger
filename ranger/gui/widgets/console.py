@@ -355,4 +355,10 @@ class Console(Widget):
 		else:
 			cmd = cls().setargs(self.line)
 			if cmd and cmd.quick():
-				self.execute()
+				self.allow_close = True
+				try:
+					cmd.execute()
+				except Exception as error:
+					self.fm.notify(error)
+				if self.allow_close:
+					self.close()

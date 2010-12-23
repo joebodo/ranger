@@ -17,9 +17,10 @@ import os
 import re
 import shutil
 import string
+from inspect import cleandoc
 from os.path import join, isdir, realpath
 from os import symlink, getcwd
-from inspect import cleandoc
+from time import time
 
 from ranger.core import *
 
