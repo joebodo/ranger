@@ -48,16 +48,16 @@ map uv unmark all
 map V visual
 map uV visual reverse
 
-map dd cut selection
-map da cut selection add
-map dr cut selection remove
-map dj cut down
-map dk cut up
-map dgg cut home
-map dG cut end
-map d<bg> hint
-map dg<bg> hint
-map ud copy clear
+"map dd cut selection
+"map da cut selection add
+"map dr cut selection remove
+"map dj cut down
+"map dk cut up
+"map dgg cut home
+"map dG cut end
+"map d<bg> hint
+"map dg<bg> hint
+"map ud copy clear
 
 map yy copy selection
 map ya copy selection add
@@ -70,10 +70,20 @@ map y<bg> hint
 map yg<bg> hint
 map uy copy clear
 
-map pp paste
-map po paste overwrite
-map pl paste symlink
-map pL paste relative_symlink
+map PP shell -l %%rangerdir/data/lasso.py --move --to=. -- %%c
+map pp shell -l %%rangerdir/data/lasso.py --copy --to=. -- %%c
+map p: console -p46 shell -l %%rangerdir/data/lasso.py --copy --to= -- %%c
+map po shell -l %%rangerdir/data/lasso.py --copy --overwrite --to=. -- %%c
+map ph shell -l %%rangerdir/data/lasso.py --hardlink --to=. -- %%c
+map pl shell -l %%rangerdir/data/lasso.py --symlink --to=. -- %%c
+map pL shell -l %%rangerdir/data/lasso.py --relative-symlink --to=. -- %%c
+"map Pp paste --move
+"map Po paste --move --overwrite
+"map pp paste
+"map po paste --overwrite
+"map pl paste --symlink
+"map pL paste --relative_symlink
+"map ph paste --hardlink
 map p<bg> hint
 
 " Console
