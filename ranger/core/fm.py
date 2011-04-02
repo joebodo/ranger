@@ -155,6 +155,8 @@ class FM(Actions, Info, SignalDispatcher):
 			raise SystemExit
 
 		finally:
+			if ranger.arg.choosedir and self.env.cwd and self.env.cwd.path:
+				open(ranger.arg.choosedir, 'w').write(self.env.cwd.path)
 			self.bookmarks.remember(env.cwd)
 			self.bookmarks.save()
 

@@ -26,3 +26,12 @@ vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 
 from ranger.base import *
 from ranger.core.main import main
+
+# Information
+__license__ = 'GPL3'
+__version__ = '1.4.2'
+__author__ = __maintainer__ = 'Roman Zimbelmann'
+__email__ = 'romanz@lavabit.com'
+
+# Constants
+RANGERDIR = os.path.dirname(__file__)

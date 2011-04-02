@@ -145,6 +145,7 @@ class Command(FileManagerAware):
 		return self.line[self.pos:]
 
 	# Tab stuff
+	# COMPAT: this is still used in old commands.py configs
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 

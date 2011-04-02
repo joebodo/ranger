@@ -19,7 +19,7 @@ import shutil
 import string
 from inspect import cleandoc
 from os.path import join, isdir, realpath
-from os import symlink, getcwd
+from os import link, symlink, getcwd
 from time import time
 
 from ranger.core import *
@@ -715,6 +715,13 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 			except Exception as x:
 				self.notify(x)
 
+	def paste_hardlink(self):
+		for f in self.env.copy:
+			try:
+				link(f.path, join(getcwd(), f.basename))
+			except Exception as x:
+				self.notify(x)
+
 	def paste(self, overwrite=False):
 		"""Paste the selected items into the current directory"""
 		copied_files = tuple(self.env.copy)
@@ -766,7 +773,7 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		self.loader.add(obj)
 
 	def delete(self):
-		self.notify("Deleting!", duration=1)
+		self.notify("Deleting!")
 		selected = self.env.get_selection()
 		self.env.copy -= set(selected)
 		if selected:

@@ -64,6 +64,16 @@ command line.
 -f <flags>, --flags=<flags>
       When a filename is supplied, run it with the flags <flags> |2|
 
+--choosefile=<target>
+      Makes ranger act like a file chooser. When opneing a file, it will
+      quit and write the name of the selected file to the filename specified
+      as <target>. This file can be read in a script and used to open a
+      certain file which has been chosen with ranger.
+
+--choosedir=<target>
+      Makes ranger act like a directory chooser. When ranger quits, it will
+      write the name of the last visited directory to <target>
+
 (Optional) Positional Argument
       The positional argument should be a path to the directory you
       want ranger to start in, or the file which you want to run.
@@ -77,6 +87,8 @@ Examples:
       ranger episode1.avi
       ranger --debug /usr/bin
       ranger --confdir=~/.config/ranger --fail-unless-cd
+
+See the README on how to integrate ranger with various external programs.
 
 
 ==============================================================================

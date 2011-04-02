@@ -41,19 +41,20 @@ case "$extension" in
 		exit 1;;
 	# PDF documents:
 	pdf)
-		pdftotext -q "$path" - | head -n $maxln
-		success && exit 3 || exit 1;;
+		pdftotext -l 10 -nopgbrk -q "$path" - | head -n $maxln | fmt -s -w $width
+		success && exit 0 || exit 1;;
 	# HTML Pages:
 	htm|html|xhtml)
-		have lynx   && lynx   -dump "$path" | head -n $maxln && exit 5
-		have elinks && elinks -dump "$path" | head -n $maxln && exit 5
+		have w3m    && w3m    -dump "$path" | head -n $maxln | fmt -s -w $width && exit 4
+		have lynx   && lynx   -dump "$path" | head -n $maxln | fmt -s -w $width && exit 4
+		have elinks && elinks -dump "$path" | head -n $maxln | fmt -s -w $width && exit 4
 		;; # fall back to highlight/cat if theres no lynx/elinks
 esac
 
 case "$mimetype" in
 	# Syntax highlight for text files:
 	text/* | */xml)
-		highlight --ansi "$path" | head -n $maxln
+		highlight --out-format=ansi "$path" | head -n $maxln
 		success && exit 5 || exit 2;;
 	# Ascii-previews of images:
 	image/*)
