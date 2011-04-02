@@ -30,12 +30,11 @@ from ranger.core.info import Info
 from ranger.ext.relative_symlink import relative_symlink
 from ranger.ext.shell_escape import shell_quote
 from ranger import fsobject
-from ranger.core.shared import FileManagerAware, EnvironmentAware, \
-		SettingsAware
+from ranger.core.shared import FileManagerAware, SettingsAware
 from ranger.fsobject import File
 from ranger.core.loader import CommandLoader
 
-class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
+class Actions(FileManagerAware, SettingsAware):
 	search_method = 'ctime'
 	search_forward = False
 	input_blocked = False

@@ -1,0 +1,22 @@
+This is a list of all signals thrown in ranger.
+
+The syntax is:
+object->signalname: description
+   arg1: description
+   arg2: description...
+
+where object is the object that inherits from SignalDispatcher and emits the
+signal, signalname is the name of the signal and argN are the arguments passed to
+the signal handler.
+
+fm->init: The filemanager is initialized. This is the first thrown signal.
+fm->command.pre: Before a command is run
+	line: The full text of the command
+	command_name: The name of the command (first word of line)
+fm->var.set: A value for a variable is set
+tab->cd: A directory is changed.
+	previous: The previous cwd (current working directory. A Directory object or None)
+	new: The new cwd (Directory object)
+tab->move: The cursor position has changed
+	previous: The previous cf (current file. File object or None)
+	new: The new cf (File object or None)

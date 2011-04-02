@@ -28,9 +28,7 @@ def main():
 	import locale
 	import sys
 	import os.path
-	import ranger
-	from ranger.core.shared import (EnvironmentAware, FileManagerAware,
-			SettingsAware)
+	import ranger.core.fm
 
 	parse_arguments()
 
@@ -38,11 +36,10 @@ def main():
 		copy_config_files(COPY_CONFIG)
 		return 1 if FAIL_UNLESS_CD else 0
 
+	fm = ranger.core.fm.FM()
 	crash_traceback = None
 	try:
-		from ranger.core.fm import FM
-		fm = FM()
-		FileManagerAware.fm = fm
+		ranger.core.fm.FileManagerAware.fm = fm
 		ranger.INSTANCE = fm
 		fm.initialize(ranger.RUNTARGETS)
 		fm.loop()
@@ -50,7 +47,9 @@ def main():
 		import traceback
 		crash_traceback = traceback.format_exc()
 	except SystemExit as error:
-		return error.args[0]
+		if error.args:
+			return error.args[0]
+		return 1
 	finally:
 		if crash_traceback:
 			try:

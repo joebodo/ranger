@@ -17,12 +17,22 @@
 The File Manager, putting the pieces together
 """
 
+from ranger.ext.lazy_property import lazy_property
+
+class FileManagerAware(object):
+	# This creates an instance implicitly, mainly for unit tests
+	@lazy_property
+	def fm(self):
+		from ranger.core.fm import FM
+		return FM()
+
 from time import time
 from collections import deque
 from os.path import exists
 import mimetypes
 import os
 import stat
+import socket
 import string
 import sys
 
@@ -36,24 +46,68 @@ from ranger.container.settingobject import ALLOWED_SETTINGS
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.keybinding_parser import construct_keybinding
+from ranger.container import KeyBuffer, KeyManager, History
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
-class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
+class Cache(object):
+	def __init__(self):
+		self.dircache = {}
+
+	def get_directory(self, name):
+		"""Get the directory object at the given path"""
+		path = abspath(path)
+		try:
+			return self.directories[path]
+		except KeyError:
+			obj = Directory(path)
+			self.directories[path] = obj
+			return obj
+
+	def garbage_collect(self, age):
+		"""Delete unused directory objects"""
+		for key in tuple(self.directories):
+			value = self.directories[key]
+			if age == -1 or \
+					(value.is_older_than(age) and not value in self.pathway):
+				del self.directories[key]
+				if value.is_directory:
+					value.files = None
+		self.settings.signal_garbage_collect()
+		self.signal_garbage_collect()
+
+ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
+		'console')
+
+class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
+	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
 		"""Initialize FM."""
 		Actions.__init__(self)
 		SignalDispatcher.__init__(self)
+		Cache.__init__(self)
 		PluginSystem.__init__(self)
-		self.commands = None
+		CommandHandler.__init__(self)
+
 		self.variables = {}
 		self.log = deque(maxlen=20)
-		fm.tabs = dict((n+1, os.path.abspath(path)) for n, path \
-				in enumerate(ranger.RUNTARGETS[:9]))
-		self.py3 = sys.version_info >= (3, )
+		self.tabs = {}
+		self.tab = None
 		self.previews = {}
 		self.current_tab = 1
+		self.copy = set()
+		self.keybuffer = KeyBuffer(None, None)
+		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
+		self.termsize = None
+		self.last_search = None
+
+		try:
+			self.username = pwd.getpwuid(os.geteuid()).pw_name
+		except:
+			self.username = 'uid:' + str(os.geteuid())
+		self.hostname = socket.gethostname()
+		self.home_path = os.path.expanduser('~')
 
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(ranger.__version__, PID))
@@ -75,6 +129,10 @@ class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
 			os.environ['SHELL'] = 'bash'
 
 		self.loader = Loader()
+
+		self.tabs = dict((n+1, Tab(path)) for n, path \
+				in enumerate(ranger.RUNTARGETS[:9]))
+		self.tab = self.tabs[1]
 
 		if CLEAN:
 			bookmarkfile = None
@@ -108,20 +166,6 @@ class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
 		if not ranger.DEBUG:
 			import ranger.ext.curses_interrupt_handler
 			ranger.ext.curses_interrupt_handler.install_interrupt_handler()
-
-	def destroy(self):
-		if self.ui:
-			try:
-				self.ui.destroy()
-			except:
-				if ranger.DEBUG:
-					raise
-		if self.loader:
-			try:
-				self.loader.destroy()
-			except:
-				if ranger.DEBUG:
-					raise
 
 	def loop(self):
 		"""
@@ -162,7 +206,7 @@ class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
 				gc_tick += 1
 				if gc_tick > TICKS_BEFORE_COLLECTING_GARBAGE:
 					gc_tick = 0
-					env.garbage_collect(TIME_BEFORE_FILE_BECOMES_GARBAGE)
+					self.garbage_collect(TIME_BEFORE_FILE_BECOMES_GARBAGE)
 
 		except KeyboardInterrupt:
 			# this only happens in --debug mode. By default, interrupts
@@ -174,6 +218,38 @@ class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
 				open(ranger.CHOOSEDIR, 'w').write(self.env.cwd.path)
 			self.bookmarks.remember(env.cwd)
 			self.bookmarks.save()
+
+	# -=- Random Functions -=-
+	def get_free_space(self, path):
+		stat = os.statvfs(path)
+		return stat.f_bavail * stat.f_bsize
+
+	def key_append(self, key):
+		"""Append a key to the keybuffer"""
+
+		# special keys:
+		if key == curses.KEY_RESIZE:
+			self.keybuffer.clear()
+
+		self.keybuffer.add(key)
+
+	def key_clear(self):
+		"""Clear the keybuffer"""
+		self.keybuffer.clear()
+
+	def destroy(self):
+		if self.ui:
+			try:
+				self.ui.destroy()
+			except:
+				if ranger.DEBUG:
+					raise
+		if self.loader:
+			try:
+				self.loader.destroy()
+			except:
+				if ranger.DEBUG:
+					raise
 
 	def load_commands(self):
 		import ranger.defaults.commands
@@ -253,4 +329,3 @@ class FM(Actions, PluginSystem, CommandHandler, SignalDispatcher):
 		except Exception as ex:
 			self.err(ex)
 			return None
-
