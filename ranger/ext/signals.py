@@ -63,6 +63,12 @@ class SignalDispatcher(object):
 		handlers.sort(key=lambda handler: -handler.priority)
 		return handler
 
+	def signal_wrapper(self, signal_name, priority=0.5, weak=False):
+		def wrapper(function):
+			self.signal_bind(signal_name, function, priority, weak)
+			return function
+		return wrapper
+
 	def signal_unbind(self, signal_handler):
 		try:
 			handlers = self._signals[signal_handler.signal_name]

@@ -18,65 +18,194 @@ from collections import deque
 from ranger.api import *
 from ranger.core.shared import FileManagerAware
 from ranger.ext.lazy_property import lazy_property
+import string
 
-class CommandContainer(object):
+class VarTemplate(string.Template):
+	"""A template for substituting variables in commands"""
+	delimiter = '%'
+
+class CommandHandler(object):
 	def __init__(self):
-		self.commands = {}
-		self.aliases = {}
+		self._commands = {}
+		self._command_aliases = {}
 
-	def __getitem__(self, key):
-		return self.commands[key]
-
-	def alias(self, new, old):
-		if old in self.commands:
-			self.commands[new] = self.commands[old]
-			self.aliases[new] = old
-
-	def register(self, command):
+	def register_command(self, command):
 		classdict = command.__mro__[0].__dict__
 		if 'name' in classdict and classdict['name']:
-			self.commands[classdict['name']] = command
+			self._commands[classdict['name']] = command
 		else:
-			self.commands[command.__name__] = command
-
-	def load_commands_from_module(self, module):
-		for var in vars(module).values():
-			try:
-				if issubclass(var, Command) and var != Command:
-					self.register(var)
-			except TypeError:
-				pass
-		if hasattr(module, 'aliases'):
-			if hasattr(module.aliases, 'items'):
-				for key, val in module.aliases.items():
-					self.alias(key, val)
+			self._commands[command.__name__] = command
 
 	def get_command(self, name, abbrev=True):
 		if abbrev:
-			lst = [cls for cmd, cls in self.commands.items() \
+			lst = [cls for cmd, cls in self._commands.items() \
 					if cls.allow_abbrev and cmd.startswith(name) \
 					or cmd == name]
 			if len(lst) == 0:
 				raise KeyError
 			if len(lst) == 1:
 				return lst[0]
-			if self.commands[name] in lst:
-				return self.commands[name]
+			if self._commands[name] in lst:
+				return self._commands[name]
 			raise ValueError("Ambiguous command")
 		else:
 			try:
-				return self.commands[name]
+				return self._commands[name]
 			except KeyError:
 				return None
 
+	def alias_command(self, new, old):
+		if old in self._commands:
+			self._commands[new] = self._commands[old]
+			self._command_aliases[new] = old
+
 	def command_generator(self, start):
-		return (cmd + ' ' for cmd in self.commands if cmd.startswith(start))
+		return (cmd + ' ' for cmd in self._commands if cmd.startswith(start))
+
+	def cmd(self, line, n=None, any=[]):
+		line = line.lstrip()
+		if not line or line[0] == '#':
+			return
+		command_name = line.split(' ', 1)[0]
+		ok = self.signal_emit('command.pre', line=line,
+				command_name=command_name)
+		if not ok:
+			return
+		try:
+			command_entry = self._commands.get_command(command_name)
+		except KeyError:
+			if ranger.DEBUG:
+				raise Exception("Command `%s' not found!" % command_name)
+			elif self.ui_runs:
+				self.err("Command `%s' not found! Press ? for help." \
+						% command_name)
+			else:
+				self.err('Error in line `%s\':\n  %s' % \
+						(line, 'Invalid Command'))
+			return
+		except Exception as e:
+			self.err(str(e))
+			return
+		if command_entry:
+			command = command_entry()
+			if command.resolve_variables and self.VarTemplate.delimiter in line:
+				line = self.substitute_variables(line, any=any)
+			command.setargs(line, n=n)
+			command.execute()
+
+	def cmd_secure(self, line, lineno=None, n=None):
+		try:
+			self.cmd(line, n=n)
+		except Exception as e:
+			if ranger.DEBUG:
+				raise
+			else:
+				self.err('Error in line `%s\':\n  %s' % (line, str(e)))
+
+	def substitute_variables(self, string, any=[]):
+		return self.VarTemplate(string).safe_substitute(
+				self._get_variables(any=any))
+
+	def _get_variables(self, any=[]):
+		variables = {}
+
+		variables['version'] = self.version
+		variables['confdir'] = self.confdir
+		variables['rangerdir'] = self.rangerdir
+		variables['cachedir'] = self.cachedir
+
+		for i in range(0, 10):
+			if i < len(any):
+				variables['any' + str(i+1)] = construct_keybinding([any[i]])
+			else:
+				variables['any' + str(i+1)] = ""
+		if any:
+			variables['any'] = construct_keybinding([any[0]])
+		else:
+			variables['any'] = ""
+
+		if self.env.cf:
+			variables['f']  = shell_quote(self.env.cf.basename)
+			variables['ff'] = self.env.cf.basename
+		else:
+			variables['f']  = ''
+			variables['ff'] = ''
+
+		variables['s'] = ' '.join(shell_quote(fl.basename) \
+				for fl in self.env.get_selection())
+
+		variables['c'] = ' '.join(shell_quote(fl.path)
+				for fl in self.env.copy)
+
+		if self.ui:
+			variables['height'], variables['width'] = self.env.termsize
+		else:
+			variables['height'], variables['width'] = 24, 80
+
+		if self.env.cwd:
+			variables['d'] = shell_quote(self.env.cwd.path)
+			variables['t'] = ' '.join(shell_quote(fl.basename)
+					for fl in self.env.cwd.files
+					if fl.realpath in self.tags)
+		else:
+			variables['d'] = '.'
+			variables['t'] = ''
+
+		for key in ALLOWED_SETTINGS:
+			variables[key] = repr(self.settings[key])
+
+		# define d/f/s variables for each tab
+		for i in range(1,10):
+			try:
+				tab_dir_path = self.tabs[i]
+			except:
+				continue
+			tab_dir = self.env.get_directory(tab_dir_path)
+			i = str(i)
+			if tab_dir and tab_dir.pointed_obj:
+				variables[i + 'd'] = shell_quote(tab_dir_path)
+				variables[i + 'f'] = shell_quote(tab_dir.pointed_obj.path)
+				variables[i + 's'] = ' '.join(shell_quote(fl.path)
+					for fl in tab_dir.get_selection())
+			else:
+				variables[i + 'd'] = ""
+				variables[i + 'f'] = ""
+				variables[i + 's'] = ""
+
+		# define D/F/S for the next tab
+		found_current_tab = False
+		next_tab_path = None
+		first_tab = None
+		for tab in self.tabs:
+			if not first_tab:
+				first_tab = tab
+			if found_current_tab:
+				next_tab_path = self.tabs[tab]
+				break
+			if self.current_tab == tab:
+				found_current_tab = True
+		if found_current_tab and not next_tab_path:
+			next_tab_path = self.tabs[first_tab]
+		next_tab = self.env.get_directory(next_tab_path)
+
+		if next_tab and next_tab.pointed_obj:
+			variables['D'] = shell_quote(next_tab)
+			variables['F'] = shell_quote(next_tab.pointed_obj.path)
+			variables['S'] = ' '.join(shell_quote(fl.path)
+				for fl in next_tab.get_selection())
+		else:
+			variables['D'] = ''
+			variables['F'] = ''
+			variables['S'] = ''
+		variables.update(self.variables)
+
+		return variables
 
 
 class Command(FileManagerAware):
 	"""Abstract command class"""
 	name = None
-	resolve_macros = True
+	resolve_variables = True
 	allow_abbrev = True
 	_shifted = 0
 

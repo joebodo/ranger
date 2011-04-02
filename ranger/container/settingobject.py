@@ -19,6 +19,7 @@ from ranger.core.shared import FileManagerAware
 import re
 
 ALLOWED_SETTINGS = {
+	'autosave_bookmarks': (bool, True),
 	'collapse_preview': (bool, True),
 	'colorscheme_overlay': ((type(None), type(lambda:0)), None),
 	'colorscheme': (str, 'default'),
