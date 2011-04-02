@@ -1,0 +1,312 @@
+" ===================================================================
+" == Settings
+" ===================================================================
+set preview_script = %confdir/scope.sh
+set use_preview_script = true
+set file_launcher = vim
+set column_ratios = 1, 1, 4, 3
+set colorscheme = default
+
+" ===================================================================
+" == Definitions
+" ===================================================================
+let editor = vim
+let pager = less -R
+
+" ===================================================================
+" == Browser Keybindings
+" ===================================================================
+map R reload
+map <c-r> reset
+map <c-l> redraw
+map Q quit
+map H history -1
+map L history 1
+map <c-c> break
+map <ESC><bg> escape
+map ? help
+
+" External Programs
+map du shell -p du --max-depth=1 -h --apparent-size
+map dU shell -p du --max-depth=1 -h --apparent-size | sort -rh
+
+map yp shell -d echo -n %d/%f | xsel
+map yd shell -d echo -n %d | xsel
+map yn shell -d echo -n %f | xsel
+
+map S shell $SHELL
+map i shell cat %s | %pager
+map E shell %editor %s
+
+" Misc
+map t tag
+map ut untag
+
+map <Space> mark toggle
+map v mark toggle all
+map uv unmark all
+map V visual
+map uV visual reverse
+
+"map dd cut selection
+"map da cut selection add
+"map dr cut selection remove
+"map dj cut down
+"map dk cut up
+"map dgg cut home
+"map dG cut end
+"map d<bg> hint
+"map dg<bg> hint
+"map ud copy clear
+
+map yy copy selection
+map ya copy selection add
+map yr copy selection remove
+map yj copy down
+map yk copy up
+map ygg copy home
+map yG copy end
+map y<bg> hint
+map yg<bg> hint
+map uy copy clear
+
+map PP shell -l %%rangerdir/data/lasso.py --move --to=. -- %%c
+map pp shell -l %%rangerdir/data/lasso.py --copy --to=. -- %%c
+map p: console -p46 shell -l %%rangerdir/data/lasso.py --copy --to= -- %%c
+map po shell -l %%rangerdir/data/lasso.py --copy --overwrite --to=. -- %%c
+map ph shell -l %%rangerdir/data/lasso.py --hardlink --to=. -- %%c
+map pl shell -l %%rangerdir/data/lasso.py --symlink --to=. -- %%c
+map pL shell -l %%rangerdir/data/lasso.py --relative-symlink --to=. -- %%c
+"map Pp paste --move
+"map Po paste --move --overwrite
+"map pp paste
+"map po paste --overwrite
+"map pl paste --symlink
+"map pL paste --relative_symlink
+"map ph paste --hardlink
+map p<bg> hint
+
+" Console
+map : console
+map ; console
+map ! console shell 
+map @ console -p6 shell  %%s
+map # console shell -p 
+map / console search 
+map <DEL> console delete
+map <INS> touch 
+
+map f console find 
+map cw console rename 
+map cd console cd 
+
+map A eval_macros console rename %ff
+map I eval_macros console -p7 rename %ff
+
+" Goto
+map gh cd ~
+map ge cd /etc
+map gu cd /usr
+map gd cd /dev
+map gl cd -r .
+map gL cd -r %f
+map go cd /opt
+map gv cd /var
+map gm cd /media
+map gM cd /mnt
+map gs cd /srv
+map gR cd %rangerdir
+map g<bg> hint
+
+map '<bg> hint bookmarks
+map `<bg> hint bookmarks
+map m<bg> hint bookmarks
+map um<bg> chain hint bookmarks; hint text delete which bookmark?
+map u<bg> hint
+map m<any> set_bookmark %any
+map um<any> unset_bookmark %any
+map `<any> enter_bookmark %any
+map '<any> enter_bookmark %any
+
+" Tabs
+map gn chain tab; cd ~
+map <c-n> chain tab; cd ~
+map gc tabclose
+map <c-w> tabclose
+map <tab> tabnext
+map gt tabnext
+map <s-tab> tabprevious
+map gT tabprevious
+map <a-1> tabopen 1
+map <a-2> tabopen 2
+map <a-3> tabopen 3
+map <a-4> tabopen 4
+map <a-5> tabopen 5
+map <a-6> tabopen 6
+map <a-7> tabopen 7
+map <a-8> tabopen 8
+map <a-9> tabopen 9
+
+" Cycling
+map n next
+map N previous
+
+map ct next tag
+map cc next ctime
+map cm next mimetype
+map cs next size
+map c<bg> hint
+
+" Sorting
+map o<bg> chain hint; hint text short how?
+map os chain set sort = size;      set sort_reverse = false
+map ob chain set sort = basename;  set sort_reverse = false
+map on chain set sort = natural;   set sort_reverse = false
+map om chain set sort = mtime;     set sort_reverse = false
+map ot chain set sort = type;      set sort_reverse = false
+map oS chain set sort = size;      set sort_reverse = true
+map oB chain set sort = basename;  set sort_reverse = true
+map oN chain set sort = natural;   set sort_reverse = true
+map oM chain set sort = mtime;     set sort_reverse = true
+map oT chain set sort = type;      set sort_reverse = true
+map or set sort_reverse ^= true
+
+" Settings
+map z<bg> hint
+map zc toggle collapse_preview
+map zd toggle sort_directories_first
+map zf console filter 
+map zh toggle show_hidden
+map <C-h> toggle show_hidden
+map zi toggle flushinput
+map zm toggle mouse_enabled
+map zp toggle preview_files
+map zP toggle preview_directories
+map zs toggle sort_case_insensitive
+map zv toggle use_preview_script
+
+" VIM
+map j move down
+map k move up
+map h move left
+map l execute
+map J move down 0.5 pages
+map K move up 0.5 pages
+map gg move home
+map G move end
+map ZZ quit
+map ZQ quit
+map Z<bg> hint
+
+" Movement
+map <DOWN> move down
+map <UP> move up
+map <LEFT> move left
+map <RIGHT> execute
+map <C-D> move down 0.5 pages
+map <C-U> move up 0.5 pages
+map <C-F> move down 1 pages
+map <C-B> move up 1 pages
+map <PAGEDOWN> move down 1 pages
+map <PAGEUP> move up 1 pages
+map ] move_in_column -1 down
+map [ move_in_column -1 up
+map <CR> execute
+map <HOME> move home
+map <END> move end
+
+" Midnight Commander
+map <F1> help
+map <F3> shell cat %s | %pager
+map <F4> edit
+map <F5> copy selection
+map <F6> cut selection
+map <F7> console mkdir 
+map <F8> console delete seriously? 
+map <F10> quit
+
+map w eval fm.ui.open_taskview()
+map W display_log
+
+" ===================================================================
+" == Taskview Keybindings
+" ===================================================================
+
+" Movement
+tmap j eval -q fm.ui.taskview.move(down=1)
+tmap k eval -q fm.ui.taskview.move(up=1)
+tmap gg eval -q fm.ui.taskview.move(down=0, absolute=True)
+tmap G eval -q fm.ui.taskview.move(down=-1, absolute=True)
+tmap <down> eval -q fm.ui.taskview.move(down=1)
+tmap <up> eval -q fm.ui.taskview.move(up=1)
+tmap <home> eval -q fm.ui.taskview.move(down=0, absolute=True)
+tmap <end> eval -q fm.ui.taskview.move(down=-1, absolute=True)
+
+" Changing priority and deleting tasks
+tmap J eval -q fm.ui.taskview.task_move(-1)
+tmap K eval -q fm.ui.taskview.task_move(0)
+tmap dd eval -q fm.ui.taskview.task_remove()
+tmap <pagedown> eval -q fm.ui.taskview.task_move(-1)
+tmap <pageup> eval -q fm.ui.taskview.task_move(0)
+tmap <delete> eval -q fm.ui.taskview.task_remove()
+
+" A bunch of aliases for closing
+tmap w eval -q fm.ui.close_taskview()
+tmap q eval -q fm.ui.close_taskview()
+tmap Q eval -q fm.ui.close_taskview()
+tmap <esc> eval -q fm.ui.close_taskview()
+tmap <c-c> eval -q fm.ui.close_taskview()
+
+" ===================================================================
+" == Console Keybindings
+" ===================================================================
+cmap <UP> eval -q fm.ui.console.history_move(-1)
+cmap <DOWN> eval -q fm.ui.console.history_move(1)
+cmap <LEFT> eval -q fm.ui.console.move(left=1)
+cmap <RIGHT> eval -q fm.ui.console.move(right=1)
+cmap <HOME> eval -q fm.ui.console.move(right=0, absolute=True)
+cmap <END> eval -q fm.ui.console.move(right=-1, absolute=True)
+
+cmap <CR> console_execute
+cmap <ESC> console_close
+cmap <C-c> console_close
+
+cmap <TAB> eval -q fm.ui.console.tab(1)
+cmap <S-TAB> eval -q fm.ui.console.tab(-1)
+
+" Emacs
+cmap <C-B> eval -q fm.ui.console.move(left=1)
+cmap <C-F> eval -q fm.ui.console.move(right=1)
+cmap <C-E> eval -q fm.ui.console.move(right=-1, absolute=True)
+cmap <C-A> eval -q fm.ui.console.move(right=0, absolute=True)
+cmap <C-D> eval -q fm.ui.console.delete(0)
+cmap <C-H> eval -q fm.ui.console.delete(-1)
+cmap <C-P> eval -q fm.ui.console.history_move(-1)
+cmap <C-N> eval -q fm.ui.console.history_move(1)
+
+" Line editing
+" Note: There are multiple ways to express backspaces.  <backspace> (code 263)
+" and <backspace2> (code 127).  To be sure, use both.
+cmap <backspace>  eval -q fm.ui.console.delete(-1)
+cmap <backspace2> eval -q fm.ui.console.delete(-1)
+cmap <delete> eval -q fm.ui.console.delete(0)
+cmap <C-W> eval -q fm.ui.console.delete_word()
+cmap <C-K> eval -q fm.ui.console.delete_rest(1)
+cmap <C-U> eval -q fm.ui.console.delete_rest(-1)
+cmap <C-Y> eval -q fm.ui.console.paste()
+
+" Typing numbers
+" Without this, numbers are treated as quantifiers for the following
+" command, like 3j = go down 3 times
+cmap 0 console_type 0
+cmap 1 console_type 1
+cmap 2 console_type 2
+cmap 3 console_type 3
+cmap 4 console_type 4
+cmap 5 console_type 5
+cmap 6 console_type 6
+cmap 7 console_type 7
+cmap 8 console_type 8
+cmap 9 console_type 9
+
+" vim: ft=vim

@@ -114,4 +114,4 @@ def relpath(self, *paths):
 ERR = DISPLAY
 del os, sys
 
-from ranger.api.plumbing import main
+from ranger.model.plumbing import main
