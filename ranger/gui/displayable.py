@@ -14,11 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import _curses
+import ranger
 
-from ranger.core.shared import FileManagerAware, EnvironmentAware
 from ranger.gui.curses_shortcuts import CursesShortcuts
 
-class Displayable(EnvironmentAware, FileManagerAware, CursesShortcuts):
+class Displayable(CursesShortcuts):
 	"""
 	Displayables are objects which are displayed on the screen.
 
@@ -54,14 +54,15 @@ class Displayable(EnvironmentAware, FileManagerAware, CursesShortcuts):
 		settings, fm, env -- inherited shared variables
 	"""
 
-	def __init__(self, win, env=None, fm=None, settings=None):
+	def __init__(self, win):
 		from ranger.gui.ui import UI
-		if env is not None:
-			self.env = env
-		if fm is not None:
-			self.fm = fm
-		if settings is not None:
-			self.settings = settings
+		self.fm = ranger.get_fm()
+#		if env is not None:
+#			self.env = env
+#		if fm is not None:
+#			self.fm = fm
+#		if settings is not None:
+#			self.settings = settings
 
 		self.need_redraw = True
 		self.focused = False

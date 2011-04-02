@@ -21,26 +21,22 @@ too ranger-specific to be part of a library. Most of them manage rangers
 runtime environment or help starting up.
 """
 
-from ranger import *
-
 def main():
 	"""initializes objects, runs the filemanager and returns the exit code"""
 	import locale
 	import sys
 	import os.path
-	import ranger.model.fm
+	import ranger.core.fm
 
 	parse_arguments()
 
-	if COPY_CONFIG:
-		copy_config_files(COPY_CONFIG)
-		return 1 if FAIL_UNLESS_CD else 0
+	if ranger.COPY_CONFIG:
+		copy_config_files(ranger.COPY_CONFIG)
+		return 1 if ranger.FAIL_UNLESS_CD else 0
 
-	fm = ranger.core.fm.FM()
+	fm = ranger.get_fm()
 	crash_traceback = None
 	try:
-		ranger.core.fm.FileManagerAware.fm = fm
-		ranger.INSTANCE = fm
 		fm.initialize(ranger.RUNTARGETS)
 		fm.loop()
 	except Exception:
@@ -81,7 +77,7 @@ def parse_arguments(args=None):
 	# Some setup
 	parser = OptionParser(usage='%prog [options] [path/filename]',
 		version='ranger %s (%s)' % (ranger.__version__,
-				VERSION[2] % 2 and 'stable' or 'testing'))
+				ranger.VERSION[2] % 2 and 'stable' or 'testing'))
 
 	# Define options
 	parser.add_option('-d', '--debug', action='store_true',
@@ -112,7 +108,7 @@ def parse_arguments(args=None):
 
 	# Parsing and post processing
 	options, positional   = parser.parse_args(args=args)
-	ranger.CONFDIR        = os.path.expanduser(CONFDIR)
+	ranger.CONFDIR        = os.path.expanduser(options.confdir)
 	ranger.DEBUG          = options.debug
 	ranger.CLEAN          = options.clean
 	ranger.CHOOSEFILE     = options.choosefile

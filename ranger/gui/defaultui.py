@@ -56,7 +56,7 @@ class DefaultUI(UI):
 	def update_size(self):
 		"""resize all widgets"""
 		UI.update_size(self)
-		y, x = self.env.termsize
+		y, x = self.fm.termsize
 
 		self.browser.resize(1, 0, y - 2, x)
 		self.taskview.resize(1, 0, y - 2, x)

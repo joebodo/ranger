@@ -26,8 +26,7 @@ vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 
 import os.path, sys
 from os.path import join as _join
-
-#from ranger.base import *
+from ranger.core.plumbing import main
 
 # -=- General Information -=-
 VERSION = (1, 4, 2, "")
@@ -107,11 +106,17 @@ def cachepath(*paths):
 	else:
 		return _join(CACHEDIR, *paths)
 
-def relpath(self, *paths):
+def relpath(*paths):
 	"""returns the path relative to rangers library directory"""
 	return _join(RANGERDIR, *paths)
 
+def get_fm():
+	"""returns the global ranger.core.fm.FM (FileManager) instance"""
+	global INSTANCE
+	if not INSTANCE:
+		import ranger.core.fm
+		INSTANCE = ranger.core.fm.FM()
+	return INSTANCE
+
 ERR = DISPLAY
 del os, sys
-
-from ranger.model.plumbing import main

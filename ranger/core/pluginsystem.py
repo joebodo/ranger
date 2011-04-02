@@ -53,3 +53,8 @@ class PluginSystem(object):
 		# Clean up
 		if remove_ranger_fm and hasattr(ranger, 'fm'):
 			del ranger.fm
+
+#	def load_plugin(self, filename):
+#		import ranger
+#
+#		execfile(filename)

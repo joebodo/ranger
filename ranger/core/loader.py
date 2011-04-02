@@ -17,8 +17,8 @@ from collections import deque
 from time import time, sleep
 from subprocess import Popen, PIPE
 from time import time
-from ranger.core.shared import FileManagerAware
 from ranger.ext.signals import SignalDispatcher
+from ranger import DISPLAY, ERR
 import math
 import os
 import sys
@@ -47,7 +47,7 @@ class Loadable(object):
 		pass
 
 
-class CommandLoader(Loadable, SignalDispatcher, FileManagerAware):
+class CommandLoader(Loadable, SignalDispatcher):
 	"""
 	Run an external command with the loader.
 
@@ -91,7 +91,7 @@ class CommandLoader(Loadable, SignalDispatcher, FileManagerAware):
 							if py3:
 								read = read.decode('utf-8')
 							if read:
-								self.fm.notify(read, bad=True)
+								ERR(read)
 						elif rd == process.stdout:
 							read = rd.read(512)
 							if py3:
@@ -104,7 +104,7 @@ class CommandLoader(Loadable, SignalDispatcher, FileManagerAware):
 				for l in process.stderr.readlines():
 					if py3:
 						l = l.decode('utf-8')
-					self.fm.notify(l, bad=True)
+					ERR(l)
 			if self.read:
 				read = process.stdout.read()
 				if py3:
@@ -137,7 +137,7 @@ class CommandLoader(Loadable, SignalDispatcher, FileManagerAware):
 			self.process.kill()
 
 
-class Loader(FileManagerAware):
+class Loader(object):
 	seconds_of_work_time = 0.03
 	throbber_chars = r'/-\|'
 
@@ -231,7 +231,7 @@ class Loader(FileManagerAware):
 			item.load_generator = None
 			self.queue.remove(item)
 		except Exception as err:
-			self.fm.notify(err)
+			ERR(err)
 
 	def has_work(self):
 		"""Is there anything to load?"""

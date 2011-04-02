@@ -19,16 +19,10 @@ The File Manager, putting the pieces together
 
 from ranger.ext.lazy_property import lazy_property
 
-class FileManagerAware(object):
-	# This creates an instance implicitly, mainly for unit tests
-	@lazy_property
-	def fm(self):
-		from ranger.core.fm import FM
-		return FM()
 
 from time import time
 from collections import deque
-from os.path import exists
+from os.path import exists, abspath
 import mimetypes
 import os
 import stat
@@ -38,15 +32,17 @@ import sys
 
 import ranger
 from ranger import *
-from ranger.core.actions import Actions
-from ranger.core.info import Info
-from ranger.core.pluginsystem import PluginSystem
-from ranger.api.commands import CommandHandler
-from ranger.container.settingobject import ALLOWED_SETTINGS
+from ranger.core.tab import Tab
+#from ranger.core.actions import Actions
+#from ranger.core.pluginsystem import PluginSystem
+#from ranger.api.commands import CommandHandler
+#from ranger.container.settingobject import ALLOWED_SETTINGS
+from ranger.core.directory import Directory
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.keybinding_parser import construct_keybinding
-from ranger.container import KeyBuffer, KeyManager, History
+from ranger.core.settingobject import Settings
+#from ranger.container import KeyBuffer, KeyManager, History
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
@@ -55,50 +51,61 @@ class Cache(object):
 	def __init__(self):
 		self.dircache = {}
 
-	def get_directory(self, name):
+	def get_directory(self, path):
 		"""Get the directory object at the given path"""
 		path = abspath(path)
 		try:
-			return self.directories[path]
+			return self.dircache[path]
 		except KeyError:
 			obj = Directory(path)
-			self.directories[path] = obj
+			self.dircache[path] = obj
 			return obj
 
 	def garbage_collect(self, age):
 		"""Delete unused directory objects"""
-		for key in tuple(self.directories):
-			value = self.directories[key]
+		for key in tuple(self.dircache):
+			value = self.dircache[key]
 			if age == -1 or \
 					(value.is_older_than(age) and not value in self.pathway):
-				del self.directories[key]
+				del self.dircache[key]
 				if value.is_directory:
 					value.files = None
 		self.settings.signal_garbage_collect()
 		self.signal_garbage_collect()
 
+class VariableContainer(dict):
+	def __init__(self, signal_dispatcher):
+		dict.__init__(self)
+		self._signal_dispatcher = signal_dispatcher
+
+	def __setitem__(self, key, value):
+		self._signal_dispatcher.signal_emit('var.set', previous=self[key],
+				name=key, value=value)
+
 ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
 		'console')
 
-class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
+#class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
+class FM(Cache, SignalDispatcher):
 	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
 		"""Initialize FM."""
-		Actions.__init__(self)
+#		Actions.__init__(self)
 		SignalDispatcher.__init__(self)
 		Cache.__init__(self)
-		PluginSystem.__init__(self)
-		CommandHandler.__init__(self)
+#		PluginSystem.__init__(self)
+#		CommandHandler.__init__(self)
 
-		self.variables = {}
+		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)
 		self.tabs = {}
 		self.tab = None
 		self.previews = {}
 		self.current_tab = 1
 		self.copy = set()
-		self.keybuffer = KeyBuffer(None, None)
-		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
+		self.settings = Settings()
+#		self.keybuffer = KeyBuffer(None, None)
+#		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
 		self.termsize = None
 		self.last_search = None
 
@@ -115,11 +122,12 @@ class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
 
 	def initialize(self, targets=[]):
 		"""If ui/bookmarks are None, they will be initialized here."""
-		from ranger.container import Bookmarks
+		from ranger.core.bookmarks import Bookmarks
 		from ranger.core.runner import Runner
-		from ranger.fsobject import Directory
+		from ranger.core.directory import Directory
 		from ranger.core.loader import Loader
-		from ranger.gui.defaultui import DefaultUI
+#		from ranger.gui.defaultui import DefaultUI
+		import ranger
 
 		try:
 			locale.setlocale(locale.LC_ALL, '')
@@ -128,40 +136,51 @@ class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
 		if not 'SHELL' in os.environ:
 			os.environ['SHELL'] = 'bash'
 
+		# -=- Load Config File -=-
+		configfile = ranger.confpath('startup.py')
+		if os.access(configfile, os.R_OK):
+			execfile(configfile)
+		else:
+			default_configfile = ranger.relpath('config', 'startup.py')
+			if os.access(default_configfile, os.R_OK):
+				execfile(default_configfile)
+
 		self.loader = Loader()
 
 		self.tabs = dict((n+1, Tab(path)) for n, path \
 				in enumerate(ranger.RUNTARGETS[:9]))
 		self.tab = self.tabs[1]
 
+		if not CLEAN:
+			from ranger.core.tags import Tags
+			self.tags = Tags(ranger.confpath('tagged'))
+		else:
+			self.tags = {}
+
+		from ranger.gui.defaultui import DefaultUI
+		self.ui = DefaultUI()
+		self.ui.pre_initialize()
+		self.ui.initialize()
+		self.run = Runner(ui=self.ui, logfunc=self.err)
+		self.run = Runner(logfunc=ERR)
+
+#		self.tag.signal_bind('cd', self._update_current_tab)
+		self.signal_bind('var.set', lambda sig: dict.__setitem__(
+			self.variablecontainer, sig.name, sig.value), priority=0.2)
+
 		if CLEAN:
 			bookmarkfile = None
 		else:
-			bookmarkfile = CONFPATH('bookmarks')
+			bookmarkfile = ranger.confpath('bookmarks')
 		self.bookmarks = Bookmarks(
 				bookmarkfile=bookmarkfile,
 				bookmarktype=Directory,
 				autosave=self.settings.autosave_bookmarks)
 		self.bookmarks.load()
 
-		if not CLEAN:
-			from ranger.container.tags import Tags
-			self.tags = Tags(CONFPATH('tagged'))
-		else:
-			self.tags = {}
-
-		self.ui = DefaultUI()
-		self.ui.initialize()
-		self.run = Runner(ui=self.ui, logfunc=self.err)
-
-		self.env.signal_bind('cd', self._update_current_tab)
-
 		mimetypes.knownfiles.append(os.path.expanduser('~/.mime.types'))
-		mimetypes.knownfiles.append(self.relpath('data/mime.types'))
+		mimetypes.knownfiles.append(ranger.relpath('data/mime.types'))
 		self.mimetypes = mimetypes.MimeTypes()
-
-		from ranger.core.environment import Environment
-		EnvironmentAware.env = Environment(target and targets[0] or '.')
 
 		if not ranger.DEBUG:
 			import ranger.ext.curses_interrupt_handler
@@ -177,7 +196,7 @@ class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
 		5. after X loops: collecting unused directory objects
 		"""
 
-		self.env.enter_dir(self.env.path)
+		self.tab.enter_dir(self.tab.path)
 
 		gc_tick = 0
 

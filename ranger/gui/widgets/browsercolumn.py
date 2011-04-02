@@ -20,7 +20,6 @@ from time import time
 
 from . import Widget
 from .pager import Pager
-from ranger.fsobject import BAD_INFO
 
 class BrowserColumn(Pager):
 	main_column = False
@@ -286,7 +285,7 @@ class BrowserColumn(Pager):
 
 			if infostring:
 				x = self.wid - 1 - len(infostring)
-				if infostring is BAD_INFO:
+				if infostring is '?':
 					bad_info_color = (x, len(infostring))
 				if x > 0:
 					self.addstr(line, x, infostring)

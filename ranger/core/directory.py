@@ -23,10 +23,10 @@ from time import time
 
 from ranger.core.loader import Loadable
 from ranger.ext.mount_path import mount_path
-from ranger.fsobject import BAD_INFO, File, FileSystemObject
-from ranger.core.shared import SettingsAware
+from ranger.core.file import File
+from ranger.core.fsobject import FileSystemObject
 from ranger.ext.accumulator import Accumulator
-import ranger.fsobject
+#import ranger.fsobject
 
 def sort_by_basename(path):
 	"""returns path.basename (for sorting)"""
@@ -58,7 +58,7 @@ def accept_file(fname, dirname, hidden_filter, name_filter):
 		return False
 	return True
 
-class Directory(FileSystemObject, Accumulator, Loadable, SettingsAware):
+class Directory(FileSystemObject, Accumulator, Loadable):
 	is_directory = True
 	enterable = False
 	load_generator = None
@@ -99,11 +99,11 @@ class Directory(FileSystemObject, Accumulator, Loadable, SettingsAware):
 
 		for opt in ('sort_directories_first', 'sort', 'sort_reverse',
 				'sort_case_insensitive'):
-			self.settings.signal_bind('setopt.' + opt,
+			self.fm.signal_bind('setopt.' + opt,
 					self.request_resort, weak=True)
 
 		for opt in ('hidden_filter', 'show_hidden'):
-			self.settings.signal_bind('setopt.' + opt,
+			self.fm.signal_bind('setopt.' + opt,
 				self.request_reload, weak=True)
 		self.use()
 
@@ -179,8 +179,8 @@ class Directory(FileSystemObject, Accumulator, Loadable, SettingsAware):
 
 				self.mount_path = mount_path(mypath)
 
-				hidden_filter = not self.settings.show_hidden \
-						and self.settings.hidden_filter
+				hidden_filter = not self.fm.settings.show_hidden \
+						and self.fm.settings.hidden_filter
 				filenames = [mypath + (mypath == '/' and fname or '/' + fname)\
 						for fname in os.listdir(mypath) if accept_file(
 							fname, mypath, hidden_filter, self.filter)]
@@ -295,24 +295,24 @@ class Directory(FileSystemObject, Accumulator, Loadable, SettingsAware):
 
 		old_pointed_obj = self.pointed_obj
 		try:
-			sort_func = self.sort_dict[self.settings.sort]
+			sort_func = self.sort_dict[self.fm.settings.sort]
 		except:
 			sort_func = sort_by_basename
 
-		if self.settings.sort_case_insensitive and \
+		if self.fm.settings.sort_case_insensitive and \
 				sort_func == sort_by_basename:
 			sort_func = sort_by_basename_icase
 
-		if self.settings.sort_case_insensitive and \
+		if self.fm.settings.sort_case_insensitive and \
 				sort_func == sort_naturally:
 			sort_func = sort_naturally_icase
 
 		self.files.sort(key = sort_func)
 
-		if self.settings.sort_reverse:
+		if self.fm.settings.sort_reverse:
 			self.files.reverse()
 
-		if self.settings.sort_directories_first:
+		if self.fm.settings.sort_directories_first:
 			self.files.sort(key = sort_by_directory)
 
 		if self.pointer is not None:

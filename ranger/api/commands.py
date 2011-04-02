@@ -16,7 +16,7 @@
 import os
 from collections import deque
 from ranger.api import *
-from ranger.core.shared import FileManagerAware
+import ranger
 from ranger.ext.lazy_property import lazy_property
 import string
 
@@ -26,6 +26,7 @@ class VarTemplate(string.Template):
 
 class CommandHandler(object):
 	def __init__(self):
+		self.fm = ranger.get_fm()
 		self._commands = {}
 		self._command_aliases = {}
 

@@ -112,7 +112,9 @@ def _colorscheme_name_to_class(signal):
 	# is picked.
 	if isinstance(signal.value, ColorScheme): return
 
-	scheme_name = signal.value
+	_colorscheme_name_to_class_(signal.value)
+
+def _colorscheme_name_to_class_(scheme_name):
 	usecustom = not ranger.info.clean
 
 	def exists(colorscheme):

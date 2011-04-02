@@ -21,16 +21,15 @@ import re
 from os import access, listdir, lstat, readlink, stat
 from time import time
 from os.path import abspath, basename, dirname, realpath, splitext, extsep
-from . import BAD_INFO
-from ranger.core.fm import FileManagerAware
 from ranger.ext.shell_escape import shell_escape
 from ranger.ext.spawn import spawn
 from ranger.ext.lazy_property import lazy_property
 from ranger.ext.human_readable import human_readable
+import ranger
 
 _extract_number_re = re.compile(r'([^0-9]?)(\d*)')
 
-class FileSystemObject(FileManagerAware):
+class FileSystemObject(object):
 	(basename,
 	basename_lower,
 	dirname,
@@ -72,6 +71,7 @@ class FileSystemObject(FileManagerAware):
 	def __init__(self, path, preload=None, path_is_abs=False):
 		if not path_is_abs:
 			path = abspath(path)
+		self.fm = ranger.get_fm()
 		self.path = path
 		self.basename = basename(path)
 		self.basename_lower = self.basename.lower()

@@ -19,7 +19,6 @@ import _curses
 
 from ranger.ext.iter_tools import flatten
 from ranger.gui.color import get_color
-from ranger.core.shared import SettingsAware
 
 def ascii_only(string):
 	# Some python versions have problems with invalid unicode strings.
@@ -37,7 +36,7 @@ def ascii_only(string):
 	return string
 
 
-class CursesShortcuts(SettingsAware):
+class CursesShortcuts(object):
 	"""
 	This class defines shortcuts to faciliate operations with curses.
 	color(*keys) -- sets the color associated with the keys from

@@ -18,9 +18,10 @@ import sys
 import curses
 import _curses
 
+import ranger
 from .displayable import DisplayableContainer
 from ranger.gui.curses_shortcuts import ascii_only
-from ranger.container.keymap import CommandArgs
+from ranger.core.keymap import CommandArgs
 from .mouse_event import MouseEvent
 
 TERMINALS_WITH_TITLE = ("xterm", "xterm-256color", "rxvt",
@@ -48,18 +49,17 @@ class UI(DisplayableContainer):
 	is_set_up = False
 	load_mode = False
 	runs = False
-	def __init__(self, env=None, fm=None):
+	def __init__(self):
+		self.fm = ranger.get_fm()
+
+	def pre_initialize(self):
 		self._draw_title = os.environ["TERM"] in TERMINALS_WITH_TITLE
 		os.environ['ESCDELAY'] = '25'   # don't know a cleaner way
 
-		if env is not None:
-			self.env = env
-		if fm is not None:
-			self.fm = fm
-
 		self.win = curses.initscr()
-		self.env.keymanager.use_context('browser')
-		self.env.keybuffer.clear()
+		return
+		self.keymanager.use_context('browser')
+		self.keybuffer.clear()
 
 		DisplayableContainer.__init__(self, None)
 
@@ -74,14 +74,14 @@ class UI(DisplayableContainer):
 		curses.noecho()
 		curses.halfdelay(20)
 		try:
-			curses.curs_set(int(bool(self.settings.show_cursor)))
+			curses.curs_set(int(bool(self.fm.settings.show_cursor)))
 		except:
 			pass
 		curses.start_color()
 		curses.use_default_colors()
 
-		self.settings.signal_bind('setopt.mouse_enabled', _setup_mouse)
-		_setup_mouse(dict(value=self.settings.mouse_enabled))
+		self.fm.signal_bind('setopt.mouse_enabled', _setup_mouse)
+		_setup_mouse(dict(value=self.fm.settings.mouse_enabled))
 
 		if not self.is_set_up:
 			self.is_set_up = True
@@ -98,8 +98,13 @@ class UI(DisplayableContainer):
 			curses.curs_set(1)
 		except:
 			pass
-		if self.settings.mouse_enabled:
-			_setup_mouse(dict(value=False))
+		try:
+			mouse_enabled = self.fm.settings.mouse_enabled
+		except:
+			pass
+		else:
+			if mouse_enabled:
+				_setup_mouse(dict(value=False))
 		curses.endwin()
 
 	def set_load_mode(self, boolean):
@@ -118,7 +123,10 @@ class UI(DisplayableContainer):
 	def destroy(self):
 		"""Destroy all widgets and turn off curses"""
 		self.suspend()
-		DisplayableContainer.destroy(self)
+		try:
+			DisplayableContainer.destroy(self)
+		except:
+			pass
 
 	def handle_mouse(self):
 		"""Handles mouse input"""
@@ -190,17 +198,17 @@ class UI(DisplayableContainer):
 					keys.append(getkey)
 			if len(keys) == 1:
 				keys.append(-1)
-			if self.settings.xterm_alt_key:
+			if self.fm.settings.xterm_alt_key:
 				if len(keys) == 2 and keys[1] in range(127, 256):
 					keys = [27, keys[1] - 128]
 			self.handle_keys(*keys)
 			self.set_load_mode(previous_load_mode)
-			if self.settings.flushinput and not self.console.visible:
+			if self.fm.settings.flushinput and not self.console.visible:
 				curses.flushinp()
 		else:
 			# Handle simple key presses, CTRL+X, etc here:
 			if key > 0:
-				if self.settings.flushinput and not self.console.visible:
+				if self.fm.settings.flushinput and not self.console.visible:
 					curses.flushinp()
 				if key == curses.KEY_MOUSE:
 					self.handle_mouse()
@@ -241,12 +249,12 @@ class UI(DisplayableContainer):
 		"""Draw all objects in the container"""
 		self.win.touchwin()
 		DisplayableContainer.draw(self)
-		if self._draw_title and self.settings.update_title:
+		if self._draw_title and self.fm.settings.update_title:
 			cwd = self.fm.env.cwd.path
 			if cwd.startswith(self.env.home_path):
 				cwd = '~' + cwd[len(self.env.home_path):]
-			if self.settings.shorten_title:
-				split = cwd.rsplit(os.sep, self.settings.shorten_title)
+			if self.fm.settings.shorten_title:
+				split = cwd.rsplit(os.sep, self.fm.settings.shorten_title)
 				if os.sep in split[0]:
 					cwd = os.sep.join(split[1:])
 			try:

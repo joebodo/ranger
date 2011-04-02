@@ -13,17 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ranger.core.fm import FileManagerAware
+import ranger
 
-class Tab(FileManagerAware):
-	def __init__(self):
-		SignalDispatcher.__init__(self)
+from os.path import abspath, expanduser, normpath, join, isdir
+from ranger.core.history import History
+
+class Tab(object):
+	def __init__(self, path):
+#		SignalDispatcher.__init__(self)
+		self.fm = ranger.get_fm()
 		self.path = abspath(expanduser(path))
 		self._cf = None
 		self.cwd = None
 		self.history = None
 		self.pathway = ()
-		self.history = History(self.settings.max_history_size, unique=False)
+#		self.history = History(self.settings.max_history_size, unique=False)
+		self.history = History(20, unique=False)
 		self.path = abspath(expanduser(path))
 
 	def ensure_correct_pointer(self):
@@ -91,7 +96,7 @@ class Tab(FileManagerAware):
 
 		if not isdir(path):
 			return False
-		new_cwd = self.get_directory(path)
+		new_cwd = self.fm.get_directory(path)
 
 		try:
 			os.chdir(path)
@@ -105,7 +110,7 @@ class Tab(FileManagerAware):
 		# build the pathway, a tuple of directory objects which lie
 		# on the path to the current directory.
 		if path == '/':
-			self.pathway = (self.get_directory('/'), )
+			self.pathway = (self.fm.get_directory('/'), )
 		else:
 			pathway = []
 			currentpath = '/'

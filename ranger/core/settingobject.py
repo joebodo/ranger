@@ -15,8 +15,94 @@
 
 from inspect import isfunction
 from ranger.ext.signals import SignalDispatcher
-from ranger.core.shared import FileManagerAware
 import re
+
+_LIST_RE = re.compile('[, ]+')
+
+# -=- Functions to Parse Options -=-
+def _bool(string):
+	return string not in ('false', 'False', '0')
+
+def _int(string):
+	return int(string)
+
+def _re(string):
+	return re.compile(string)
+
+def _re_I(string):
+	return re.compile(string, re.I)
+
+def _colorscheme(string):
+	pass
+
+def _tuple_int(string):
+	return tuple(int(i) for i in _LIST_RE.split(string))
+
+
+# -=- Initial Database -=-
+DEFAULT_SETTINGS = {
+	'autosave_bookmarks': (_bool, 'True'),
+	'collapse_preview': (_bool, 'True'),
+	'colorscheme': (_colorscheme, 'default'),
+	'column_ratios': (_tuple_int, '1, 1, 4, 3'),
+	'dirname_in_tabs': (_bool, 'False'),
+	'display_size_in_main_column': (_bool, 'True'),
+	'display_size_in_status_bar': (_bool, 'False'),
+	'draw_bookmark_borders': (_bool, 'True'),
+	'draw_borders': (_bool, 'False'),
+	'file_launcher': (str, 'vim'),
+	'flushinput': (_bool, 'True'),
+	'hidden_filter': (_re, r"^\.|(pyc|pyo|bak|swp)$|^lost\+found$|^__cache__$"),
+	'max_console_history_size': (_int, '200'),
+	'max_history_size': (_int, '40'),
+	'mouse_enabled': (_bool, 'True'),
+	'padding_right': (_bool, 'True'),
+	'preview_directories': (_bool, 'True'),
+	'preview_files': (_bool, 'True'),
+	'preview_script': (str, ''),
+	'save_console_history': (_bool, 'True'),
+	'scroll_offset': (_int, '8'),
+	'shorten_title': (_int, '3'),
+	'show_cursor': (_bool, 'False'),
+	'show_hidden_bookmarks': (_bool, 'True'),
+	'show_hidden': (_bool, 'False'),
+	'sort_case_insensitive': (_bool, 'False'),
+	'sort_directories_first': (_bool, 'True'),
+	'sort_reverse': (_bool, 'False'),
+	'sort': (str, 'basename'),
+	'syntax_highlighting': (_bool, 'True'),
+	'tilde_in_titlebar': (_bool, 'True'),
+	'update_title': (_bool, 'True'),
+	'use_preview_script': (_bool, 'True'),
+	'xterm_alt_key': (_bool, 'False'),
+}
+
+class Settings(object):
+	"""
+	Read-only proxy for fm.variables that converts setting-variables
+	to a directly usable format
+	"""
+	def __init__(self):
+		self.__dict__['_data'] = {}
+		for key, data in DEFAULT_SETTINGS.items():
+			self.__dict__['_data'][key] = data[0](data[1])
+
+	def __getattr__(self, name):
+		return self.__dict__['_data'][name]
+
+	def __setattr__(self, name, value):
+		raise ValueError("Settings are readonly! Change the "
+			"underlying variable instead!")
+
+	def _signal_handler(self, sig):
+		try:
+			data = DEFAULT_SETTINGS[sig.name]
+			try:
+				self._data[sig.name] = data[0](sig.value)
+			except:
+				sig.value = sig.previous
+		except:
+			pass
 
 ALLOWED_SETTINGS = {
 	'autosave_bookmarks': (bool, True),
@@ -58,69 +144,69 @@ ALLOWED_SETTINGS = {
 }
 
 
-class SettingObject(SignalDispatcher, FileManagerAware):
-	def __init__(self):
-		SignalDispatcher.__init__(self)
-		self.__dict__['_settings'] = dict()
-		for name in ALLOWED_SETTINGS:
-			self.signal_bind('setopt.'+name,
-					self._raw_set_with_signal, priority=0.2)
+#class SettingObject(SignalDispatcher, FileManagerAware):
+	#def __init__(self):
+		#SignalDispatcher.__init__(self)
+		#self.__dict__['_settings'] = dict()
+		#for name in ALLOWED_SETTINGS:
+			#self.signal_bind('setopt.'+name,
+					#self._raw_set_with_signal, priority=0.2)
 
-	def __setattr__(self, name, value):
-		if name[0] == '_':
-			self.__dict__[name] = value
-		else:
-			assert name in ALLOWED_SETTINGS, "No such setting: {0}!".format(name)
-			assert self._check_type(name, value)
-			kws = dict(setting=name, value=value,
-					previous=self._settings.get(name, None), fm=self.fm)
-			self.signal_emit('setopt', **kws)
-			self.signal_emit('setopt.'+name, **kws)
+	#def __setattr__(self, name, value):
+		#if name[0] == '_':
+			#self.__dict__[name] = value
+		#else:
+			#assert name in ALLOWED_SETTINGS, "No such setting: {0}!".format(name)
+			#assert self._check_type(name, value)
+			#kws = dict(setting=name, value=value,
+					#previous=self._settings.get(name, None), fm=self.fm)
+			#self.signal_emit('setopt', **kws)
+			#self.signal_emit('setopt.'+name, **kws)
 
-	def __getattr__(self, name):
-		assert name in ALLOWED_SETTINGS or name in self._settings, \
-				"No such setting: {0}!".format(name)
-		try:
-			return self._settings[name]
-		except:
-			value = ALLOWED_SETTINGS[name][1]
-			assert self._check_type(name, value)
-			self._raw_set(name, value)
-			self.__setattr__(name, value)
-			return self._settings[name]
+	#def __getattr__(self, name):
+		#assert name in ALLOWED_SETTINGS or name in self._settings, \
+				#"No such setting: {0}!".format(name)
+		#try:
+			#return self._settings[name]
+		#except:
+			#value = ALLOWED_SETTINGS[name][1]
+			#assert self._check_type(name, value)
+			#self._raw_set(name, value)
+			#self.__setattr__(name, value)
+			#return self._settings[name]
 
-	def __iter__(self):
-		for x in self._settings:
-			yield x
+	#def __iter__(self):
+		#for x in self._settings:
+			#yield x
 
-	def types_of(self, name):
-		try:
-			typ = ALLOWED_SETTINGS[name][0]
-		except KeyError:
-			return tuple()
-		else:
-			if isinstance(typ, tuple):
-				return typ
-			else:
-				return (typ, )
+	#def types_of(self, name):
+		#try:
+			#typ = ALLOWED_SETTINGS[name][0]
+		#except KeyError:
+			#return tuple()
+		#else:
+			#if isinstance(typ, tuple):
+				#return typ
+			#else:
+				#return (typ, )
 
 
-	def _check_type(self, name, value):
-		typ = ALLOWED_SETTINGS[name][0]
-		if isfunction(typ):
-			assert typ(value), \
-				"The option `" + name + "' has an incorrect type!"
-		else:
-			assert isinstance(value, typ), \
-				"The option `" + name + "' has an incorrect type!"\
-				" Got " + str(type(value)) + ", expected " + str(typ) + "!"
-		return True
+	#def _check_type(self, name, value):
+		#typ = ALLOWED_SETTINGS[name][0]
+		#if isfunction(typ):
+			#assert typ(value), \
+				#"The option `" + name + "' has an incorrect type!"
+		#else:
+			#assert isinstance(value, typ), \
+				#"The option `" + name + "' has an incorrect type!"\
+				#" Got " + str(type(value)) + ", expected " + str(typ) + "!"
+		#return True
 
-	__getitem__ = __getattr__
-	__setitem__ = __setattr__
+	#__getitem__ = __getattr__
+	#__setitem__ = __setattr__
 
-	def _raw_set(self, name, value):
-		self._settings[name] = value
+	#def _raw_set(self, name, value):
+		#self._settings[name] = value
 
-	def _raw_set_with_signal(self, signal):
-		self._settings[signal.setting] = signal.value
+	#def _raw_set_with_signal(self, signal):
+		#self._settings[signal.setting] = signal.value
