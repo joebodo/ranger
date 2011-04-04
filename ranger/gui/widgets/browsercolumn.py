@@ -112,7 +112,7 @@ class BrowserColumn(Pager):
 
 	def poke(self):
 		Widget.poke(self)
-		self.target = self.env.at_level(self.level)
+		self.target = self.fm.tab.at_level(self.level)
 
 	def draw(self):
 		"""Call either _draw_file() or _draw_directory()"""

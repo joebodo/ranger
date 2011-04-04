@@ -42,12 +42,12 @@ class TitleBar(Widget):
 
 	def draw(self):
 		if self.need_redraw or \
-				self.env.cf != self.old_cf or\
-				str(self.env.keybuffer) != str(self.old_keybuffer) or\
+				self.fm.tab.cf != self.old_cf or\
+				str(self.fm.tab.keybuffer) != str(self.old_keybuffer) or\
 				self.wid != self.old_wid:
 			self.need_redraw = False
 			self.old_wid = self.wid
-			self.old_cf = self.env.cf
+			self.old_cf = self.fm.tab.cf
 			self._calc_bar()
 		self._print_result(self.result)
 		if self.wid > 2:
@@ -102,20 +102,20 @@ class TitleBar(Widget):
 		self.result = bar.combine()
 
 	def _get_left_part(self, bar):
-		if self.env.username == 'root':
+		if self.fm.username == 'root':
 			clr = 'bad'
 		else:
 			clr = 'good'
 
-		bar.add(self.env.username, 'hostname', clr, fixed=True)
+		bar.add(self.fm.username, 'hostname', clr, fixed=True)
 		bar.add('@', 'hostname', clr, fixed=True)
-		bar.add(self.env.hostname, 'hostname', clr, fixed=True)
+		bar.add(self.fm.hostname, 'hostname', clr, fixed=True)
 		bar.add(':', 'hostname', clr, fixed=True)
 
-		pathway = self.env.pathway
-		if self.settings.tilde_in_titlebar and \
-				self.fm.env.cwd.path.startswith(self.env.home_path):
-			pathway = pathway[self.env.home_path.count('/')+1:]
+		pathway = self.fm.tab.pathway
+		if self.fm.settings.tilde_in_titlebar and \
+				self.fm.tab.cwd.path.startswith(self.fm.tab.home_path):
+			pathway = pathway[self.fm.home_path.count('/')+1:]
 			bar.add('~/', 'directory', fixed=True)
 
 		for path in pathway:
@@ -127,11 +127,11 @@ class TitleBar(Widget):
 			bar.add(path.basename, clr, directory=path)
 			bar.add('/', clr, fixed=True, directory=path)
 
-		if self.env.cf is not None:
-			bar.add(self.env.cf.basename, 'file')
+		if self.fm.tab.cf is not None:
+			bar.add(self.fm.tab.cf.basename, 'file')
 
 	def _get_right_part(self, bar):
-		kb = str(self.env.keybuffer)
+		kb = str(self.fm.keybuffer)
 		self.old_keybuffer = kb
 		bar.addright(kb, 'keybuffer', fixed=True)
 		bar.addright('  ', 'space', fixed=True)
@@ -145,7 +145,7 @@ class TitleBar(Widget):
 
 	def _get_tab_text(self, tabname):
 		result = ' ' + str(tabname)
-		if self.settings.dirname_in_tabs:
+		if self.fm.settings.dirname_in_tabs:
 			dirname = basename(self.fm.tabs[tabname])
 			if not dirname:
 				result += ":/"

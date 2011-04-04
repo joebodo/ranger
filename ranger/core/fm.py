@@ -203,9 +203,9 @@ class FM(SignalDispatcher):
 			raise SystemExit
 
 		finally:
-			if ranger.CHOOSEDIR and self.tag.cwd and self.tag.cwd.path:
-				open(ranger.CHOOSEDIR, 'w').write(self.tag.cwd.path)
-			self.bookmarks.remember(tag.cwd)
+			if ranger.CHOOSEDIR and self.tab.cwd and self.tab.cwd.path:
+				open(ranger.CHOOSEDIR, 'w').write(self.tab.cwd.path)
+			self.bookmarks.remember(self.tab.cwd)
 			self.bookmarks.save()
 
 	def get_directory(self, path):

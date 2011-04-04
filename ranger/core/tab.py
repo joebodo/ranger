@@ -35,6 +35,16 @@ class Tab(object):
 		if self.cwd:
 			self.cwd.correct_pointer()
 
+	def _set_cf(self, value):
+		if value is not self._cf:
+			previous = self._cf
+			self.signal_emit('move', previous=previous, new=value)
+
+	def _get_cf(self):
+		return self._cf
+
+	cf = property(_get_cf, _set_cf)
+
 	def get_selection(self):
 		if self.cwd:
 			return self.cwd.get_selection()
