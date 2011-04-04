@@ -17,9 +17,6 @@
 The File Manager, putting the pieces together
 """
 
-from ranger.ext.lazy_property import lazy_property
-
-
 from time import time
 from collections import deque
 from os.path import exists, abspath
@@ -36,76 +33,44 @@ from ranger.core.tab import Tab
 #from ranger.core.actions import Actions
 #from ranger.core.pluginsystem import PluginSystem
 #from ranger.api.commands import CommandHandler
-#from ranger.container.settingobject import ALLOWED_SETTINGS
+from ranger.gui.ui import UI
 from ranger.core.directory import Directory
+from ranger.ext.lazy_property import lazy_property
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.keybinding_parser import construct_keybinding
-from ranger.core.settingobject import Settings
-#from ranger.container import KeyBuffer, KeyManager, History
+from ranger.core.settings import Settings
+from ranger.core.keybuffer import KeyBuffer
+from ranger.core.keymap import KeyManager
+from ranger.core.history import History
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
-
-class Cache(object):
-	def __init__(self):
-		self.dircache = {}
-
-	def get_directory(self, path):
-		"""Get the directory object at the given path"""
-		path = abspath(path)
-		try:
-			return self.dircache[path]
-		except KeyError:
-			obj = Directory(path)
-			self.dircache[path] = obj
-			return obj
-
-	def garbage_collect(self, age):
-		"""Delete unused directory objects"""
-		for key in tuple(self.dircache):
-			value = self.dircache[key]
-			if age == -1 or \
-					(value.is_older_than(age) and not value in self.pathway):
-				del self.dircache[key]
-				if value.is_directory:
-					value.files = None
-		self.settings.signal_garbage_collect()
-		self.signal_garbage_collect()
-
-class VariableContainer(dict):
-	def __init__(self, signal_dispatcher):
-		dict.__init__(self)
-		self._signal_dispatcher = signal_dispatcher
-
-	def __setitem__(self, key, value):
-		self._signal_dispatcher.signal_emit('var.set', previous=self[key],
-				name=key, value=value)
 
 ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
 		'console')
 
 #class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
-class FM(Cache, SignalDispatcher):
+class FM(SignalDispatcher):
 	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
 		"""Initialize FM."""
 #		Actions.__init__(self)
 		SignalDispatcher.__init__(self)
-		Cache.__init__(self)
 #		PluginSystem.__init__(self)
 #		CommandHandler.__init__(self)
 
 		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)
+		self.dircache = {}
 		self.tabs = {}
 		self.tab = None
 		self.previews = {}
 		self.current_tab = 1
 		self.copy = set()
-		self.settings = Settings()
-#		self.keybuffer = KeyBuffer(None, None)
-#		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
+		self.settings = Settings(self)
+		self.keybuffer = KeyBuffer(None, None)
+		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
 		self.termsize = None
 		self.last_search = None
 
@@ -116,18 +81,21 @@ class FM(Cache, SignalDispatcher):
 		self.hostname = socket.gethostname()
 		self.home_path = os.path.expanduser('~')
 
-		self.log.append('Ranger {0} started! Process ID is {1}.' \
-				.format(ranger.__version__, PID))
-		self.log.append('Running on Python ' + sys.version.split('\n')[0])
-
 	def initialize(self, targets=[]):
 		"""If ui/bookmarks are None, they will be initialized here."""
 		from ranger.core.bookmarks import Bookmarks
 		from ranger.core.runner import Runner
 		from ranger.core.directory import Directory
 		from ranger.core.loader import Loader
-#		from ranger.gui.defaultui import DefaultUI
 		import ranger
+
+		self.log.append('Ranger {0} started! Process ID is {1}.' \
+				.format(ranger.__version__, os.getpid()))
+		self.log.append('Running on Python ' + sys.version.split('\n')[0])
+
+		configfile         = ranger.confpath('startup.py')
+		default_configfile = ranger.relpath('config', 'startup.py')
+		commandlistfile    = ranger.confpath('rc.conf')
 
 		try:
 			locale.setlocale(locale.LC_ALL, '')
@@ -137,13 +105,14 @@ class FM(Cache, SignalDispatcher):
 			os.environ['SHELL'] = 'bash'
 
 		# -=- Load Config File -=-
-		configfile = ranger.confpath('startup.py')
-		if os.access(configfile, os.R_OK):
-			execfile(configfile)
-		else:
-			default_configfile = ranger.relpath('config', 'startup.py')
+		while True:
+			if not CLEAN:
+				if os.access(configfile, os.R_OK):
+					execfile(configfile)
+					break
 			if os.access(default_configfile, os.R_OK):
 				execfile(default_configfile)
+			break
 
 		self.loader = Loader()
 
@@ -151,21 +120,19 @@ class FM(Cache, SignalDispatcher):
 				in enumerate(ranger.RUNTARGETS[:9]))
 		self.tab = self.tabs[1]
 
-		if not CLEAN:
+		if CLEAN:
+			self.tags = {}
+		else:
 			from ranger.core.tags import Tags
 			self.tags = Tags(ranger.confpath('tagged'))
-		else:
-			self.tags = {}
 
-		from ranger.gui.defaultui import DefaultUI
-		self.ui = DefaultUI()
-		self.ui.pre_initialize()
+		self.ui = UI()
 		self.ui.initialize()
-		self.run = Runner(ui=self.ui, logfunc=self.err)
+		self.run = Runner(ui=self.ui, logfunc=ranger.ERR)
 		self.run = Runner(logfunc=ERR)
 
 #		self.tag.signal_bind('cd', self._update_current_tab)
-		self.signal_bind('var.set', lambda sig: dict.__setitem__(
+		self.signal_bind('setvar', lambda sig: dict.__setitem__(
 			self.variablecontainer, sig.name, sig.value), priority=0.2)
 
 		if CLEAN:
@@ -186,6 +153,10 @@ class FM(Cache, SignalDispatcher):
 			import ranger.ext.curses_interrupt_handler
 			ranger.ext.curses_interrupt_handler.install_interrupt_handler()
 
+		# -=- Load Command List -=-
+		if not CLEAN and os.access(commandlistfile, os.R_OK):
+			execfile(commandlistfile)
+
 	def loop(self):
 		"""
 		The main loop consists of:
@@ -204,7 +175,6 @@ class FM(Cache, SignalDispatcher):
 		ui = self.ui
 		throbber = ui.throbber
 		loader = self.loader
-		env = self.env
 		has_throbber = hasattr(ui, 'throbber')
 
 		try:
@@ -233,10 +203,32 @@ class FM(Cache, SignalDispatcher):
 			raise SystemExit
 
 		finally:
-			if ranger.CHOOSEDIR and self.env.cwd and self.env.cwd.path:
-				open(ranger.CHOOSEDIR, 'w').write(self.env.cwd.path)
-			self.bookmarks.remember(env.cwd)
+			if ranger.CHOOSEDIR and self.tag.cwd and self.tag.cwd.path:
+				open(ranger.CHOOSEDIR, 'w').write(self.tag.cwd.path)
+			self.bookmarks.remember(tag.cwd)
 			self.bookmarks.save()
+
+	def get_directory(self, path):
+		"""Get the directory object at the given path"""
+		path = abspath(path)
+		try:
+			return self.dircache[path]
+		except KeyError:
+			obj = Directory(path)
+			self.dircache[path] = obj
+			return obj
+
+	def garbage_collect(self, age):
+		"""Delete unused directory objects"""
+		for key in tuple(self.dircache):
+			value = self.dircache[key]
+			if age == -1 or \
+					(value.is_older_than(age) and not value in self.pathway):
+				del self.dircache[key]
+				if value.is_directory:
+					value.files = None
+		self.settings.signal_garbage_collect()
+		self.signal_garbage_collect()
 
 	# -=- Random Functions -=-
 	def get_free_space(self, path):
@@ -269,25 +261,6 @@ class FM(Cache, SignalDispatcher):
 			except:
 				if ranger.DEBUG:
 					raise
-
-	def load_commands(self):
-		import ranger.defaults.commands
-		import ranger.api.commands
-		container = ranger.api.commands.CommandContainer()
-		container.load_commands_from_module(ranger.defaults.commands)
-		if not CLEAN and (exists(confpath('commands.py')) or
-				exists(confpath('commands.pyo')) or
-				exists(confpath('commands.pyc'))):
-			self.allow_importing_from(CONFDIR, True)
-			try:
-				import commands
-			except ImportError:
-				pass
-			else:
-				container.load_commands_from_module(commands)
-			self.allow_importing_from(CONFDIR, False)
-		self.commands = container
-		return container
 
 	def compile_command_list(self):
 		from inspect import cleandoc
@@ -325,18 +298,6 @@ class FM(Cache, SignalDispatcher):
 	def compile_plugin_list(self):
 		return "List of loaded plugins:\n" + "\n".join(self.plugins)
 
-	def load_config(self):
-		try:
-			myconfig = open(self.confpath('config'), 'r').read()
-		except:
-			self.source_cmdlist(self.relpath('defaults/config'))
-		else:
-			lines = myconfig.split("\n")
-			if 'nodefaults' not in lines:
-				self.source_cmdlist(self.relpath('defaults/config'))
-			for line in lines:
-				self.cmd_secure(line.rstrip("\r\n"))
-
 	def source_cmdlist(self, filename):
 		for line in open(filename, 'r'):
 			self.cmd_secure(line.rstrip("\r\n"))
@@ -348,3 +309,12 @@ class FM(Cache, SignalDispatcher):
 		except Exception as ex:
 			self.err(ex)
 			return None
+
+class VariableContainer(dict):
+	def __init__(self, signal_dispatcher):
+		dict.__init__(self)
+		self._signal_dispatcher = signal_dispatcher
+
+	def __setitem__(self, key, value):
+		self._signal_dispatcher.signal_emit('setvar', previous=self[key],
+				name=key, value=value)

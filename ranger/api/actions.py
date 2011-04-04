@@ -466,7 +466,7 @@ class Actions(FileManagerAware, SettingsAware):
 	# --------------------------
 	# -- Bookmarks
 	# --------------------------
-	# Using ranger.container.bookmarks.
+	# Using ranger.core.bookmarks.
 
 	def enter_bookmark(self, key):
 		"""Enter the bookmark with the name <key>"""

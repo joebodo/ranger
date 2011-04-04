@@ -157,7 +157,7 @@ class Displayable(CursesShortcuts):
 		"""Resize the widget"""
 		do_move = True
 		try:
-			maxy, maxx = self.env.termsize
+			maxy, maxx = self.fm.termsize
 		except TypeError:
 			pass
 		else:

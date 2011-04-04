@@ -43,11 +43,11 @@ class BrowserView(Widget, DisplayableContainer):
 		self.change_ratios(ratios, resize=False)
 
 		for option in ('preview_directories', 'preview_files'):
-			self.settings.signal_bind('setopt.' + option,
+			self.fm.signal_bind('setopt.' + option,
 					self._request_clear_if_has_borders, weak=True)
 
-		self.fm.env.signal_bind('move', self.request_clear)
-		self.settings.signal_bind('setopt.column_ratios', self.request_clear)
+		self.fm.signal_bind('move', self.request_clear)
+		self.fm.signal_bind('setopt.column_ratios', self.request_clear)
 
 	def change_ratios(self, ratios, resize=True):
 		if isinstance(ratios, Signal):
@@ -61,7 +61,7 @@ class BrowserView(Widget, DisplayableContainer):
 		ratio_sum = float(sum(ratios))
 		self.ratios = tuple(x / ratio_sum for x in ratios)
 
-		last = 0.1 if self.settings.padding_right else 0
+		last = 0.1 if self.fm.settings.padding_right else 0
 		if len(self.ratios) >= 2:
 			self.stretch_ratios = self.ratios[:-2] + \
 					((self.ratios[-2] + self.ratios[-1] * 1.0 - last),
@@ -86,7 +86,7 @@ class BrowserView(Widget, DisplayableContainer):
 		self.resize(self.y, self.x, self.hei, self.wid)
 
 	def _request_clear_if_has_borders(self):
-		if self.settings.draw_borders:
+		if self.fm.settings.draw_borders:
 			self.request_clear()
 
 	def request_clear(self):
@@ -98,7 +98,7 @@ class BrowserView(Widget, DisplayableContainer):
 			self.need_redraw = True
 			self.need_clear = False
 		DisplayableContainer.draw(self)
-		if self.settings.draw_borders:
+		if self.fm.settings.draw_borders:
 			self._draw_borders()
 		if self.draw_bookmarks:
 			self._draw_bookmarks()
@@ -126,7 +126,7 @@ class BrowserView(Widget, DisplayableContainer):
 		self.need_clear = True
 
 		sorted_bookmarks = sorted((item for item in self.fm.bookmarks \
-			if self.settings.show_hidden_bookmarks or \
+			if self.fm.settings.show_hidden_bookmarks or \
 			'/.' not in item[1].path), key=lambda t: t[0].lower())
 
 		def generator():
@@ -223,7 +223,7 @@ class BrowserView(Widget, DisplayableContainer):
 
 	def _collapse(self):
 		# Should the last column be cut off? (Because there is no preview)
-		if not self.settings.collapse_preview or not self.preview \
+		if not self.fm.settings.collapse_preview or not self.preview \
 				or not self.stretch_ratios:
 			return False
 		result = not self.columns[-1].has_preview()
@@ -241,7 +241,7 @@ class BrowserView(Widget, DisplayableContainer):
 	def resize(self, y, x, hei, wid):
 		"""Resize all the columns according to the given ratio"""
 		DisplayableContainer.resize(self, y, x, hei, wid)
-		borders = self.settings.draw_borders
+		borders = self.fm.settings.draw_borders
 		pad = 1 if borders else 0
 		left = pad
 
@@ -256,7 +256,7 @@ class BrowserView(Widget, DisplayableContainer):
 		for i, ratio in generator:
 			wid = int(ratio * self.wid)
 
-			cut_off = self.is_collapsed and not self.settings.padding_right
+			cut_off = self.is_collapsed and not self.fm.settings.padding_right
 			if i == last_i:
 				if cut_off:
 					self.columns[i].resize(pad, left - 1, hei - pad * 2, 1)

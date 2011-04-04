@@ -511,7 +511,7 @@ class set_(Command):
 	def execute(self):
 		if not len(self.args) >= 3:
 			return
-		from ranger.container.settingobject import ALLOWED_SETTINGS
+		from ranger.container.settings import DEFAULT_SETTINGS
 		key = self.arg(1)
 		op = self.arg(2)
 		value = self.rest(3)
@@ -559,7 +559,7 @@ class toggle(Command):
 	""":toggle <option>
 	Toggles the value of a boolean option."""
 	def execute(self):
-		from ranger.container.settingobject import ALLOWED_SETTINGS
+		from ranger.container.settings import DEFAULT_SETTINGS
 		key = self.arg(1)
 		try:
 			typ = ALLOWED_SETTINGS[key][0]

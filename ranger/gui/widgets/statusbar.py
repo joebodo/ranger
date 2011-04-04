@@ -48,7 +48,7 @@ class StatusBar(Widget):
 	def __init__(self, win, column=None):
 		Widget.__init__(self, win)
 		self.column = column
-		self.settings.signal_bind('setopt.display_size_in_status_bar',
+		self.fm.signal_bind('setopt.display_size_in_status_bar',
 				self.request_redraw, weak=True)
 
 	def request_redraw(self):

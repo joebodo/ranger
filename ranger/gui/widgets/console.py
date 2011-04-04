@@ -45,10 +45,10 @@ class Console(Widget):
 	def __init__(self, win):
 		Widget.__init__(self, win)
 		self.clear()
-		self.history = History(self.settings.max_console_history_size)
+		self.history = History(self.fm.settings.max_console_history_size)
 		# load history from files
-		if not self.fm.clean:
-			self.historypath = self.fm.confpath('history')
+		if not ranger.CLEAN:
+			self.historypath = ranger.confpath('history')
 			try:
 				f = open(self.historypath, 'r')
 			except:
@@ -60,7 +60,7 @@ class Console(Widget):
 
 	def destroy(self):
 		# save history to files
-		if self.fm.clean or not self.settings.save_console_history:
+		if self.fm.clean or not self.fm.settings.save_console_history:
 			return
 		if self.historypath:
 			try:

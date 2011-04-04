@@ -13,7 +13,8 @@ fm->init: The filemanager is initialized. This is the first thrown signal.
 fm->command.pre: Before a command is run
 	line: The full text of the command
 	command_name: The name of the command (first word of line)
-fm->var.set: A value for a variable is set
+fm->setvar: A value for a variable is set
+fm->setopt.<optionname>: A setting is changed
 tab->cd: A directory is changed.
 	previous: The previous cwd (current working directory. A Directory object or None)
 	new: The new cwd (Directory object)

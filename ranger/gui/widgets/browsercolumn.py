@@ -46,7 +46,7 @@ class BrowserColumn(Pager):
 		Widget.__init__(self, win)
 		self.level = level
 
-		self.settings.signal_bind('setopt.display_size_in_main_column',
+		self.fm.signal_bind('setopt.display_size_in_main_column',
 				self.request_redraw, weak=True)
 
 	def request_redraw(self):
@@ -105,7 +105,7 @@ class BrowserColumn(Pager):
 				return False
 
 		if self.target.is_directory:
-			if self.level > 0 and not self.settings.preview_directories:
+			if self.level > 0 and not self.fm.settings.preview_directories:
 				return False
 
 		return True
@@ -124,7 +124,7 @@ class BrowserColumn(Pager):
 			self.target.use()
 
 		if self.target and self.target.is_directory \
-				and (self.level <= 0 or self.settings.preview_directories):
+				and (self.level <= 0 or self.fm.settings.preview_directories):
 			if self.target.pointed_obj != self.old_cf:
 				self.need_redraw = True
 				self.old_cf = self.target.pointed_obj
@@ -174,7 +174,7 @@ class BrowserColumn(Pager):
 	def _draw_directory(self):
 		"""Draw the contents of a directory"""
 
-		if self.level > 0 and not self.settings.preview_directories:
+		if self.level > 0 and not self.fm.settings.preview_directories:
 			return
 
 		base_color = ['in_browser']
@@ -205,7 +205,7 @@ class BrowserColumn(Pager):
 		self._set_scroll_begin()
 
 		copied = [f.path for f in self.env.copy]
-		ellipsis = self.ellipsis[self.settings.unicode_ellipsis]
+		ellipsis = self.ellipsis[self.fm.settings.unicode_ellipsis]
 
 		selected_i = self.target.pointer
 		for line in range(self.hei):
@@ -217,7 +217,7 @@ class BrowserColumn(Pager):
 				break
 
 			if self.display_infostring and drawn.infostring \
-					and self.settings.display_size_in_main_column:
+					and self.fm.settings.display_size_in_main_column:
 				infostring = str(drawn.infostring) + " "
 			else:
 				infostring = ""
@@ -303,7 +303,7 @@ class BrowserColumn(Pager):
 
 	def _get_scroll_begin(self):
 		"""Determines scroll_begin (the position of the first displayed file)"""
-		offset = self.settings.scroll_offset
+		offset = self.fm.settings.scroll_offset
 		dirsize = len(self.target)
 		winsize = self.hei
 		halfwinsize = winsize // 2
