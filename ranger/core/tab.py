@@ -15,20 +15,19 @@
 
 import ranger
 
+import os
 from os.path import abspath, expanduser, normpath, join, isdir
 from ranger.core.history import History
 
 class Tab(object):
 	def __init__(self, path):
-#		SignalDispatcher.__init__(self)
 		self.fm = ranger.get_fm()
 		self.path = abspath(expanduser(path))
 		self._cf = None
 		self.cwd = None
 		self.history = None
 		self.pathway = ()
-#		self.history = History(self.settings.max_history_size, unique=False)
-		self.history = History(20, unique=False)
+		self.history = History(self.fm.settings.max_history_size, unique=False)
 		self.path = abspath(expanduser(path))
 
 	def ensure_correct_pointer(self):
@@ -38,7 +37,7 @@ class Tab(object):
 	def _set_cf(self, value):
 		if value is not self._cf:
 			previous = self._cf
-			self.signal_emit('move', previous=previous, new=value)
+			self.fm.signal_emit('move', previous=previous, new=value)
 
 	def _get_cf(self):
 		return self._cf
@@ -126,20 +125,20 @@ class Tab(object):
 			currentpath = '/'
 			for dir in path.split('/'):
 				currentpath = join(currentpath, dir)
-				pathway.append(self.get_directory(currentpath))
+				pathway.append(self.fm.get_directory(currentpath))
 			self.pathway = tuple(pathway)
 
 		self.assign_cursor_positions_for_subdirs()
 
 		# set the current file.
-		self.cwd.sort_directories_first = self.settings.sort_directories_first
-		self.cwd.sort_reverse = self.settings.sort_reverse
+		self.cwd.sort_directories_first = self.fm.settings.sort_directories_first
+		self.cwd.sort_reverse = self.fm.settings.sort_reverse
 		self.cwd.sort_if_outdated()
 		self.cf = self.cwd.pointed_obj
 
 		if history:
 			self.history.add(new_cwd)
 
-		self.signal_emit('cd', previous=previous, new=self.cwd)
+		self.fm.signal_emit('cd', previous=previous, new=self.cwd)
 
 		return True

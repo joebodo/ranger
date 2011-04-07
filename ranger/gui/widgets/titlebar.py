@@ -43,7 +43,7 @@ class TitleBar(Widget):
 	def draw(self):
 		if self.need_redraw or \
 				self.fm.tab.cf != self.old_cf or\
-				str(self.fm.tab.keybuffer) != str(self.old_keybuffer) or\
+				str(self.fm.keybuffer) != str(self.old_keybuffer) or\
 				self.wid != self.old_wid:
 			self.need_redraw = False
 			self.old_wid = self.wid
@@ -114,7 +114,7 @@ class TitleBar(Widget):
 
 		pathway = self.fm.tab.pathway
 		if self.fm.settings.tilde_in_titlebar and \
-				self.fm.tab.cwd.path.startswith(self.fm.tab.home_path):
+				self.fm.tab.cwd.path.startswith(self.fm.home_path):
 			pathway = pathway[self.fm.home_path.count('/')+1:]
 			bar.add('~/', 'directory', fixed=True)
 

@@ -85,7 +85,7 @@ class BrowserColumn(Pager):
 						if clicked_file.is_directory:
 							self.fm.enter_dir(clicked_file.path)
 						elif self.level == 0:
-							self.fm.env.cwd.move_to_obj(clicked_file)
+							self.fm.tab.cwd.move_to_obj(clicked_file)
 							self.fm.cmd("execute")
 					except:
 						pass
@@ -204,7 +204,7 @@ class BrowserColumn(Pager):
 
 		self._set_scroll_begin()
 
-		copied = [f.path for f in self.env.copy]
+		copied = [f.path for f in self.fm.copy]
 		ellipsis = self.ellipsis[self.fm.settings.unicode_ellipsis]
 
 		selected_i = self.target.pointer
@@ -264,7 +264,7 @@ class BrowserColumn(Pager):
 					this_color.append('device')
 
 			if drawn.path in copied:
-				this_color.append('cut' if self.env.cut else 'copied')
+				this_color.append('cut' if self.fm.cut else 'copied')
 
 			if drawn.is_link:
 				this_color.append('link')

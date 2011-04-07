@@ -26,15 +26,12 @@ from ranger.core import *
 
 import ranger
 from ranger.ext.direction import Direction
-from ranger.core.info import Info
 from ranger.ext.relative_symlink import relative_symlink
 from ranger.ext.shell_escape import shell_quote
-from ranger import fsobject
-from ranger.core.shared import FileManagerAware, SettingsAware
-from ranger.fsobject import File
+from ranger.core.file import File
 from ranger.core.loader import CommandLoader
 
-class Actions(FileManagerAware, SettingsAware):
+class Actions(object):
 	search_method = 'ctime'
 	search_forward = False
 	input_blocked = False
@@ -59,7 +56,7 @@ class Actions(FileManagerAware, SettingsAware):
 			self.ui.notify(*args, bad=True)
 			self.log.append(str(args))
 		else:
-			Info.err(self, *args)
+			ranger.ERR(*args)
 
 	def write(self, string):
 		if self.ui_runs:
@@ -611,56 +608,6 @@ class Actions(FileManagerAware, SettingsAware):
 				return open(path, 'r')
 			except:
 				return None
-
-	# --------------------------
-	# -- Tabs
-	# --------------------------
-	# This implementation of tabs is very simple and keeps track of
-	# directory paths only.
-
-	def tab_open(self, name, path=None):
-		do_emit_signal = name != self.current_tab
-		self.current_tab = name
-		if path or (name in self.tabs):
-			self.fm.visual = None
-			self.enter_dir(path or self.tabs[name])
-		else:
-			self._update_current_tab()
-		if do_emit_signal:
-			self.signal_emit('tab.change')
-
-	def tab_close(self, name=None):
-		if name is None:
-			name = self.current_tab
-		if name == self.current_tab:
-			direction = -1 if name == self._get_tab_list()[-1] else 1
-			previous = self.current_tab
-			self.tab_move(direction)
-			if previous == self.current_tab:
-				return  # can't close last tab
-		if name in self.tabs:
-			del self.tabs[name]
-
-	def tab_move(self, offset):
-		assert isinstance(offset, int)
-		tablist = self._get_tab_list()
-		current_index = tablist.index(self.current_tab)
-		newtab = tablist[(current_index + offset) % len(tablist)]
-		if newtab != self.current_tab:
-			self.tab_open(newtab)
-
-	def tab_new(self, path=None):
-		for i in range(1, 10):
-			if not i in self.tabs:
-				self.tab_open(i, path)
-				break
-
-	def _get_tab_list(self):
-		assert len(self.tabs) > 0, "There must be >=1 tabs at all times"
-		return sorted(self.tabs)
-
-	def _update_current_tab(self):
-		self.tabs[self.current_tab] = self.env.cwd.path
 
 	# --------------------------
 	# -- File System Operations

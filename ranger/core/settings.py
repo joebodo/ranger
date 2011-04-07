@@ -74,6 +74,7 @@ DEFAULT_SETTINGS = {
 	'syntax_highlighting': (_bool, 'True'),
 	'tilde_in_titlebar': (_bool, 'True'),
 	'update_title': (_bool, 'True'),
+	'unicode_ellipsis': (_bool, 'False'),
 	'use_preview_script': (_bool, 'True'),
 	'xterm_alt_key': (_bool, 'False'),
 }

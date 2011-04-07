@@ -26,11 +26,12 @@ import stat
 import socket
 import string
 import sys
+import curses
 
 import ranger
 from ranger import *
 from ranger.core.tab import Tab
-#from ranger.core.actions import Actions
+from ranger.api.actions import Actions
 #from ranger.core.pluginsystem import PluginSystem
 #from ranger.api.commands import CommandHandler
 from ranger.gui.ui import UI
@@ -47,18 +48,17 @@ from ranger.core.history import History
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
-ALLOWED_CONTEXTS = ('browser', 'pager', 'embedded_pager', 'taskview',
-		'console')
+ALLOWED_CONTEXTS = ('browser', 'taskview', 'console')
 
 #class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
-class FM(SignalDispatcher):
+class FM(Actions, SignalDispatcher):
 	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
 		"""Initialize FM."""
-#		Actions.__init__(self)
+		#Actions.__init__(self)
 		SignalDispatcher.__init__(self)
-#		PluginSystem.__init__(self)
-#		CommandHandler.__init__(self)
+		#PluginSystem.__init__(self)
+		#CommandHandler.__init__(self)
 
 		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)
@@ -66,7 +66,7 @@ class FM(SignalDispatcher):
 		self.tabs = {}
 		self.tab = None
 		self.previews = {}
-		self.current_tab = 1
+		self.current_tab_index = 1
 		self.copy = set()
 		self.settings = Settings(self)
 		self.keybuffer = KeyBuffer(None, None)
@@ -117,7 +117,7 @@ class FM(SignalDispatcher):
 		self.loader = Loader()
 
 		self.tabs = dict((n+1, Tab(path)) for n, path \
-				in enumerate(ranger.RUNTARGETS[:9]))
+				in enumerate(targets[:9]))
 		self.tab = self.tabs[1]
 
 		if CLEAN:
@@ -185,13 +185,9 @@ class FM(SignalDispatcher):
 						throbber(loader.status)
 					else:
 						throbber(remove=True)
-
 				ui.redraw()
-
 				ui.set_load_mode(loader.has_work())
-
 				ui.handle_input()
-
 				gc_tick += 1
 				if gc_tick > TICKS_BEFORE_COLLECTING_GARBAGE:
 					gc_tick = 0
@@ -207,6 +203,51 @@ class FM(SignalDispatcher):
 				open(ranger.CHOOSEDIR, 'w').write(self.tab.cwd.path)
 			self.bookmarks.remember(self.tab.cwd)
 			self.bookmarks.save()
+
+	# -=- Tabs -=-
+	def tab_open(self, name, path=None):
+		do_emit_signal = name != self.tab
+		self.tab = name
+		if path or (name in self.tabs):
+			self.fm.visual = None
+			self.enter_dir(path or self.tabs[name])
+		else:
+			self._update_current_tab()
+		if do_emit_signal:
+			self.signal_emit('tab.change')
+
+	def tab_close(self, name=None):
+		if name is None:
+			name = self.tab
+		if name == self.tab:
+			direction = -1 if name == self._get_tab_list()[-1] else 1
+			previous = self.tab
+			self.tab_move(direction)
+			if previous == self.tab:
+				return  # can't close last tab
+		if name in self.tabs:
+			del self.tabs[name]
+
+	def tab_move(self, offset):
+		assert isinstance(offset, int)
+		tablist = self._get_tab_list()
+		current_index = tablist.index(self.tab)
+		newtab = tablist[(current_index + offset) % len(tablist)]
+		if newtab != self.tab:
+			self.tab_open(newtab)
+
+	def tab_new(self, path=None):
+		for i in range(1, 10):
+			if not i in self.tabs:
+				self.tab_open(i, path)
+				break
+
+	def _get_tab_list(self):
+		assert len(self.tabs) > 0, "There must be >=1 tabs at all times"
+		return sorted(self.tabs)
+
+	def _update_current_tab(self):
+		self.tabs[self.tab] = self.env.cwd.path
 
 	def get_directory(self, path):
 		"""Get the directory object at the given path"""

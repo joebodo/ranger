@@ -86,10 +86,10 @@ class StatusBar(Widget):
 				self.msg = None
 				self.need_redraw = True
 
-		if self.env.cf:
-			self.env.cf.load_if_outdated()
+		if self.fm.tab.cf:
+			self.fm.tab.cf.load_if_outdated()
 			try:
-				ctime = self.env.cf.stat.st_ctime
+				ctime = self.fm.tab.cf.stat.st_ctime
 			except:
 				ctime = -1
 		else:
@@ -98,12 +98,12 @@ class StatusBar(Widget):
 		if not self.result:
 			self.need_redraw = True
 
-		if self.old_du and not self.env.cwd.disk_usage:
-			self.old_du = self.env.cwd.disk_usage
+		if self.old_du and not self.fm.tab.cwd.disk_usage:
+			self.old_du = self.fm.tab.cwd.disk_usage
 			self.need_redraw = True
 
-		if self.old_cf != self.env.cf:
-			self.old_cf = self.env.cf
+		if self.old_cf != self.fm.tab.cf:
+			self.old_cf = self.fm.tab.cf
 			self.need_redraw = True
 
 		if self.old_ctime != ctime:
@@ -163,7 +163,7 @@ class StatusBar(Widget):
 				and self.column.target.is_directory:
 			target = self.column.target.pointed_obj
 		else:
-			target = self.env.at_level(0).pointed_obj
+			target = self.fm.tab.at_level(0).pointed_obj
 		try:
 			stat = target.stat
 		except:
@@ -189,7 +189,7 @@ class StatusBar(Widget):
 				dest = '?'
 			left.add(' -> ' + dest, 'link', how)
 		else:
-			if self.settings.display_size_in_status_bar and target.infostring:
+			if self.fm.settings.display_size_in_status_bar and target.infostring:
 				left.add(target.infostring)
 
 			left.add_space()
@@ -236,9 +236,9 @@ class StatusBar(Widget):
 		max_pos = len(target) - self.column.hei
 		base = 'scroll'
 
-		if self.env.cwd.filter:
+		if self.fm.tab.cwd.filter:
 			right.add(" f=", base, 'filter')
-			right.add(repr(self.env.cwd.filter), base, 'filter')
+			right.add(repr(self.fm.tab.cwd.filter), base, 'filter')
 			right.add(", ", "space")
 
 		if target.marked_items:
@@ -252,7 +252,7 @@ class StatusBar(Widget):
 		else:
 			right.add(human_readable(target.disk_usage, seperator='') +
 					" sum, ")
-			right.add(human_readable(self.env.get_free_space( \
+			right.add(human_readable(self.fm.get_free_space( \
 					target.mount_path), seperator='') + " free")
 		right.add("  ", "space")
 

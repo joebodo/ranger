@@ -21,6 +21,7 @@ too ranger-specific to be part of a library. Most of them manage rangers
 runtime environment or help starting up.
 """
 
+
 def main():
 	"""initializes objects, runs the filemanager and returns the exit code"""
 	import locale
@@ -118,6 +119,8 @@ def parse_arguments(args=None):
 	ranger.COPY_CONFIG    = options.copy_config
 	ranger.FAIL_UNLESS_CD = options.fail_unless_cd
 	ranger.RUNTARGETS     = positional
+	if not ranger.RUNTARGETS:
+		ranger.RUNTARGETS = ['.']
 
 def copy_config_files(which=None):
 	if CLEAN:

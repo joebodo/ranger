@@ -146,7 +146,7 @@ class UI(DisplayableContainer):
 			self.hint()
 
 		if key < 0:
-			self.env.keybuffer.clear()
+			self.fm.keybuffer.clear()
 			return
 
 		if DisplayableContainer.press(self, key):
@@ -154,9 +154,9 @@ class UI(DisplayableContainer):
 
 		self.status.clear_message()
 
-		self.env.keymanager.use_context('browser')
-		self.env.key_append(key)
-		kbuf = self.env.keybuffer
+		self.fm.keymanager.use_context('browser')
+		self.fm.key_append(key)
+		kbuf = self.fm.keybuffer
 		cmd = kbuf.command
 
 		self.browser.draw_hints = False
@@ -168,7 +168,7 @@ class UI(DisplayableContainer):
 		elif not cmd:
 			return
 
-		self.env.cmd = cmd
+		self.fm.cmd = cmd
 
 		if cmd.function:
 			try:
@@ -288,9 +288,9 @@ class UI(DisplayableContainer):
 		self.win.touchwin()
 		DisplayableContainer.draw(self)
 		if self._draw_title and self.fm.settings.update_title:
-			cwd = self.fm.env.cwd.path
-			if cwd.startswith(self.env.home_path):
-				cwd = '~' + cwd[len(self.env.home_path):]
+			cwd = self.fm.tab.cwd.path
+			if cwd.startswith(self.fm.home_path):
+				cwd = '~' + cwd[len(self.fm.home_path):]
 			if self.fm.settings.shorten_title:
 				split = cwd.rsplit(os.sep, self.fm.settings.shorten_title)
 				if os.sep in split[0]:
