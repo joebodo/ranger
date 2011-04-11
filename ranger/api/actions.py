@@ -17,6 +17,7 @@ import os
 import re
 import shutil
 import string
+import sys
 from inspect import cleandoc
 from os.path import join, isdir, realpath
 from os import link, symlink, getcwd
@@ -30,6 +31,8 @@ from ranger.ext.relative_symlink import relative_symlink
 from ranger.ext.shell_escape import shell_quote
 from ranger.file import File
 from ranger.loader import CommandLoader
+
+PY3 = sys.version_info >= (3, )
 
 class Actions(object):
 	search_method = 'ctime'
@@ -49,36 +52,20 @@ class Actions(object):
 		"""Exit the program"""
 		raise SystemExit()
 
-	def err(self, *args):
-		if self.arg.debug and isinstance(args[0], Exception):
-			raise
-		elif self.ui_runs:
-			self.ui.notify(*args, bad=True)
-			self.log.append(str(args))
-		else:
-			ranger.ERR(*args)
-
-	def write(self, string):
-		if self.ui_runs:
-			self.ui.notify(string)
-			self.log.append(str(string))
-		else:
-			Info.write(self, string)
-
 	def reset(self):
 		"""Reset the filemanager, clearing the directory buffer"""
-		old_path = self.env.cwd.path
+		old_path = self.tab.cwd.path
 		self.previews = {}
-		self.env.garbage_collect(-1)
+		self.garbage_collect(-1)
 		self.visual = None
 		self.enter_dir(old_path)
 
 	def visual_start(self, reverse=False):
 		"""Start the visual mode"""
 		self.visual = reverse
-		self._visual_start = self.env.cwd.pointed_obj
-		self._visual_start_pos = self.env.cwd.pointer
-		self._previous_selection = set(self.env.cwd.marked_items)
+		self._visual_start = self.tab.cwd.pointed_obj
+		self._visual_start_pos = self.tab.cwd.pointer
+		self._previous_selection = set(self.tab.cwd.marked_items)
 		self.mark(val=reverse, movedown=False)
 
 	def visual_end(self):
@@ -86,7 +73,7 @@ class Actions(object):
 
 	def reload_cwd(self):
 		try:
-			cwd = self.env.cwd
+			cwd = self.tab.cwd
 		except:
 			pass
 		cwd.unload()
@@ -94,7 +81,7 @@ class Actions(object):
 
 	def notify(self, text, duration=4, bad=False):
 		if isinstance(text, Exception):
-			if ranger.info.debug:
+			if self.arg.debug:
 				raise
 			bad = True
 		text = str(text)
@@ -124,9 +111,8 @@ class Actions(object):
 		self.ui.suspend()
 		p = Popen(self.macros['pager'], shell=True, stdin=PIPE)
 		bytes = 1024
-		py3 = self.fm.py3
 		for i in range(int(math.ceil(len(string) / float(bytes)))):
-			if py3:
+			if PY3:
 				p.stdin.write(string[i*bytes:i*bytes+bytes].encode('utf-8'))
 			else:
 				p.stdin.write(string[i*bytes:i*bytes+bytes])
@@ -393,7 +379,7 @@ class Actions(object):
 
 		if order in ('search', 'tag'):
 			if order == 'search':
-				arg = self.env.last_search
+				arg = self.last_search
 				if arg is None:
 					return False
 				if hasattr(arg, 'search'):
@@ -403,10 +389,10 @@ class Actions(object):
 			elif order == 'tag':
 				fnc = lambda x: x.realpath in self.tags
 
-			return self.env.cwd.search_fnc(fnc=fnc, offset=offset, forward=forward)
+			return self.tab.cwd.search_fnc(fnc=fnc, offset=offset, forward=forward)
 
 		elif order in ('size', 'mimetype', 'ctime'):
-			cwd = self.env.cwd
+			cwd = self.tab.cwd
 			if original_order is not None or not cwd.cycle_list:
 				lst = list(cwd.files)
 				if order == 'size':
@@ -436,7 +422,7 @@ class Actions(object):
 		if not self.tags:
 			return
 		if paths is None:
-			tags = tuple(x.realpath for x in self.env.get_selection())
+			tags = tuple(x.realpath for x in self.tab.get_selection())
 		else:
 			tags = [realpath(path) for path in paths]
 		if value is True:
@@ -470,7 +456,7 @@ class Actions(object):
 		try:
 			self.bookmarks.update_if_outdated()
 			destination = self.bookmarks[key]
-			cwd = self.env.cwd
+			cwd = self.tab.cwd
 			if destination.path != cwd.path:
 				self.bookmarks.enter(key)
 				self.bookmarks.remember(cwd)
@@ -480,7 +466,7 @@ class Actions(object):
 	def set_bookmark(self, key):
 		"""Set the bookmark with the name <key> to the current directory"""
 		self.bookmarks.update_if_outdated()
-		self.bookmarks[key] = self.env.cwd
+		self.bookmarks[key] = self.tab.cwd
 
 	def unset_bookmark(self, key):
 		"""Delete the bookmark with the name <key>"""
@@ -528,11 +514,11 @@ class Actions(object):
 	def display_file(self):
 		if not hasattr(self.ui, 'open_embedded_pager'):
 			return
-		if not self.env.cf or not self.env.cf.is_file:
+		if not self.tab.cf or not self.tab.cf.is_file:
 			return
 
 		pager = self.ui.open_embedded_pager()
-		pager.set_source(self.env.cf.get_preview_source(pager.wid, pager.hei))
+		pager.set_source(self.tab.cf.get_preview_source(pager.wid, pager.hei))
 
 	# --------------------------
 	# -- Previews
@@ -585,12 +571,12 @@ class Actions(object):
 						data[(-1, -1)] = open(path, 'r').read(1024 * 32)
 					else:
 						data[(-1, -1)] = None
-					if self.env.cf.realpath == path:
+					if self.tab.cf.realpath == path:
 						self.ui.browser.need_redraw = True
 					data['loading'] = False
 					pager = self.ui.browser.pager
-					if self.env.cf and self.env.cf.is_file:
-						pager.set_source(self.env.cf.get_preview_source(
+					if self.tab.cf and self.tab.cf.is_file:
+						pager.set_source(self.tab.cf.get_preview_source(
 							pager.wid, pager.hei))
 				def on_destroy(signal):
 					try:
@@ -614,16 +600,16 @@ class Actions(object):
 	# --------------------------
 
 	def uncut(self):
-		self.env.copy = set()
-		self.env.cut = False
+		self.copy = set()
+		self.cut = False
 		self.ui.browser.main_column.request_redraw()
 
 	def copy(self, mode='set', narg=None, dirarg=None):
 		"""Copy the selected items.  Modes are: 'set', 'add', 'remove'."""
 		assert mode in ('set', 'add', 'remove')
-		cwd = self.env.cwd
+		cwd = self.tab.cwd
 		if not narg and not dirarg:
-			selected = (f for f in self.env.get_selection() if f in cwd.files)
+			selected = (f for f in self.tab.get_selection() if f in cwd.files)
 		else:
 			if not dirarg and narg:
 				direction = Direction(down=1)
@@ -637,21 +623,21 @@ class Actions(object):
 			cwd.pointer = pos
 			cwd.correct_pointer()
 		if mode == 'set':
-			self.env.copy = set(selected)
+			self.copy = set(selected)
 		elif mode == 'add':
-			self.env.copy.update(set(selected))
+			self.copy.update(set(selected))
 		elif mode == 'remove':
-			self.env.copy.difference_update(set(selected))
-		self.env.cut = False
+			self.copy.difference_update(set(selected))
+		self.cut = False
 		self.ui.browser.main_column.request_redraw()
 
 	def cut(self, mode='set', narg=None, dirarg=None):
 		self.copy(mode=mode, narg=narg, dirarg=dirarg)
-		self.env.cut = True
+		self.cut = True
 		self.ui.browser.main_column.request_redraw()
 
 	def paste_symlink(self, relative=False):
-		copied_files = self.env.copy
+		copied_files = self.copy
 		for f in copied_files:
 			try:
 				if relative:
@@ -662,7 +648,7 @@ class Actions(object):
 				self.notify(x)
 
 	def paste_hardlink(self):
-		for f in self.env.copy:
+		for f in self.copy:
 			try:
 				link(f.path, join(getcwd(), f.basename))
 			except Exception as x:
@@ -670,16 +656,16 @@ class Actions(object):
 
 	def paste(self, overwrite=False):
 		"""Paste the selected items into the current directory"""
-		copied_files = tuple(self.env.copy)
+		copied_files = tuple(self.copy)
 
 		if not copied_files:
 			return
 
 		def refresh(_):
-			cwd = self.env.get_directory(original_path)
+			cwd = self.get_directory(original_path)
 			cwd.load_content()
 
-		cwd = self.env.cwd
+		cwd = self.tab.cwd
 		original_path = cwd.path
 		one_file = copied_files[0]
 		if overwrite:
@@ -689,9 +675,9 @@ class Actions(object):
 			cp_flags = ['--backup=numbered', '-a', '--']
 			mv_flags = ['--backup=numbered', '--']
 
-		if self.env.cut:
-			self.env.copy.clear()
-			self.env.cut = False
+		if self.cut:
+			self.copy.clear()
+			self.cut = False
 			if len(copied_files) == 1:
 				descr = "moving: " + one_file.path
 			else:
@@ -720,8 +706,8 @@ class Actions(object):
 
 	def delete(self):
 		self.notify("Deleting!")
-		selected = self.env.get_selection()
-		self.env.copy -= set(selected)
+		selected = self.tab.get_selection()
+		self.copy -= set(selected)
 		if selected:
 			for f in selected:
 				if isdir(f.path) and not os.path.islink(f.path):
@@ -734,11 +720,11 @@ class Actions(object):
 						os.remove(f.path)
 					except OSError as err:
 						self.notify(err)
-		self.env.ensure_correct_pointer()
+		self.tab.ensure_correct_pointer()
 
 	def mkdir(self, name):
 		try:
-			os.mkdir(os.path.join(self.env.cwd.path, name))
+			os.mkdir(os.path.join(self.tab.cwd.path, name))
 		except OSError as err:
 			self.notify(err)
 

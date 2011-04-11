@@ -20,6 +20,7 @@ commands, searching and executing files.
 
 import curses
 import re
+import sys
 from collections import deque
 
 from . import Widget
@@ -28,6 +29,8 @@ from ranger.ext.direction import Direction
 from ranger.ext.utfwidth import uwid, uchars, utf_char_width_
 from ranger.history import History, HistoryEmptyException
 import ranger
+
+PY3 = sys.version_info >= (3, )
 
 class Console(Widget):
 	visible = False
@@ -75,7 +78,7 @@ class Console(Widget):
 	def draw(self):
 		self.win.erase()
 		self.addstr(0, 0, self.prompt)
-		if self.fm.py3:
+		if PY3:
 			overflow = -self.wid + len(self.prompt) + len(self.line) + 1
 		else:
 			overflow = -self.wid + len(self.prompt) + uwid(self.line) + 1
@@ -87,7 +90,7 @@ class Console(Widget):
 
 	def finalize(self):
 		try:
-			if self.fm.py3:
+			if PY3:
 				xpos = sum(utf_char_width_(ord(c)) for c in self.line[0:self.pos]) \
 					+ len(self.prompt)
 			else:
@@ -143,9 +146,9 @@ class Console(Widget):
 		self.line = ''
 
 	def press(self, key):
-		self.env.keymanager.use_context('console')
-		self.env.key_append(key)
-		kbuf = self.env.keybuffer
+		self.fm.keymanager.use_context('console')
+		self.fm.key_append(key)
+		kbuf = self.fm.keybuffer
 		cmd = kbuf.command
 
 		if kbuf.failure:
@@ -154,8 +157,6 @@ class Console(Widget):
 			return
 		elif not cmd:
 			return
-
-		self.env.cmd = cmd
 
 		if cmd.function:
 			try:
@@ -176,7 +177,7 @@ class Console(Widget):
 			except ValueError:
 				return
 
-		if self.fm.py3:
+		if PY3:
 			self.unicode_buffer += key
 			try:
 				decoded = self.unicode_buffer.encode("latin-1").decode("utf-8")
@@ -224,7 +225,7 @@ class Console(Widget):
 		direction = Direction(keywords)
 		if direction.horizontal():
 			# Ensure that the pointer is moved utf-char-wise
-			if self.fm.py3:
+			if PY3:
 				self.pos = direction.move(
 						direction=direction.right(),
 						minimum=0,
@@ -277,7 +278,7 @@ class Console(Widget):
 				self.close()
 			return
 		# Delete utf-char-wise
-		if self.fm.py3:
+		if PY3:
 			left_part = self.line[:self.pos + mod]
 			self.pos = len(left_part)
 			self.line = left_part + self.line[self.pos + 1:]
@@ -309,7 +310,7 @@ class Console(Widget):
 			return command_class().setargs(self.line)
 
 	def _get_cmd_class(self):
-		return self.fm.commands.get_command(self.line.split()[0])
+		return self.fm.get_command(self.line.split()[0])
 
 	def _get_tab(self):
 		if ' ' in self.line:

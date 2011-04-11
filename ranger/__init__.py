@@ -26,7 +26,6 @@ vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 
 import os.path, sys
 from os.path import join as _join
-from ranger.plumbing import main
 
 # -=- General Information -=-
 VERSION = (1, 5, 0, "")
@@ -37,7 +36,6 @@ __email__ = 'romanz@lavabit.com'
 
 # -=- Runtime Information -=-
 PID = os.getpid()
-PY3 = sys.version_info >= (3, )
 INSTANCE = None
 
 # -=- Files and Directories -=-
@@ -52,6 +50,45 @@ if 'XDG_CACHE_HOME' in os.environ and os.environ['XDG_CACHE_HOME']:
 	DEFAULT_CACHEDIR = os.environ['XDG_CACHE_HOME'] + '/ranger'
 else:
 	DEFAULT_CACHEDIR = os.path.expanduser('~/.cache/ranger')
+
+# -=- Main Function -=-
+def main():
+	"""initializes objects, runs the filemanager and returns the exit code"""
+	import locale
+	import sys
+	import os.path
+	import ranger.fm
+
+	fm = ranger.get_fm()
+	crash_traceback = None
+	try:
+		fm.initialize()
+		fm.loop()
+	except Exception:
+		import traceback
+		crash_traceback = traceback.format_exc()
+	except SystemExit as error:
+		if error.args:
+			return error.args[0]
+		return 1
+	finally:
+		if crash_traceback:
+			try:
+				filepath = fm.tab.cf.path
+			except:
+				filepath = "None"
+		fm.destroy()
+		if crash_traceback:
+			print("Ranger version: %s, executed with python %s" %
+					(ranger.__version__, sys.version.split()[0]))
+			print("Locale: %s" % '.'.join(str(s) for s in locale.getlocale()))
+			print("Current file: %s" % filepath)
+			print(crash_traceback)
+			print("Ranger crashed.  " \
+				"Please report this traceback at:")
+			print("http://savannah.nongnu.org/bugs/?group=ranger&func=additem")
+			return 1
+		return 0
 
 # -=- Basic Functions -=-
 def LOG(*objects):

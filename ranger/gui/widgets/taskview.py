@@ -96,9 +96,9 @@ class TaskView(Widget, Accumulator):
 		self.fm.loader.move(_from=i, to=to)
 
 	def press(self, key):
-		self.env.keymanager.use_context('taskview')
-		self.env.key_append(key)
-		kbuf = self.env.keybuffer
+		self.fm.keymanager.use_context('taskview')
+		self.fm.key_append(key)
+		kbuf = self.fm.keybuffer
 		cmd = kbuf.command
 
 		if kbuf.failure:
@@ -106,8 +106,6 @@ class TaskView(Widget, Accumulator):
 			return
 		elif not cmd:
 			return
-
-		self.env.cmd = cmd
 
 		if cmd.function:
 			try:

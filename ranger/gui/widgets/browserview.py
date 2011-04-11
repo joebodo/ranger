@@ -149,7 +149,7 @@ class BrowserView(Widget, DisplayableContainer):
 	def _draw_keyhints(self):
 		self.need_clear = True
 		hints = []
-		for k, v in self.fm.env.keymanager._keybuffer.tree_pointer.items():
+		for k, v in self.fm.keymanager._keybuffer.tree_pointer.items():
 			try: k = chr(k)
 			except: k = str(k)
 			if isinstance(v, dict):

@@ -76,6 +76,7 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		self.previews = {}
 		self.current_tab_index = 1
 		self.copy = set()
+		self.cut = False
 		self.ui = None
 		self.settings = Settings(self)
 		self.keybuffer = KeyBuffer(None, None)
@@ -187,7 +188,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		self.run = Runner(ui=self.ui, logfunc=ranger.ERR)
 		self.run = Runner(logfunc=ranger.ERR)
 
-		#self.tag.signal_bind('cd', self._update_current_tab)
 		if self.arg.clean:
 			bookmarkfile = None
 		else:
@@ -295,9 +295,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 	def _get_tab_list(self):
 		assert len(self.tabs) > 0, "There must be >=1 tabs at all times"
 		return sorted(self.tabs)
-
-	def _update_current_tab(self):
-		self.tabs[self.tab] = self.env.cwd.path
 
 	def display(self, *msg):
 		if self.ui.runs:

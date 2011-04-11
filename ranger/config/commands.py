@@ -442,7 +442,9 @@ class execute(Command):
 		if self.fm.tab.enter_dir(cf):
 			return
 		elif selection:
+			self.fm.ui.suspend()
 			self.fm.cmd("shell %file_launcher %s")
+			self.fm.ui.initialize()
 
 @fm.register_command
 class find(Command):

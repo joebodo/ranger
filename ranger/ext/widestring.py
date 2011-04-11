@@ -24,6 +24,8 @@ ASCIIONLY = set(chr(c) for c in range(1, 128))
 NARROW = 1
 WIDE = 2
 
+PY3 = sys.version_info >= (3, )
+
 def _utf_char_to_int(string):
 	# Squash the last 6 bits of each byte together to an integer
 	if sys.version > '3':
@@ -132,9 +134,8 @@ def string_to_charlist(string):
 	end = len(string)
 	i = 0
 	result = []
-	py3 = sys.version > '3'
 	while i < end:
-		if py3:
+		if PY3:
 			result.append(string[i:i+1])
 			i += 1
 		else:

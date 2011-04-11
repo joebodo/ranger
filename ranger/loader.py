@@ -24,6 +24,7 @@ import os
 import sys
 import select
 
+PY3 = sys.version_info >= (3, )
 
 class Loadable(object):
 	paused = False
@@ -74,7 +75,6 @@ class CommandLoader(Loadable, SignalDispatcher):
 				yield
 				sleep(0.03)
 		else:
-			py3 = sys.version >= '3'
 			selectlist = []
 			if self.read:
 				selectlist.append(process.stdout)
@@ -88,13 +88,13 @@ class CommandLoader(Loadable, SignalDispatcher):
 						rd = rd[0]
 						if rd == process.stderr:
 							read = rd.readline()
-							if py3:
+							if PY3:
 								read = read.decode('utf-8')
 							if read:
 								ERR(read)
 						elif rd == process.stdout:
 							read = rd.read(512)
-							if py3:
+							if PY3:
 								read = read.decode('utf-8')
 							if read:
 								self.stdout_buffer += read
@@ -102,12 +102,12 @@ class CommandLoader(Loadable, SignalDispatcher):
 					sleep(0.03)
 			if not self.silent:
 				for l in process.stderr.readlines():
-					if py3:
+					if PY3:
 						l = l.decode('utf-8')
 					ERR(l)
 			if self.read:
 				read = process.stdout.read()
-				if py3:
+				if PY3:
 					read = read.decode('utf-8')
 				self.stdout_buffer += read
 		self.finished = True

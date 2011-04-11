@@ -37,7 +37,8 @@ class Tab(object):
 	def _set_cf(self, value):
 		if value is not self._cf:
 			previous = self._cf
-			self.fm.signal_emit('move', previous=previous, new=value)
+			if self.fm.signal_emit('move', previous=previous, new=value):
+				self._cf = value
 
 	def _get_cf(self):
 		return self._cf

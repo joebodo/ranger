@@ -206,7 +206,7 @@ class Directory(FileSystemObject, Accumulator, Loadable):
 						is_a_dir = False
 					if is_a_dir:
 						try:
-							item = self.fm.env.get_directory(name)
+							item = self.fm.tab.get_directory(name)
 							item.load_if_outdated()
 						except:
 							item = Directory(name, preload=stats,
@@ -378,8 +378,8 @@ class Directory(FileSystemObject, Accumulator, Loadable):
 		Accumulator.correct_pointer(self)
 
 		try:
-			if self == self.fm.env.cwd:
-				self.fm.env.cf = self.pointed_obj
+			if self == self.fm.tab.cwd:
+				self.fm.tab.cf = self.pointed_obj
 		except:
 			pass
 

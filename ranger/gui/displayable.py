@@ -51,19 +51,12 @@ class Displayable(CursesShortcuts):
 		win -- the own curses window object
 		parent -- the parent (DisplayableContainer) object or None
 		x, y, wid, hei -- absolute coordinates and boundaries
-		settings, fm, env -- inherited shared variables
+		fm -- reference to the main file manager instance
 	"""
 
 	def __init__(self, win):
 		from ranger.gui.ui import UI
 		self.fm = ranger.get_fm()
-#		if env is not None:
-#			self.env = env
-#		if fm is not None:
-#			self.fm = fm
-#		if settings is not None:
-#			self.settings = settings
-
 		self.need_redraw = True
 		self.focused = False
 		self.visible = True
@@ -240,17 +233,9 @@ class DisplayableContainer(Displayable):
 	container -- a list with all contained objects (rw)
 	"""
 
-	def __init__(self, win, env=None, fm=None, settings=None):
-		if env is not None:
-			self.env = env
-		if fm is not None:
-			self.fm = fm
-		if settings is not None:
-			self.settings = settings
-
-		self.container = []
-
+	def __init__(self, win):
 		Displayable.__init__(self, win)
+		self.container = []
 
 	# ------------------------------------ extended or overidden methods
 
