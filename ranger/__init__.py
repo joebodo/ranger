@@ -45,41 +45,25 @@ RANGERDIR = os.path.dirname(__file__)
 LOGFILE = '/tmp/ranger_debug_log'
 
 if 'XDG_CONFIG_HOME' in os.environ and os.environ['XDG_CONFIG_HOME']:
-	CONFDIR = os.environ['XDG_CONFIG_HOME'] + '/ranger'
+	DEFAULT_CONFDIR = os.environ['XDG_CONFIG_HOME'] + '/ranger'
 else:
-	CONFDIR = os.path.expanduser('~/.config/ranger')
+	DEFAULT_CONFDIR = os.path.expanduser('~/.config/ranger')
 if 'XDG_CACHE_HOME' in os.environ and os.environ['XDG_CACHE_HOME']:
-	CACHEDIR = os.environ['XDG_CACHE_HOME'] + '/ranger'
+	DEFAULT_CACHEDIR = os.environ['XDG_CACHE_HOME'] + '/ranger'
 else:
-	CACHEDIR = os.path.expanduser('~/.cache/ranger')
-
-# -=- Arguments -=-
-# I want valid values here even before I parse any arguments, so I can use
-# this package without actually starting a ranger instance, e.g. for testing.
-# These values will be overwritten as soon as arguments are parsed, which
-# should happen ASAP.
-
-DEBUG = False
-CLEAN = False
-NODEFAULTS = False
-CHOOSEDIR = False
-CHOOSEFILE = False
-COPY_CONFIG = False
-RUNMODE = 0
-RUNFLAGS = ""
-RUNTARGETS = []
+	DEFAULT_CACHEDIR = os.path.expanduser('~/.cache/ranger')
 
 # -=- Basic Functions -=-
 def LOG(*objects):
 	"""Write objects to LOGFILE for the purpose of debugging"""
-	if not CLEAN:
+	if not get_fm().arg.clean:
 		f = open(LOGFILE, 'a')
 		f.write(' '.join(str(obj) for obj in objects) + '\n')
 		f.close()
 
 def LOG_TRACEBACK():
 	"""Write a traceback to LOGFILE for the purpose of debugging"""
-	if not CLEAN:
+	if not get_fm().arg.clean:
 		import traceback
 		f = open(LOGFILE, 'a')
 		traceback.print_stack(file=f)
@@ -92,23 +76,6 @@ def DISPLAY(*objects):
 	else:
 		LOG(*objects) # print?
 
-def confpath(*paths):
-	"""returns the path relative to rangers configuration directory"""
-	if CLEAN:
-		assert 0, "Should not access confpath in clean mode!"
-	else:
-		return _join(CONFDIR, *paths)
-
-def cachepath(*paths):
-	"""returns the path relative to rangers configuration directory"""
-	if CLEAN:
-		assert 0, "Should not access cachepath in clean mode!"
-	else:
-		return _join(CACHEDIR, *paths)
-
-def relpath(*paths):
-	"""returns the path relative to rangers library directory"""
-	return _join(RANGERDIR, *paths)
 
 def get_fm():
 	"""returns the global ranger.fm.FM (FileManager) instance"""

@@ -44,6 +44,7 @@ this sample plugin:
 
 import ranger
 import os
+import sys
 from ranger.ext.openstruct import OpenStruct as Plugin
 
 class PluginSystem(object):
@@ -60,19 +61,25 @@ class PluginSystem(object):
 			ranger.ERR('Need a name for the plugin!')
 
 	def load_plugins(self):
-		if not ranger.NODEFAULTS:
-			self._load_plugins_from(ranger.relpath('config'))
-		if not self.arg.clean:
-			self._load_plugins_from(ranger.confpath())
-
-	def _load_plugins_from(self, directory):
-		for _, _, filenames in os.walk(directory):
-			for fname in filenames:
-				fname = os.sep.join([directory, fname])
-				if fname.endswith('.py') and os.access(fname, os.R_OK):
+		# TODO: deal with errors in plugins
+		override_path = self.confpath('plugins')
+		default_path  = self.relpath('config')
+		overrides = [] if self.arg.clean else os.listdir(override_path)
+		defaults = [f for f in os.listdir(default_path) if f not in overrides]
+		for fname in defaults:
+			if fname.endswith('.py'):
+				try:
+					__import__('ranger.config.' + fname[:-3])
+				except:
+					pass
+		if overrides and os.path.exists(override_path):
+			if not os.path.exists(override_path + '/__init__.py'):
+				open(override_path + '/__init__.py', 'a').close()
+			sys.path[0:0] = [self.confpath()]
+			for fname in overrides:
+				if fname.endswith('.py'):
 					try:
-						execfile(fname)
+						__import__('plugins.' + fname[:-3])
 					except:
-						# TODO: deal with errors in plugins
 						pass
-			break
+			del sys.path[0]

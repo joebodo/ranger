@@ -203,7 +203,7 @@ class CommandHandler(object):
 		return variables
 
 
-class Command(FileManagerAware):
+class Command(object):
 	"""Abstract command class"""
 	name = None
 	resolve_variables = True

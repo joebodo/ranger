@@ -8,8 +8,8 @@ if __name__ == '__main__':
 else:
   import ranger
   fm = ranger.get_fm()
-  fm.optparser.add_option('-m', '--mode', type='int', default=ranger.RUNMODE,
+  fm.optparser.add_option('-m', '--mode', type='int', default=0,
       metavar='n', help="if a filename is supplied, run it with this mode")
-  fm.optparser.add_option('-f', '--flags', type='string', default=ranger.RUNFLAGS,
+  fm.optparser.add_option('-f', '--flags', type='string', default='',
       metavar='string',
       help="if a filename is supplied, run it with these flags.")

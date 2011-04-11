@@ -34,7 +34,7 @@ import ranger
 from ranger.tab import Tab
 from ranger.api.actions import Actions
 from ranger.pluginsystem import PluginSystem
-#from ranger.api.commands import CommandHandler
+from ranger.api.commands import CommandHandler
 from ranger.gui.ui import UI
 from ranger.directory import Directory
 from ranger.ext.lazy_property import lazy_property
@@ -69,7 +69,8 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		self.log = deque(maxlen=20)
 		self.dircache = {}
 		self.tabs = {}
-		self.arg = OpenStruct(clean=True, debug=False, confdir=ranger.CONFDIR)
+		self.arg = OpenStruct(clean=False, debug=False,
+				confdir=ranger.DEFAULT_CONFDIR)
 		self.tab = None
 		self.previews = {}
 		self.current_tab_index = 1
@@ -96,7 +97,7 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		self.optparser.add_option('-c', '--clean', action='store_true',
 			help="don't touch/require any config files")
 		self.optparser.add_option('-r', '--confdir', type='string',
-			metavar='dir', default=ranger.CONFDIR,
+			metavar='dir', default=self.arg.confdir,
 			help="the configuration directory (%default)")
 		self.optparser.add_option('--choosefile', type='string', metavar='TARGET',
 			help="Makes ranger act like a file chooser. When opening "
@@ -137,7 +138,8 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		# First pass:
 		parser = OptionParser()
 		parser.add_option('-c', '--clean', action='store_true')
-		parser.add_option('-r', '--confdir', type='string', default=ranger.CONFDIR)
+		parser.add_option('-r', '--confdir', type='string',
+				default=self.arg.confdir)
 		parser.remove_option('--help')
 		filtered_args = [arg for arg in args if not arg or not arg[0] == '-' or \
 				arg in ('-c', '-r', '--clean') or arg[0:9] == '--confdir']
@@ -156,34 +158,37 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 				.format(ranger.__version__, os.getpid()))
 		self.log.append('Running on Python ' + sys.version.split('\n')[0])
 
-		configfile         = ranger.confpath('startup.py')
-		default_configfile = ranger.relpath('config', 'startup.py')
-		commandlistfile    = ranger.confpath('rc.conf')
+		configfile         = self.confpath('startup.py')
+		default_configfile = self.relpath('config', 'startup.py')
+		commandlistfile    = self.confpath('rc.conf')
 
 		self.loader = Loader()
-		self.tabs = dict((n+1, Tab(path)) for n, path \
-				in enumerate(self.arg.targets[:9]))
+		if self.arg.targets:
+			self.tabs = dict((n+1, Tab(path)) for n, path \
+					in enumerate(self.arg.targets[:9]))
+		else:
+			self.tabs = {1: Tab('.')}
 		self.tab = self.tabs[1]
 
 		if self.arg.clean:
 			self.tags = {}
 		else:
 			from ranger.tags import Tags
-			self.tags = Tags(ranger.confpath('tagged'))
+			self.tags = Tags(self.confpath('tagged'))
 
 		self.ui = UI()
 		self.ui.initialize()
 		self.run = Runner(ui=self.ui, logfunc=ranger.ERR)
 		self.run = Runner(logfunc=ranger.ERR)
 
-#		self.tag.signal_bind('cd', self._update_current_tab)
+		#self.tag.signal_bind('cd', self._update_current_tab)
 		self.signal_bind('setvar', lambda sig: dict.__setitem__(
 			self.variablecontainer, sig.name, sig.value), priority=0.2)
 
 		if self.arg.clean:
 			bookmarkfile = None
 		else:
-			bookmarkfile = ranger.confpath('bookmarks')
+			bookmarkfile = self.confpath('bookmarks')
 		self.bookmarks = Bookmarks(
 				bookmarkfile=bookmarkfile,
 				bookmarktype=Directory,
@@ -191,7 +196,7 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		self.bookmarks.load()
 
 		mimetypes.knownfiles.append(os.path.expanduser('~/.mime.types'))
-		mimetypes.knownfiles.append(ranger.relpath('data/mime.types'))
+		mimetypes.knownfiles.append(self.relpath('data/mime.types'))
 		self.mimetypes = mimetypes.MimeTypes()
 
 		if not self.arg.debug:
@@ -324,6 +329,24 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		self.signal_garbage_collect()
 
 	# -=- Random Functions -=-
+	def confpath(self, *paths):
+		"""returns the path relative to rangers configuration directory"""
+		if self.arg.clean:
+			assert 0, "Should not access confpath in clean mode!"
+		else:
+			return os.path.join(self.arg.confdir, *paths)
+
+	def cachepath(self, *paths):
+		"""returns the path relative to rangers configuration directory"""
+		if self.arg.clean:
+			assert 0, "Should not access cachepath in clean mode!"
+		else:
+			return os.path.join(self.cachedir, *paths)
+
+	def relpath(self, *paths):
+		"""returns the path relative to rangers library directory"""
+		return os.path.join(ranger.RANGERDIR, *paths)
+
 	def get_free_space(self, path):
 		stat = os.statvfs(path)
 		return stat.f_bavail * stat.f_bsize
@@ -411,7 +434,3 @@ class VariableContainer(dict):
 	def __setitem__(self, key, value):
 		self._signal_dispatcher.signal_emit('setvar', previous=self[key],
 				name=key, value=value)
-
-#class QuietOptionParser(OptionParser):
-#	def error(self, msg):
-#		pass
