@@ -54,10 +54,15 @@ and write some command definitions, for example:
 For a list of all actions, check /ranger/core/actions.py.
 '''
 
+import ranger
+fm = ranger.get_fm()
+
+
 from ranger.api.commands import *
 from ranger.ext.get_executables import get_executables
 from ranger.runner import ALLOWED_FLAGS
 import re
+
 
 aliases = {
 	'e': 'edit',
@@ -66,6 +71,7 @@ aliases = {
 	'qall': 'quitall'
 }
 
+@fm.register_command
 class cd(Command):
 	"""
 	:cd <dirname>
@@ -143,28 +149,33 @@ class cd(Command):
 			# manually type in the slash to advance into that directory
 			return (line.start(1) + join(rel_dirname, dirname) for dirname in dirnames)
 
+@fm.register_command
 class enter_bookmark(Command):
 	""":enter_bookmark <key>
 	Enter the given bookmark."""
 	def execute(self):
 		self.fm.enter_bookmark(self.arg(1))
 
+@fm.register_command
 class unset_bookmark(Command):
 	""":enter_bookmark <key>
 	Delete the given bookmark."""
 	def execute(self):
 		self.fm.unset_bookmark(self.arg(1))
 
+@fm.register_command
 class set_bookmark(Command):
 	""":enter_bookmark <key>
 	Set the given bookmark to the current directory."""
 	def execute(self):
 		self.fm.set_bookmark(self.arg(1))
 
+@fm.register_command
 class search(Command):
 	def execute(self):
 		self.fm.search_file(self.rest(1), regexp=True)
 
+@fm.register_command
 class load_(Command):
 	""":load <file/plugin>
 	Loads a plugin or python file."""
@@ -172,11 +183,13 @@ class load_(Command):
 	def execute(self):
 		self.fm.load_plugin(self.rest(1))
 
+@fm.register_command
 class search_inc(Command):
 	def quick(self):
 		self.fm.search_file(parse(self.line).rest(1), regexp=True, offset=0)
 
 
+@fm.register_command
 class shell(Command):
 	def execute(self):
 		if self.arg(1) and self.arg(1)[0] == '-':
@@ -213,6 +226,7 @@ class shell(Command):
 					for file in self.fm.env.cwd.files \
 					if file.shell_escaped_basename.startswith(start_of_word))
 
+@fm.register_command
 class map_(Command):
 	""":map <keysequence> <command>
 	Maps a command to a keysequence in the "browser" context.
@@ -230,11 +244,13 @@ class map_(Command):
 			func=(lambda arg: arg.fm.cmd(command, n=arg.n, any=arg.matches)),
 			help=command)
 
+@fm.register_command
 class pass_(Command):
 	""":pass
 	Null command, does nothing."""
 	name = 'pass'
 
+@fm.register_command
 class cmap(map_):
 	""":cmap <keysequence> <command>
 	Maps a command to a keysequence in the "console" context.
@@ -245,6 +261,7 @@ class cmap(map_):
 	"""
 	context = 'console'
 
+@fm.register_command
 class tmap(map_):
 	""":tmap <keysequence> <command>
 	Maps a command to a keysequence in the "taskview" context.
@@ -255,12 +272,14 @@ class tmap(map_):
 	"""
 	context = 'taskview'
 
+@fm.register_command
 class console_type(Command):
 	""":console_type <text>
 	Type the given text into the console"""
 	def execute(self):
 		self.fm.ui.console.type_key(self.rest(1))
 
+@fm.register_command
 class next_(Command):
 	""":next [<method>]
 	Go to the next object with a given method.
@@ -278,9 +297,11 @@ class next_(Command):
 		else:
 			self.fm.err("No such search method: `%s'" % method)
 
+@fm.register_command
 class previous(next_):
 	forward = False
 
+@fm.register_command
 class hint(Command):
 	""":hint [<method> [<text>]]
 	Display information to help the user.
@@ -296,6 +317,7 @@ class hint(Command):
 		else:
 			self.fm.ui.browser.draw_hints = True
 
+@fm.register_command
 class chain(Command):
 	""":chain <command1>; <command2>; ...
 	Calls multiple commands at once, separated by semicolons.
@@ -304,30 +326,35 @@ class chain(Command):
 		for command in self.rest(1).split(";"):
 			self.fm.cmd(command)
 
+@fm.register_command
 class tab(Command):
 	""":tab <path>
 	Open a new tab and move to the given path"""
 	def execute(self):
 		self.fm.tab_new(path=self.rest(1) or None)
 
+@fm.register_command
 class tabnext(Command):
 	""":tabnext
 	Move to the next tab"""
 	def execute(self):
 		self.fm.tab_move(1)
 
+@fm.register_command
 class tabprevious(Command):
 	""":tabprevious
 	Move to the previous tab"""
 	def execute(self):
 		self.fm.tab_move(-1)
 
+@fm.register_command
 class tabclose(Command):
 	""":tabclose
 	Close the current tab."""
 	def execute(self):
 		self.fm.tab_close()
 
+@fm.register_command
 class tabopen(Command):
 	""":tabopen <name>
 	Open the tab with the given name"""
@@ -337,6 +364,7 @@ class tabopen(Command):
 			name = int(name)
 		self.fm.tab_open(name=name)
 
+@fm.register_command
 class tag(Command):
 	""":tag
 	Toggle whether a file is tagged or not.
@@ -346,6 +374,7 @@ class tag(Command):
 	def execute(self):
 		self.fm.tag_toggle()
 
+@fm.register_command
 class untag(Command):
 	""":untag
 	Remove the tag-status of a file.
@@ -353,6 +382,7 @@ class untag(Command):
 	def execute(self):
 		self.fm.tag_remove()
 
+@fm.register_command
 class move(Command):
 	""":move <direction>
 	move inside the current column."""
@@ -381,6 +411,7 @@ class move(Command):
 			self.fm.move(down=(-1 if n is None else n) * mult,
 					absolute=True, **kw)
 
+@fm.register_command
 class move_in_column(Command):
 	""":move_in_column <column> <direction>
 	move inside the given column.
@@ -400,6 +431,7 @@ class move_in_column(Command):
 			elif self.arg(2) == 'up':
 				self.fm.move_parent(-(1 if n is None else n) * mult)
 
+@fm.register_command
 class execute(Command):
 	""":execute
 	Start the files with the program defined in %file_launcher.
@@ -412,6 +444,7 @@ class execute(Command):
 		elif selection:
 			self.fm.cmd("shell %file_launcher %s")
 
+@fm.register_command
 class find(Command):
 	"""
 	:find <string>
@@ -465,6 +498,7 @@ class find(Command):
 		return self.count == 1
 
 
+@fm.register_command
 class let(Command):
 	""":let <name> <operator> <value>
 	Change the value of a macro.  Macros are words that start with a % sign.
@@ -500,6 +534,7 @@ class let(Command):
 		else:
 			self.fm.err("unknown operation `%s'" % op)
 
+@fm.register_command
 class set_(Command):
 	"""
 	:set <option name>=<python expression>
@@ -555,6 +590,7 @@ class set_(Command):
 			if 'false'.startswith(value.lower()):
 				return self.tabinsert('False')
 
+@fm.register_command
 class toggle(Command):
 	""":toggle <option>
 	Toggles the value of a boolean option."""
@@ -570,6 +606,7 @@ class toggle(Command):
 					% key)
 		self.fm.settings[key] = not self.fm.settings[key]
 
+@fm.register_command
 class quit(Command):
 	"""
 	:quit
@@ -583,6 +620,7 @@ class quit(Command):
 		self.fm.tab_close()
 
 
+@fm.register_command
 class quitall(Command):
 	"""
 	:quitall
@@ -594,6 +632,7 @@ class quitall(Command):
 		self.fm.exit()
 
 
+@fm.register_command
 class quit_bang(quitall):
 	"""
 	:quit!
@@ -604,6 +643,7 @@ class quit_bang(quitall):
 	allow_abbrev = False
 
 
+@fm.register_command
 class terminal(Command):
 	"""
 	:terminal
@@ -614,6 +654,7 @@ class terminal(Command):
 		self.fm.run('x-terminal-emulator', flags='d')
 
 
+@fm.register_command
 class delete(Command):
 	"""
 	:delete
@@ -657,6 +698,7 @@ class delete(Command):
 		self.fm.delete()
 
 
+@fm.register_command
 class console(Command):
 	""":console [-p <position>] <text>
 	Opens the console and inserts the given text.
@@ -674,18 +716,21 @@ class console(Command):
 			return self.fm.cmd(self.rest(2))
 		self.fm.ui.open_console(self.rest(1), position=position)
 
+@fm.register_command
 class console_execute(Command):
 	""":console_execute
 	Execute the command in the console."""
 	def execute(self):
 		self.fm.ui.console.execute()
 
+@fm.register_command
 class console_close(Command):
 	""":console_close
 	Close the console"""
 	def execute(self):
 		self.fm.ui.console.close()
 
+@fm.register_command
 class eval_macros(Command):
 	""":eval_macros <command>
 	Run the given command with macros evaluated.
@@ -697,12 +742,14 @@ class eval_macros(Command):
 	def execute(self):
 		return self.fm.cmd(self.rest(1))
 
+@fm.register_command
 class history(Command):
 	""":history <offset>
 	Move in the history by the given offset.  -1 for back, 1 for forward."""
 	def execute(self):
 		self.fm.history_go(int(self.arg(1)))
 
+@fm.register_command
 class copy(Command):
 	""":copy <direction> <mode>
 	Operates on the files in the given direction and either sets, adds or removes
@@ -730,6 +777,7 @@ class copy(Command):
 		elif arg1 == 'clear':
 			self.fm.uncut()
 
+@fm.register_command
 class cut(copy):
 	""":cut <direction> <mode>
 	Operates on the files in the given direction and either sets, adds or removes
@@ -740,6 +788,7 @@ class cut(copy):
 	"""
 	method = 'cut'
 
+@fm.register_command
 class paste(Command):
 	""":paste [<method>]
 	Pastes the copied or cut files.
@@ -754,6 +803,7 @@ class paste(Command):
 		else:
 			self.fm.paste(overwrite=overwrite)
 
+@fm.register_command
 class mark(Command):
 	do_mark = True
 	def execute(self):
@@ -777,9 +827,11 @@ class mark(Command):
 			self.fm.ui.status.need_redraw = True
 			self.fm.ui.need_redraw = True
 
+@fm.register_command
 class unmark(mark):
 	do_mark = False
 
+@fm.register_command
 class visual(Command):
 	""":visual [reverse]
 	Enable the visual mode: All movement will select every file between the starting
@@ -789,12 +841,14 @@ class visual(Command):
 	def execute(self):
 		self.fm.visual_start(self.arg(1) != 'reverse')
 
+@fm.register_command
 class escape(Command):
 	""":escape
 	Escape to the normal mode, if you have changed it to e.g. the visual mode."""
 	def execute(self):
 		self.fm.visual_end()
 
+@fm.register_command
 class break_(Command):
 	""":break
 	executed when pressing Ctrl+C, aborts loading/copying/..."""
@@ -808,6 +862,7 @@ class break_(Command):
 			self.fm.write("Aborting: " + item.get_description())
 			self.fm.loader.remove(index=0)
 
+@fm.register_command
 class load_copy_buffer(Command):
 	"""
 	:load_copy_buffer
@@ -827,6 +882,7 @@ class load_copy_buffer(Command):
 		f.close()
 		self.fm.ui.redraw_main_column()
 
+@fm.register_command
 class save_copy_buffer(Command):
 	"""
 	:save_copy_buffer
@@ -842,6 +898,7 @@ class save_copy_buffer(Command):
 		f.write("\n".join(f.path for f in self.fm.env.copy))
 		f.close()
 
+@fm.register_command
 class help(Command):
 	""":help
 	Displays the help text in the pager."""
@@ -864,12 +921,14 @@ class help(Command):
 			else:
 				self.fm.display_in_pager(get_help_by_index(index))
 
+@fm.register_command
 class display_log(Command):
 	""":display_log
 	Displays the current log of ranger in the pager."""
 	def execute(self):
 		self.fm.display_in_pager("\n".join(reversed(self.fm.log)))
 
+@fm.register_command
 class mkdir(Command):
 	"""
 	:mkdir <dirname>
@@ -887,6 +946,7 @@ class mkdir(Command):
 		else:
 			self.fm.notify("file/directory exists!", bad=True)
 
+@fm.register_command
 class touch(Command):
 	"""
 	:touch <fname>
@@ -904,6 +964,7 @@ class touch(Command):
 		else:
 			self.fm.notify("file/directory exists!", bad=True)
 
+@fm.register_command
 class edit(Command):
 	"""
 	:edit <filename>
@@ -919,6 +980,7 @@ class edit(Command):
 	def tab(self):
 		return self._tab_directory_content()
 
+@fm.register_command
 class eval_(Command):
 	"""
 	:eval <python code>
@@ -955,12 +1017,14 @@ class eval_(Command):
 			if not quiet:
 				p(err)
 
+@fm.register_command
 class echo(Command):
 	""":echo <text>
 	Displays the given text in the statusbar."""
 	def execute(self):
 		self.fm.write(self.rest(1))
 
+@fm.register_command
 class rename(Command):
 	"""
 	:rename <newname>
@@ -980,6 +1044,7 @@ class rename(Command):
 	def tab(self):
 		return self._tab_directory_content()
 
+@fm.register_command
 class filter(Command):
 	"""
 	:filter <string>
@@ -991,24 +1056,28 @@ class filter(Command):
 		self.fm.set_filter(self.rest(1))
 		self.fm.reload_cwd()
 
+@fm.register_command
 class reload(Command):
 	""":reload
 	Reload the current directory"""
 	def execute(self):
 		self.fm.reload_cwd()
 
+@fm.register_command
 class reset(Command):
 	""":reset
 	Reset the file manager, clearing caches.  Usually mapped to <C-R>"""
 	def execute(self):
 		self.fm.reset()
 
+@fm.register_command
 class redraw(Command):
 	""":redraw
 	Redraw the window.  Usually mapped to <C-L>"""
 	def execute(self):
 		self.fm.redraw_window()
 
+@fm.register_command
 class grep(Command):
 	"""
 	:grep <string>

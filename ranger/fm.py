@@ -52,8 +52,7 @@ TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 
 ALLOWED_CONTEXTS = ('browser', 'taskview', 'console')
 
-#class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
-class FM(Actions, PluginSystem, SignalDispatcher):
+class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
 		"""
@@ -63,7 +62,7 @@ class FM(Actions, PluginSystem, SignalDispatcher):
 		"""
 		SignalDispatcher.__init__(self)
 		PluginSystem.__init__(self)
-		#CommandHandler.__init__(self)
+		CommandHandler.__init__(self)
 
 		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)

@@ -26,7 +26,6 @@ class VarTemplate(string.Template):
 
 class CommandHandler(object):
 	def __init__(self):
-		self.fm = ranger.get_fm()
 		self._commands = {}
 		self._command_aliases = {}
 
@@ -36,6 +35,7 @@ class CommandHandler(object):
 			self._commands[classdict['name']] = command
 		else:
 			self._commands[command.__name__] = command
+		return command
 
 	def get_command(self, name, abbrev=True):
 		if abbrev:
