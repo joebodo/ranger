@@ -50,7 +50,7 @@ class Actions(object):
 		raise SystemExit()
 
 	def err(self, *args):
-		if self.debug and isinstance(args[0], Exception):
+		if self.arg.debug and isinstance(args[0], Exception):
 			raise
 		elif self.ui_runs:
 			self.ui.notify(*args, bad=True)
@@ -70,7 +70,7 @@ class Actions(object):
 		old_path = self.env.cwd.path
 		self.previews = {}
 		self.env.garbage_collect(-1)
-		self.fm.visual = None
+		self.visual = None
 		self.enter_dir(old_path)
 
 	def visual_start(self, reverse=False):
@@ -155,7 +155,7 @@ class Actions(object):
 		self.move(to=2, pages=True)  # moves to page 2.
 		self.move(to=1, percentage=True)  # moves to 80%
 		"""
-		cwd = self.env.cwd
+		cwd = self.tab.cwd
 		direction = Direction(kw)
 		if 'left' in direction or direction.left() > 0:
 			steps = direction.left()
@@ -165,17 +165,17 @@ class Actions(object):
 				directory = os.path.join(*(['..'] * steps))
 			except:
 				return
-			self.fm.visual = None
-			self.env.enter_dir(directory)
+			self.visual = None
+			self.tab.enter_dir(directory)
 		if cwd and cwd.accessible and cwd.content_loaded:
 			if 'right' in direction:
 				mode = 0
 				if narg is not None:
 					mode = narg
-				cf = self.env.cf
-				selection = self.env.get_selection()
-				self.fm.visual = None
-				if not self.env.enter_dir(cf) and selection:
+				cf = self.tab.cf
+				selection = self.tab.get_selection()
+				self.visual = None
+				if not self.tab.enter_dir(cf) and selection:
 					pass
 			elif direction.vertical():
 				oldpos = cwd.pointer
@@ -208,50 +208,50 @@ class Actions(object):
 							cwd.mark_item(f, False)
 
 	def move_parent(self, n):
-		parent = self.env.at_level(-1)
+		parent = self.tab.at_level(-1)
 		if parent.pointer + n < 0:
 			n = 0 - parent.pointer
 		try:
-			self.fm.visual = None
-			self.env.enter_dir(parent.files[parent.pointer+n])
+			self.visual = None
+			self.tab.enter_dir(parent.files[parent.pointer+n])
 		except IndexError:
 			pass
 
 	def history_go(self, relative):
 		"""Move back and forth in the history"""
-		self.env.history_go(relative)
+		self.tab.history_go(relative)
 
 	def scroll(self, relative):
 		"""Scroll down by <relative> lines"""
 		if hasattr(self.ui, 'scroll'):
 			self.ui.scroll(relative)
-			self.env.cf = self.env.cwd.pointed_obj
+			self.tab.cf = self.tab.cwd.pointed_obj
 
 	def enter_dir(self, path, remember=False, history=True):
 		"""Enter the directory at the given path"""
 		if remember:
-			self.fm.visual = None
-			cwd = self.env.cwd
-			result = self.env.enter_dir(path, history=history)
+			self.visual = None
+			cwd = self.tab.cwd
+			result = self.tab.enter_dir(path, history=history)
 			self.bookmarks.remember(cwd)
 			return result
-		return self.env.enter_dir(path, history=history)
+		return self.tab.enter_dir(path, history=history)
 
 	def cd(self, path, remember=True):
 		"""enter the directory at the given path, remember=True"""
-		self.fm.visual = None
+		self.visual = None
 		self.enter_dir(path, remember=remember)
 
 	def traverse(self):
-		cf = self.env.cf
-		cwd = self.env.cwd
+		cf = self.tab.cf
+		cwd = self.tab.cwd
 		if cf is not None and cf.is_directory:
-			self.fm.visual = None
+			self.visual = None
 			self.enter_dir(cf.path)
 		elif cwd.pointer >= len(cwd) - 1:
 			while True:
 				self.move(left=1)
-				cwd = self.env.cwd
+				cwd = self.tab.cwd
 				if cwd.pointer < len(cwd) - 1:
 					break
 				if cwd.path == '/':
@@ -272,32 +272,32 @@ class Actions(object):
 	def edit_file(self, path=None):
 		"""Opens the current file with %editor"""
 		if path is None:
-			path = self.env.cf.path
+			path = self.tab.cf.path
 		self.execute_command("%s %s" % (self.macros['editor'],
 			shell_quote(path)))
 
 	def hint(self, text):
 		self.ui.hint(text)
 
-	def toggle_boolean_option(self, string):
-		"""Toggle a boolean option named <string>"""
-		if isinstance(self.env.settings[string], bool):
-			self.env.settings[string] ^= True
+#	def toggle_boolean_option(self, string):
+#		"""Toggle a boolean option named <string>"""
+#		if isinstance(self.fm.settings[string], bool):
+#			self.fm.variables[string] ^= True
 
 	def set_option(self, optname, value):
 		"""Set the value of an option named <optname>"""
-		self.env.settings[optname] = value
+		self.variables[optname] = str(value)
 
 	def sort(self, func=None, reverse=None):
 		if reverse is not None:
-			self.env.settings['sort_reverse'] = bool(reverse)
+			self.settings['sort_reverse'] = bool(reverse)
 
 		if func is not None:
-			self.env.settings['sort'] = str(func)
+			self.settings['sort'] = str(func)
 
 	def set_filter(self, fltr):
 		try:
-			self.env.cwd.filter = fltr
+			self.tab.cwd.filter = fltr
 		except:
 			pass
 
@@ -311,10 +311,10 @@ class Actions(object):
 		val - mark or unmark?
 		"""
 
-		if self.env.cwd is None:
+		if self.tab.cwd is None:
 			return
 
-		cwd = self.env.cwd
+		cwd = self.tab.cwd
 
 		if not cwd.accessible:
 			return
@@ -348,10 +348,10 @@ class Actions(object):
 			self.ui.status.need_redraw = True
 
 	def mark_in_direction(self, val=True, dirarg=None):
-		cwd = self.env.cwd
+		cwd = self.tab.cwd
 		direction = Direction(dirarg)
 		pos, selected = direction.select(lst=cwd.files, current=cwd.pointer,
-				pagesize=self.env.termsize[0])
+				pagesize=self.termsize[0])
 		cwd.pointer = pos
 		cwd.correct_pointer()
 		for item in selected:
@@ -376,7 +376,7 @@ class Actions(object):
 				text = re.compile(text, re.L | re.U | re.I)
 			except:
 				return False
-		self.env.last_search = text
+		self.tab.last_search = text
 		self.search(order='search', offset=offset)
 
 	def search(self, order=None, offset=1, forward=True):
@@ -633,7 +633,7 @@ class Actions(object):
 				offset = 1
 			pos, selected = direction.select(
 					override=narg, lst=cwd.files, current=cwd.pointer,
-					pagesize=self.env.termsize[0], offset=offset)
+					pagesize=self.termsize[0], offset=offset)
 			cwd.pointer = pos
 			cwd.correct_pointer()
 		if mode == 'set':

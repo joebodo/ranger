@@ -17,6 +17,7 @@ import os
 from collections import deque
 from ranger.api import *
 import ranger
+from ranger.ext.shell_escape import shell_quote
 from ranger.ext.lazy_property import lazy_property
 import string
 
@@ -28,6 +29,10 @@ class CommandHandler(object):
 	def __init__(self):
 		self._commands = {}
 		self._command_aliases = {}
+
+	def source_cmdlist(self, filename):
+		for line in open(filename, 'r'):
+			self.cmd_secure(line.rstrip("\r\n"))
 
 	def register_command(self, command):
 		classdict = command.__mro__[0].__dict__
@@ -73,9 +78,9 @@ class CommandHandler(object):
 		if not ok:
 			return
 		try:
-			command_entry = self._commands.get_command(command_name)
+			command_entry = self.get_command(command_name)
 		except KeyError:
-			if ranger.DEBUG:
+			if self.arg.debug:
 				raise Exception("Command `%s' not found!" % command_name)
 			elif self.ui_runs:
 				self.err("Command `%s' not found! Press ? for help." \
@@ -89,7 +94,7 @@ class CommandHandler(object):
 			return
 		if command_entry:
 			command = command_entry()
-			if command.resolve_variables and self.VarTemplate.delimiter in line:
+			if command.resolve_variables and VarTemplate.delimiter in line:
 				line = self.substitute_variables(line, any=any)
 			command.setargs(line, n=n)
 			command.execute()
@@ -98,22 +103,23 @@ class CommandHandler(object):
 		try:
 			self.cmd(line, n=n)
 		except Exception as e:
-			if ranger.DEBUG:
+			if self.arg.debug:
 				raise
 			else:
-				self.err('Error in line `%s\':\n  %s' % (line, str(e)))
+				ranger.ERR('Error in line `%s\':\n  %s' % (line, str(e)))
 
 	def substitute_variables(self, string, any=[]):
-		return self.VarTemplate(string).safe_substitute(
+		return VarTemplate(string).safe_substitute(
 				self._get_variables(any=any))
 
 	def _get_variables(self, any=[]):
 		variables = {}
+#		variables.update(self.variables)
 
-		variables['version'] = self.version
-		variables['confdir'] = self.confdir
-		variables['rangerdir'] = self.rangerdir
-		variables['cachedir'] = self.cachedir
+		variables['version'] = ranger.__version__
+		variables['confdir'] = self.arg.confdir
+		variables['rangerdir'] = ranger.RANGERDIR
+		variables['cachedir'] = self.arg.cachedir
 
 		for i in range(0, 10):
 			if i < len(any):
@@ -125,43 +131,43 @@ class CommandHandler(object):
 		else:
 			variables['any'] = ""
 
-		if self.env.cf:
-			variables['f']  = shell_quote(self.env.cf.basename)
-			variables['ff'] = self.env.cf.basename
+		if self.tab.cf:
+			variables['f']  = shell_quote(self.tab.cf.basename)
+			variables['ff'] = self.tab.cf.basename
 		else:
 			variables['f']  = ''
 			variables['ff'] = ''
 
 		variables['s'] = ' '.join(shell_quote(fl.basename) \
-				for fl in self.env.get_selection())
+				for fl in self.tab.get_selection())
 
 		variables['c'] = ' '.join(shell_quote(fl.path)
-				for fl in self.env.copy)
+				for fl in self.copy)
 
 		if self.ui:
-			variables['height'], variables['width'] = self.env.termsize
+			variables['height'], variables['width'] = self.termsize
 		else:
 			variables['height'], variables['width'] = 24, 80
 
-		if self.env.cwd:
-			variables['d'] = shell_quote(self.env.cwd.path)
+		if self.tab.cwd:
+			variables['d'] = shell_quote(self.tab.cwd.path)
 			variables['t'] = ' '.join(shell_quote(fl.basename)
-					for fl in self.env.cwd.files
+					for fl in self.tab.cwd.files
 					if fl.realpath in self.tags)
 		else:
 			variables['d'] = '.'
 			variables['t'] = ''
 
-		for key in ALLOWED_SETTINGS:
-			variables[key] = repr(self.settings[key])
+#		for key in ALLOWED_SETTINGS:
+#			variables[key] = repr(self.settings[key])
 
 		# define d/f/s variables for each tab
 		for i in range(1,10):
 			try:
-				tab_dir_path = self.tabs[i]
+				tab_dir_path = self.tabs[i].path
 			except:
 				continue
-			tab_dir = self.env.get_directory(tab_dir_path)
+			tab_dir = self.get_directory(tab_dir_path)
 			i = str(i)
 			if tab_dir and tab_dir.pointed_obj:
 				variables[i + 'd'] = shell_quote(tab_dir_path)
@@ -174,30 +180,30 @@ class CommandHandler(object):
 				variables[i + 's'] = ""
 
 		# define D/F/S for the next tab
-		found_current_tab = False
-		next_tab_path = None
-		first_tab = None
-		for tab in self.tabs:
-			if not first_tab:
-				first_tab = tab
-			if found_current_tab:
-				next_tab_path = self.tabs[tab]
-				break
-			if self.current_tab == tab:
-				found_current_tab = True
-		if found_current_tab and not next_tab_path:
-			next_tab_path = self.tabs[first_tab]
-		next_tab = self.env.get_directory(next_tab_path)
+#		found_current_tab = False
+#		next_tab = None
+#		first_tab = None
+#		for tab in self.tabs:
+#			if not first_tab:
+#				first_tab = tab
+#			if found_current_tab:
+#				next_tab = self.tabs[tab]
+#				break
+#			if self.tab == tab:
+#				found_current_tab = True
+#		if found_current_tab and not next_tab:
+#			next_tab = self.tabs[first_tab]
+#		next_tab_dir = self.get_directory(next_tab.path)
 
-		if next_tab and next_tab.pointed_obj:
-			variables['D'] = shell_quote(next_tab)
-			variables['F'] = shell_quote(next_tab.pointed_obj.path)
-			variables['S'] = ' '.join(shell_quote(fl.path)
-				for fl in next_tab.get_selection())
-		else:
-			variables['D'] = ''
-			variables['F'] = ''
-			variables['S'] = ''
+#		if next_tab_dir and next_tab_dir.pointed_obj:
+#			variables['D'] = shell_quote(next_tab_dir.path)
+#			variables['F'] = shell_quote(next_tab_dir.pointed_obj.path)
+#			variables['S'] = ' '.join(shell_quote(fl.path)
+#				for fl in next_tab_dir.get_selection())
+#		else:
+#			variables['D'] = ''
+#			variables['F'] = ''
+#			variables['S'] = ''
 		variables.update(self.variables)
 
 		return variables
@@ -209,6 +215,9 @@ class Command(object):
 	resolve_variables = True
 	allow_abbrev = True
 	_shifted = 0
+
+	def __init__(self):
+		self.fm = ranger.get_fm()
 
 	def setargs(self, line, pos=None, n=None):
 		self.line = line
@@ -279,7 +288,7 @@ class Command(object):
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 
-		cwd = self.fm.env.cwd.path
+		cwd = self.fm.tab.cwd.path
 
 		try:
 			rel_dest = self.rest(1)
@@ -328,7 +337,7 @@ class Command(object):
 	def _tab_directory_content(self):
 		from os.path import dirname, basename, expanduser, join, isdir
 
-		cwd = self.fm.env.cwd.path
+		cwd = self.fm.tab.cwd.path
 
 		try:
 			rel_dest = self.rest(1)

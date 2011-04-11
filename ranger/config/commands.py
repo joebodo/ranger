@@ -100,7 +100,7 @@ class cd(Command):
 		from os.path import dirname, basename, expanduser, join, isdir
 
 		line = parse(self.line)
-		cwd = self.fm.env.cwd.path
+		cwd = self.fm.tab.cwd.path
 
 		try:
 			rel_dest = line.rest(1)
@@ -223,7 +223,7 @@ class shell(Command):
 		else:
 			before_word, start_of_word = self.line.rsplit(' ', 1)
 			return (before_word + ' ' + file.shell_escaped_basename \
-					for file in self.fm.env.cwd.files \
+					for file in self.fm.tab.cwd.files \
 					if file.shell_escaped_basename.startswith(start_of_word))
 
 @fm.register_command
@@ -240,8 +240,8 @@ class map_(Command):
 	resolve_macros = False
 	def execute(self):
 		command = self.rest(2)
-		self.fm.env.keymanager.map(self.context, self.arg(1),
-			func=(lambda arg: arg.fm.cmd(command, n=arg.n, any=arg.matches)),
+		self.fm.keymanager.map(self.context, self.arg(1),
+			func=lambda arg: arg.fm.cmd(command, n=arg.n, any=arg.matches),
 			help=command)
 
 @fm.register_command
@@ -437,9 +437,9 @@ class execute(Command):
 	Start the files with the program defined in %file_launcher.
 	"""
 	def execute(self):
-		cf = self.fm.env.cf
-		selection = self.fm.env.get_selection()
-		if self.fm.env.enter_dir(cf):
+		cf = self.fm.tab.cf
+		selection = self.fm.tab.get_selection()
+		if self.fm.tab.enter_dir(cf):
 			return
 		elif selection:
 			self.fm.cmd("shell %file_launcher %s")
@@ -466,7 +466,7 @@ class find(Command):
 
 	def quick(self):
 		self.count = 0
-		cwd = self.fm.env.cwd
+		cwd = self.fm.tab.cwd
 		try:
 			arg = self.rest(1)
 		except IndexError:
@@ -490,7 +490,7 @@ class find(Command):
 				self.count += 1
 				if self.count == 1:
 					cwd.move(to=(cwd.pointer + i) % len(cwd.files))
-					self.fm.env.cf = cwd.pointed_obj
+					self.fm.tab.cf = cwd.pointed_obj
 			if self.count > 1:
 				return False
 			i += 1
@@ -498,41 +498,41 @@ class find(Command):
 		return self.count == 1
 
 
-@fm.register_command
-class let(Command):
-	""":let <name> <operator> <value>
-	Change the value of a macro.  Macros are words that start with a % sign.
-	When used in commands, they are replaced with their value.
-	Operators are: =, +=, -=, .=
-
-	Example:
-	:let foo = hello
-	:let foo .= _world
-	:echo %foo
-	=> hello_world
-	"""
-	def execute(self):
-		macros = self.fm.macros
-		newval = self.rest(3)
-		op = self.arg(2)
-		if self.arg(1) == '-e':
-			self.shift()
-			newval = self.fm.eval(self.rest(3))
-
-		try:
-			var = macros[self.arg(1)]
-		except:
-			var = 0
-		if op == '=':
-			macros[self.arg(1)] = newval
-		elif op == '+=':
-			macros[self.arg(1)] = str(int(var) + int(newval))
-		elif op == '-=':
-			macros[self.arg(1)] = str(int(var) - int(newval))
-		elif op == '.=':
-			macros[self.arg(1)] = str(var) + str(newval)
-		else:
-			self.fm.err("unknown operation `%s'" % op)
+#@fm.register_command
+#class let(Command):
+#	""":let <name> <operator> <value>
+#	Change the value of a macro.  Macros are words that start with a % sign.
+#	When used in commands, they are replaced with their value.
+#	Operators are: =, +=, -=, .=
+#
+#	Example:
+#	:let foo = hello
+#	:let foo .= _world
+#	:echo %foo
+#	=> hello_world
+#	"""
+#	def execute(self):
+#		macros = self.fm.macros
+#		newval = self.rest(3)
+#		op = self.arg(2)
+#		if self.arg(1) == '-e':
+#			self.shift()
+#			newval = self.fm.eval(self.rest(3))
+#
+#		try:
+#			var = macros[self.arg(1)]
+#		except:
+#			var = 0
+#		if op == '=':
+#			macros[self.arg(1)] = newval
+#		elif op == '+=':
+#			macros[self.arg(1)] = str(int(var) + int(newval))
+#		elif op == '-=':
+#			macros[self.arg(1)] = str(int(var) - int(newval))
+#		elif op == '.=':
+#			macros[self.arg(1)] = str(var) + str(newval)
+#		else:
+#			self.fm.err("unknown operation `%s'" % op)
 
 @fm.register_command
 class set_(Command):
@@ -546,31 +546,35 @@ class set_(Command):
 	def execute(self):
 		if not len(self.args) >= 3:
 			return
-		from ranger.container.settings import DEFAULT_SETTINGS
+		from ranger.settings import DEFAULT_SETTINGS
 		key = self.arg(1)
 		op = self.arg(2)
 		value = self.rest(3)
-		try:
-			typ = ALLOWED_SETTINGS[key][0]
-		except:
-			raise
-		else:
-			if type(typ) == tuple:
-				typ = typ[0]
-			if typ == bool:
-				value = value not in ('false', 'False', '0')
-			elif typ == int:
-				value = int(value)
-			elif typ == list:
-				value = list(int(i) for i in self.listre.split(value))
-			elif typ == tuple:
-				value = tuple(int(i) for i in self.listre.split(value))
-			elif typ == type(re.compile("")):
-				value = re.compile(value, re.I)
-			if op == '=':
-				self.fm.settings[key] = value
-			elif op == '^=' and typ == bool:
-				self.fm.settings[key] ^= bool(value)
+		if op == '=':
+			self.fm.variables[key] = value
+		elif op == '+=':
+			self.fm.variables[key] += value
+#		try:
+#			typ = DEFAULT_SETTINGS[key][0]
+#		except:
+#			raise
+#		else:
+#			if type(typ) == tuple:
+#				typ = typ[0]
+#			if typ == bool:
+#				value = value not in ('false', 'False', '0')
+#			elif typ == int:
+#				value = int(value)
+#			elif typ == list:
+#				value = list(int(i) for i in self.listre.split(value))
+#			elif typ == tuple:
+#				value = tuple(int(i) for i in self.listre.split(value))
+#			elif typ == type(re.compile("")):
+#				value = re.compile(value, re.I)
+#			if op == '=':
+#				self.fm.variables[key] = value
+#			elif op == '^=' and typ == bool:
+#				self.fm.variables[key] ^= bool(value)
 
 	def tab(self):
 		name = self.arg(1)
@@ -685,8 +689,8 @@ class delete(Command):
 			# user did not confirm deletion
 			return
 
-		cwd = self.fm.env.cwd
-		cf = self.fm.env.cf
+		cwd = self.fm.tab.cwd
+		cf = self.fm.tab.cf
 
 		if cwd.marked_items or (cf.is_directory and not cf.is_link \
 				and len(os.listdir(cf.path)) > 0):
@@ -815,7 +819,7 @@ class mark(Command):
 			self.fm.mark(all=True, val=self.do_mark)
 		elif subcommand == 'regexp':
 			import re
-			cwd = self.fm.env.cwd
+			cwd = self.fm.tab.cwd
 			input = self.rest(2)
 			searchflags = re.UNICODE
 			if input.lower() == input: # "smartcase"
@@ -877,7 +881,7 @@ class load_copy_buffer(Command):
 			f = open(self.fm.confpath(self.copy_buffer_filename), 'r')
 		except:
 			return self.fm.notify("Cannot open file %s" % fname, bad=True)
-		self.fm.env.copy = set(File(g) \
+		self.fm.tab.copy = set(File(g) \
 			for g in f.read().split("\n") if exists(g))
 		f.close()
 		self.fm.ui.redraw_main_column()
@@ -895,7 +899,7 @@ class save_copy_buffer(Command):
 			f = open(self.fm.confpath(self.copy_buffer_filename), 'w')
 		except:
 			return self.fm.notify("Cannot open file %s" % fname, bad=True)
-		f.write("\n".join(f.path for f in self.fm.env.copy))
+		f.write("\n".join(f.path for f in self.fm.tab.copy))
 		f.close()
 
 @fm.register_command
@@ -940,7 +944,7 @@ class mkdir(Command):
 		from os.path import join, expanduser, lexists
 		from os import mkdir
 
-		dirname = join(self.fm.env.cwd.path, expanduser(self.rest(1)))
+		dirname = join(self.fm.tab.cwd.path, expanduser(self.rest(1)))
 		if not lexists(dirname):
 			mkdir(dirname)
 		else:
@@ -958,7 +962,7 @@ class touch(Command):
 		from os.path import join, expanduser, lexists
 		from os import mkdir
 
-		fname = join(self.fm.env.cwd.path, expanduser(self.rest(1)))
+		fname = join(self.fm.tab.cwd.path, expanduser(self.rest(1)))
 		if not lexists(fname):
 			open(fname, 'a')
 		else:
@@ -973,7 +977,7 @@ class edit(Command):
 
 	def execute(self):
 		if not self.arg(1):
-			self.fm.edit_file(self.fm.env.cf.path)
+			self.fm.edit_file(self.fm.tab.cf.path)
 		else:
 			self.fm.edit_file(self.rest(1))
 
@@ -991,7 +995,7 @@ class eval_(Command):
 
 	Examples:
 	:eval fm
-	:eval len(fm.env.directories)
+	:eval len(fm.tab.directories)
 	:eval p("Hello World!")
 	"""
 	name = 'eval'
@@ -1036,10 +1040,10 @@ class rename(Command):
 		from ranger.fsobject import File
 		if not self.rest(1):
 			return self.fm.notify('Syntax: rename <newname>', bad=True)
-		self.fm.rename(self.fm.env.cf, self.rest(1))
+		self.fm.rename(self.fm.tab.cf, self.rest(1))
 		f = File(self.rest(1))
-		self.fm.env.cwd.pointed_obj = f
-		self.fm.env.cf = f
+		self.fm.tab.cwd.pointed_obj = f
+		self.fm.tab.cf = f
 
 	def tab(self):
 		return self._tab_directory_content()
@@ -1089,5 +1093,5 @@ class grep(Command):
 		if self.rest(1):
 			action = ['grep', '--color=always', '--line-number']
 			action.extend(['-e', self.rest(1), '-r'])
-			action.extend(f.path for f in self.fm.env.get_selection())
+			action.extend(f.path for f in self.fm.tab.get_selection())
 			self.fm.execute_command(action, flags='p')

@@ -71,6 +71,7 @@ class PluginSystem(object):
 				try:
 					__import__('ranger.config.' + fname[:-3])
 				except:
+					raise
 					pass
 		if overrides and os.path.exists(override_path):
 			if not os.path.exists(override_path + '/__init__.py'):
@@ -81,5 +82,6 @@ class PluginSystem(object):
 					try:
 						__import__('plugins.' + fname[:-3])
 					except:
+						raise
 						pass
 			del sys.path[0]

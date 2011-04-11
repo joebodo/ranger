@@ -73,8 +73,19 @@ def DISPLAY(*objects):
 	"""Display text on the screen.  Adapts to the situation."""
 	if INSTANCE:
 		INSTANCE.display(*objects)
+		if INSTANCE.arg.debug:
+			LOG('\n'.join(str(o) for o in objects) + '\n')
 	else:
-		LOG(*objects) # print?
+		print('\n'.join(str(o) for o in objects))
+
+def ERR(*objects):
+	"""Display text as an error on the screen.  Adapts to the situation."""
+	if INSTANCE:
+		INSTANCE.err(*objects)
+		if INSTANCE.arg.debug:
+			LOG('\n'.join(str(o) for o in objects) + '\n')
+	else:
+		sys.stderr.write('\n'.join(str(o) for o in objects) + '\n')
 
 
 def get_fm():
@@ -85,5 +96,4 @@ def get_fm():
 		INSTANCE = ranger.fm.FM()
 	return INSTANCE
 
-ERR = DISPLAY
 del os, sys

@@ -94,13 +94,14 @@ class Settings(object):
 					self._raw_set_with_signal, priority=0.2)
 
 	def _raw_set(self, name, value):
-		self._settings[name] = value
+		self.__dict__['_data'][name] = value
 
 	def _raw_set_with_signal(self, signal):
-		self._settings[signal.setting] = signal.value
+		self.__dict__['_data'][signal.key] = signal.value
 
 	def __getattr__(self, name):
 		return self.__dict__['_data'][name]
+	__getitem__ = __getattr__
 
 	def __setattr__(self, name, value):
 		raise ValueError("Settings are readonly! Change the "
@@ -108,13 +109,17 @@ class Settings(object):
 
 	def _signal_handler(self, sig):
 		try:
-			previous = self.__dict__['_data'][sig.name]
+			previous = self.__dict__['_data'][sig.key]
 			try:
-				value = DEFAULT_SETTINGS[sig.name](sig.value)
+				value = DEFAULT_SETTINGS[sig.key][0](sig.value)
 			except:
-				value = previous
+				# Invalid value for this setting!  Set back to previous value.
+				raise
+				sig.value = sig.previous
 			else:
-				kws = dict(setting=name, value=value, previous=previous)
-				sig.origin.signal_emit('setopt.'+name, **kws)
-		except:
+				import ranger
+				sig.origin.signal_emit('setopt.'+sig.key, key=sig.key,
+						value=value, previous=previous)
+#				ranger.LOG('Setting %s to %s' % (sig.key, self.__dict__['_data'][sig.key]))
+		except KeyError:
 			pass

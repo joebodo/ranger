@@ -54,8 +54,7 @@ class CommandArgs(object):
 
 	@staticmethod
 	def from_widget(widget):
-		return CommandArgs(widget.fm, \
-				widget, widget.env.keybuffer)
+		return CommandArgs(widget.fm, widget, widget.fm.keybuffer)
 
 
 class KeyMap(Tree):

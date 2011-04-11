@@ -75,9 +75,11 @@ class UI(DisplayableContainer):
 		curses.cbreak()
 		curses.noecho()
 		curses.halfdelay(20)
+#		raise Exception(self.fm.settings.show_cursor)
 		try:
-			curses.curs_set(int(bool(self.fm.settings.show_cursor)))
+			curses.curs_set(int(self.fm.settings.show_cursor))
 		except:
+			raise
 			pass
 		curses.start_color()
 		curses.use_default_colors()
@@ -168,16 +170,16 @@ class UI(DisplayableContainer):
 		elif not cmd:
 			return
 
-		self.fm.cmd = cmd
+#		self.fm.cmd = cmd
 
 		if cmd.function:
 			try:
 				cmd.function(CommandArgs.from_widget(self.fm))
 			except Exception as error:
-				if self.fm.debug:
+				if self.fm.arg.debug:
 					raise
 				else:
-					self.fm.notify(error)
+					self.notify(error)
 			if kbuf.done:
 				kbuf.clear()
 		else:
@@ -250,6 +252,8 @@ class UI(DisplayableContainer):
 		self.pager = Pager(self.win)
 		self.pager.visible = False
 		self.add_child(self.pager)
+
+		self.fm.signal_emit('ui.setup')
 
 	def redraw(self):
 		"""Redraw all widgets"""

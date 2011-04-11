@@ -37,6 +37,7 @@ from ranger.pluginsystem import PluginSystem
 from ranger.api.commands import CommandHandler
 from ranger.gui.ui import UI
 from ranger.directory import Directory
+from ranger.settings import DEFAULT_SETTINGS
 from ranger.ext.lazy_property import lazy_property
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
@@ -64,6 +65,7 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		PluginSystem.__init__(self)
 		CommandHandler.__init__(self)
 
+		self.fm = self
 		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)
 		self.dircache = {}
@@ -83,6 +85,8 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		self.hostname = socket.gethostname()
 		self.loader = None
 		self.home_path = os.path.expanduser('~')
+		for key, data in DEFAULT_SETTINGS.items():
+			dict.__setitem__(self.variables, key, data[1])
 		try:
 			self.username = pwd.getpwuid(os.geteuid()).pw_name
 		except:
@@ -150,16 +154,14 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		self.load_plugins()
 
 		# Second pass of argument parsing:
+		self.signal_emit('initialize.optparse', parser=self.optparser)
 		options, positional = self.optparser.parse_args(args=args)
 		self.arg = OpenStruct(options.__dict__, targets=positional)
+		self.arg.cachedir = ranger.DEFAULT_CACHEDIR
 
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(ranger.__version__, os.getpid()))
 		self.log.append('Running on Python ' + sys.version.split('\n')[0])
-
-		configfile         = self.confpath('startup.py')
-		default_configfile = self.relpath('config', 'startup.py')
-		commandlistfile    = self.confpath('rc.conf')
 
 		self.loader = Loader()
 		if self.arg.targets:
@@ -175,15 +177,17 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 			from ranger.tags import Tags
 			self.tags = Tags(self.confpath('tagged'))
 
+		self.signal_bind('setvar', self.settings._signal_handler)
+		self.signal_bind('setvar', lambda sig: dict.__setitem__(
+			self.variables, sig.key, sig.value), priority=0.2)
+
+		self.signal_emit('initialize')
 		self.ui = UI()
 		self.ui.initialize()
 		self.run = Runner(ui=self.ui, logfunc=ranger.ERR)
 		self.run = Runner(logfunc=ranger.ERR)
 
 		#self.tag.signal_bind('cd', self._update_current_tab)
-		self.signal_bind('setvar', lambda sig: dict.__setitem__(
-			self.variablecontainer, sig.name, sig.value), priority=0.2)
-
 		if self.arg.clean:
 			bookmarkfile = None
 		else:
@@ -201,10 +205,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		if not self.arg.debug:
 			import ranger.ext.curses_interrupt_handler
 			ranger.ext.curses_interrupt_handler.install_interrupt_handler()
-
-		# -=- Load Command List -=-
-		if not self.arg.clean and os.access(commandlistfile, os.R_OK):
-			execfile(commandlistfile)
 
 	def loop(self):
 		"""
@@ -300,10 +300,20 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		self.tabs[self.tab] = self.env.cwd.path
 
 	def display(self, *msg):
-		if self.ui:
-			self.ui.display(*msg)
+		if self.ui.runs:
+			self.ui.notify(*msg)
+			self.log.append(str(string))
 		else:
 			print('\n'.join(msg))
+
+	def err(self, *args):
+		if self.arg.debug and isinstance(args[0], Exception):
+			raise
+		elif self.ui.runs:
+			self.ui.notify(*args, bad=True)
+			self.log.append(str(args))
+		else:
+			sys.stderr.write('\n'.join(str(o) for o in objects) + '\n')
 
 	def get_directory(self, path):
 		"""Get the directory object at the given path"""
@@ -324,8 +334,7 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 				del self.dircache[key]
 				if value.is_directory:
 					value.files = None
-		self.settings.signal_garbage_collect()
-		self.signal_garbage_collect()
+		self.signal_emit('garbage_collect')
 
 	# -=- Random Functions -=-
 	def confpath(self, *paths):
@@ -340,7 +349,7 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		if self.arg.clean:
 			assert 0, "Should not access cachepath in clean mode!"
 		else:
-			return os.path.join(self.cachedir, *paths)
+			return os.path.join(self.arg.cachedir, *paths)
 
 	def relpath(self, *paths):
 		"""returns the path relative to rangers library directory"""
@@ -413,10 +422,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 	def compile_plugin_list(self):
 		return "List of loaded plugins:\n" + "\n".join(self.plugins)
 
-	def source_cmdlist(self, filename):
-		for line in open(filename, 'r'):
-			self.cmd_secure(line.rstrip("\r\n"))
-
 	def eval(self, code):
 		fm = self
 		try:
@@ -431,5 +436,5 @@ class VariableContainer(dict):
 		self._signal_dispatcher = signal_dispatcher
 
 	def __setitem__(self, key, value):
-		self._signal_dispatcher.signal_emit('setvar', previous=self[key],
-				name=key, value=value)
+		self._signal_dispatcher.signal_emit('setvar', previous=self.get(key, ''),
+				key=key, value=value)
