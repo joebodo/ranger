@@ -20,8 +20,10 @@ The File Manager, putting the pieces together
 from time import time
 from collections import deque
 from os.path import exists, abspath
+from optparse import OptionParser
 import mimetypes
 import os
+import pwd
 import stat
 import socket
 import string
@@ -29,21 +31,21 @@ import sys
 import curses
 
 import ranger
-from ranger import *
-from ranger.core.tab import Tab
+from ranger.tab import Tab
 from ranger.api.actions import Actions
-#from ranger.core.pluginsystem import PluginSystem
+from ranger.pluginsystem import PluginSystem
 #from ranger.api.commands import CommandHandler
 from ranger.gui.ui import UI
-from ranger.core.directory import Directory
+from ranger.directory import Directory
 from ranger.ext.lazy_property import lazy_property
 from ranger.ext.signals import SignalDispatcher
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.keybinding_parser import construct_keybinding
-from ranger.core.settings import Settings
-from ranger.core.keybuffer import KeyBuffer
-from ranger.core.keymap import KeyManager
-from ranger.core.history import History
+from ranger.ext.openstruct import OpenStruct
+from ranger.settings import Settings
+from ranger.keybuffer import KeyBuffer
+from ranger.keymap import KeyManager
+from ranger.history import History
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
@@ -51,43 +53,104 @@ TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
 ALLOWED_CONTEXTS = ('browser', 'taskview', 'console')
 
 #class FM(Actions, PluginSystem, CommandHandler, Cache, SignalDispatcher):
-class FM(Actions, SignalDispatcher):
+class FM(Actions, PluginSystem, SignalDispatcher):
 	# -=- Initialization -=-
 	def __init__(self, infoinit=True):
-		"""Initialize FM."""
-		#Actions.__init__(self)
+		"""
+		After creating the FM object, it will contain simple, configuration-
+		independent default values which can be used for unit testing or
+		similar things, without actually starting up a full ranger instance.
+		"""
 		SignalDispatcher.__init__(self)
-		#PluginSystem.__init__(self)
+		PluginSystem.__init__(self)
 		#CommandHandler.__init__(self)
 
 		self.variables = VariableContainer(self)
 		self.log = deque(maxlen=20)
 		self.dircache = {}
 		self.tabs = {}
+		self.arg = OpenStruct(clean=True, debug=False, confdir=ranger.CONFDIR)
 		self.tab = None
 		self.previews = {}
 		self.current_tab_index = 1
 		self.copy = set()
+		self.ui = None
 		self.settings = Settings(self)
 		self.keybuffer = KeyBuffer(None, None)
 		self.keymanager = KeyManager(self.keybuffer, ALLOWED_CONTEXTS)
-		self.termsize = None
+		self.termsize = (24, 80)
 		self.last_search = None
-
+		self.hostname = socket.gethostname()
+		self.loader = None
+		self.home_path = os.path.expanduser('~')
 		try:
 			self.username = pwd.getpwuid(os.geteuid()).pw_name
 		except:
 			self.username = 'uid:' + str(os.geteuid())
-		self.hostname = socket.gethostname()
-		self.home_path = os.path.expanduser('~')
 
-	def initialize(self, targets=[]):
-		"""If ui/bookmarks are None, they will be initialized here."""
-		from ranger.core.bookmarks import Bookmarks
-		from ranger.core.runner import Runner
-		from ranger.core.directory import Directory
-		from ranger.core.loader import Loader
+		self.optparser = OptionParser(usage='%prog [options] [path/filename]',
+				version='ranger %s (%s)' % (ranger.__version__,
+					ranger.VERSION[2] % 2 and 'stable' or 'testing'))
+		self.optparser.add_option('-d', '--debug', action='store_true',
+			help="activate debug mode")
+		self.optparser.add_option('-c', '--clean', action='store_true',
+			help="don't touch/require any config files")
+		self.optparser.add_option('-r', '--confdir', type='string',
+			metavar='dir', default=ranger.CONFDIR,
+			help="the configuration directory (%default)")
+		self.optparser.add_option('--choosefile', type='string', metavar='TARGET',
+			help="Makes ranger act like a file chooser. When opening "
+			"a file, it will quit and write the name of the selected "
+			"file to TARGET.")
+		self.optparser.add_option('--choosedir', type='string', metavar='TARGET',
+			help="Makes ranger act like a directory chooser. When ranger quits"
+			", it will write the name of the last visited directory to TARGET")
+
+	def initialize(self, args=None):
+		"""
+		This method will initialize ranger, i.e. load configs, parse arguments,
+		and initialize the curses user interface.
+		Call the method fm.loop() after this to enter the input loop.
+		"""
+		from ranger.bookmarks import Bookmarks
+		from ranger.runner import Runner
+		from ranger.directory import Directory
+		from ranger.loader import Loader
+		import sys
 		import ranger
+
+		if args is None:
+			args = sys.argv[1:]
+		try:
+			locale.setlocale(locale.LC_ALL, '')
+		except:
+			pass
+		if not 'SHELL' in os.environ:
+			os.environ['SHELL'] = 'bash'
+
+		# There will be two passes of option parsing:
+		# 1. before plugins are loaded, to determine the plugin directory
+		# and whether or not to load custom plugins (--clean option)
+		# 2. after plugins are loaded, to give plugins the chance to add their
+		# own parsing options.
+
+		# First pass:
+		parser = OptionParser()
+		parser.add_option('-c', '--clean', action='store_true')
+		parser.add_option('-r', '--confdir', type='string', default=ranger.CONFDIR)
+		parser.remove_option('--help')
+		filtered_args = [arg for arg in args if not arg or not arg[0] == '-' or \
+				arg in ('-c', '-r', '--clean') or arg[0:9] == '--confdir']
+		options, _       = parser.parse_args(args=filtered_args)
+		self.arg.clean   = options.clean
+		self.arg.confdir = options.confdir
+
+		# Load plugins
+		self.load_plugins()
+
+		# Second pass of argument parsing:
+		options, positional = self.optparser.parse_args(args=args)
+		self.arg = OpenStruct(options.__dict__, targets=positional)
 
 		self.log.append('Ranger {0} started! Process ID is {1}.' \
 				.format(ranger.__version__, os.getpid()))
@@ -97,45 +160,27 @@ class FM(Actions, SignalDispatcher):
 		default_configfile = ranger.relpath('config', 'startup.py')
 		commandlistfile    = ranger.confpath('rc.conf')
 
-		try:
-			locale.setlocale(locale.LC_ALL, '')
-		except:
-			pass
-		if not 'SHELL' in os.environ:
-			os.environ['SHELL'] = 'bash'
-
-		# -=- Load Config File -=-
-		while True:
-			if not CLEAN:
-				if os.access(configfile, os.R_OK):
-					execfile(configfile)
-					break
-			if os.access(default_configfile, os.R_OK):
-				execfile(default_configfile)
-			break
-
 		self.loader = Loader()
-
 		self.tabs = dict((n+1, Tab(path)) for n, path \
-				in enumerate(targets[:9]))
+				in enumerate(self.arg.targets[:9]))
 		self.tab = self.tabs[1]
 
-		if CLEAN:
+		if self.arg.clean:
 			self.tags = {}
 		else:
-			from ranger.core.tags import Tags
+			from ranger.tags import Tags
 			self.tags = Tags(ranger.confpath('tagged'))
 
 		self.ui = UI()
 		self.ui.initialize()
 		self.run = Runner(ui=self.ui, logfunc=ranger.ERR)
-		self.run = Runner(logfunc=ERR)
+		self.run = Runner(logfunc=ranger.ERR)
 
 #		self.tag.signal_bind('cd', self._update_current_tab)
 		self.signal_bind('setvar', lambda sig: dict.__setitem__(
 			self.variablecontainer, sig.name, sig.value), priority=0.2)
 
-		if CLEAN:
+		if self.arg.clean:
 			bookmarkfile = None
 		else:
 			bookmarkfile = ranger.confpath('bookmarks')
@@ -149,17 +194,18 @@ class FM(Actions, SignalDispatcher):
 		mimetypes.knownfiles.append(ranger.relpath('data/mime.types'))
 		self.mimetypes = mimetypes.MimeTypes()
 
-		if not ranger.DEBUG:
+		if not self.arg.debug:
 			import ranger.ext.curses_interrupt_handler
 			ranger.ext.curses_interrupt_handler.install_interrupt_handler()
 
 		# -=- Load Command List -=-
-		if not CLEAN and os.access(commandlistfile, os.R_OK):
+		if not self.arg.clean and os.access(commandlistfile, os.R_OK):
 			execfile(commandlistfile)
 
 	def loop(self):
 		"""
-		The main loop consists of:
+		The input loop will run until the user terminates the program.
+
 		1. reloading bookmarks if outdated
 		2. letting the loader work
 		3. drawing and finalizing ui
@@ -199,8 +245,8 @@ class FM(Actions, SignalDispatcher):
 			raise SystemExit
 
 		finally:
-			if ranger.CHOOSEDIR and self.tab.cwd and self.tab.cwd.path:
-				open(ranger.CHOOSEDIR, 'w').write(self.tab.cwd.path)
+			if self.arg.choosedir and self.tab.cwd and self.tab.cwd.path:
+				open(self.arg.choosedir, 'w').write(self.tab.cwd.path)
 			self.bookmarks.remember(self.tab.cwd)
 			self.bookmarks.save()
 
@@ -249,6 +295,12 @@ class FM(Actions, SignalDispatcher):
 	def _update_current_tab(self):
 		self.tabs[self.tab] = self.env.cwd.path
 
+	def display(self, *msg):
+		if self.ui:
+			self.ui.display(*msg)
+		else:
+			print('\n'.join(msg))
+
 	def get_directory(self, path):
 		"""Get the directory object at the given path"""
 		path = abspath(path)
@@ -294,13 +346,13 @@ class FM(Actions, SignalDispatcher):
 			try:
 				self.ui.destroy()
 			except:
-				if ranger.DEBUG:
+				if self.arg.debug:
 					raise
 		if self.loader:
 			try:
 				self.loader.destroy()
 			except:
-				if ranger.DEBUG:
+				if self.arg.debug:
 					raise
 
 	def compile_command_list(self):
@@ -359,3 +411,7 @@ class VariableContainer(dict):
 	def __setitem__(self, key, value):
 		self._signal_dispatcher.signal_emit('setvar', previous=self[key],
 				name=key, value=value)
+
+#class QuietOptionParser(OptionParser):
+#	def error(self, msg):
+#		pass

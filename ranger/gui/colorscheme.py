@@ -44,7 +44,7 @@ from curses import color_pair
 import ranger
 from ranger.gui.color import get_color
 from ranger.gui.context import Context
-from ranger.core.shared import SettingsAware
+from ranger.shared import SettingsAware
 
 # ColorScheme is not SettingsAware but it will gain access
 # to the settings during the initialization.  We can't import

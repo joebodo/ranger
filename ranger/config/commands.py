@@ -56,7 +56,7 @@ For a list of all actions, check /ranger/core/actions.py.
 
 from ranger.api.commands import *
 from ranger.ext.get_executables import get_executables
-from ranger.core.runner import ALLOWED_FLAGS
+from ranger.runner import ALLOWED_FLAGS
 import re
 
 aliases = {

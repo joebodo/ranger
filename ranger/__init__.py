@@ -26,10 +26,10 @@ vim, mutt or ncmpcpp so the usage will be intuitive and efficient.
 
 import os.path, sys
 from os.path import join as _join
-from ranger.core.plumbing import main
+from ranger.plumbing import main
 
 # -=- General Information -=-
-VERSION = (1, 4, 2, "")
+VERSION = (1, 5, 0, "")
 __license__ = 'GPL3'
 __version__ = '%d.%d.%d%s' % VERSION
 __author__ = __maintainer__ = 'Roman Zimbelmann (RomanZ@lavabit.com)'
@@ -61,13 +61,13 @@ else:
 
 DEBUG = False
 CLEAN = False
+NODEFAULTS = False
 CHOOSEDIR = False
 CHOOSEFILE = False
 COPY_CONFIG = False
 RUNMODE = 0
 RUNFLAGS = ""
 RUNTARGETS = []
-FAIL_UNLESS_CD = False # COMPAT
 
 # -=- Basic Functions -=-
 def LOG(*objects):
@@ -111,11 +111,11 @@ def relpath(*paths):
 	return _join(RANGERDIR, *paths)
 
 def get_fm():
-	"""returns the global ranger.core.fm.FM (FileManager) instance"""
+	"""returns the global ranger.fm.FM (FileManager) instance"""
 	global INSTANCE
 	if not INSTANCE:
-		import ranger.core.fm
-		INSTANCE = ranger.core.fm.FM()
+		import ranger.fm
+		INSTANCE = ranger.fm.FM()
 	return INSTANCE
 
 ERR = DISPLAY

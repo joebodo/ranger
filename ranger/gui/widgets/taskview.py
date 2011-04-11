@@ -22,7 +22,7 @@ from collections import deque
 
 from . import Widget
 from ranger.ext.accumulator import Accumulator
-from ranger.core.keymap import CommandArgs
+from ranger.keymap import CommandArgs
 
 class TaskView(Widget, Accumulator):
 	old_lst = None

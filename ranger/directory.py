@@ -21,10 +21,10 @@ from os.path import join, isdir, basename
 from collections import deque
 from time import time
 
-from ranger.core.loader import Loadable
+from ranger.loader import Loadable
 from ranger.ext.mount_path import mount_path
-from ranger.core.file import File
-from ranger.core.fsobject import FileSystemObject
+from ranger.file import File
+from ranger.fsobject import FileSystemObject
 from ranger.ext.accumulator import Accumulator
 #import ranger.fsobject
 

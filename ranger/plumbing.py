@@ -21,24 +21,17 @@ too ranger-specific to be part of a library. Most of them manage rangers
 runtime environment or help starting up.
 """
 
-
 def main():
 	"""initializes objects, runs the filemanager and returns the exit code"""
 	import locale
 	import sys
 	import os.path
-	import ranger.core.fm
-
-	parse_arguments()
-
-	if ranger.COPY_CONFIG:
-		copy_config_files(ranger.COPY_CONFIG)
-		return 1 if ranger.FAIL_UNLESS_CD else 0
+	import ranger.fm
 
 	fm = ranger.get_fm()
 	crash_traceback = None
 	try:
-		fm.initialize(ranger.RUNTARGETS)
+		fm.initialize()
 		fm.loop()
 	except Exception:
 		import traceback
@@ -53,10 +46,7 @@ def main():
 				filepath = fm.env.cf.path
 			except:
 				filepath = "None"
-		try:
-			fm.ui.destroy()
-		except (AttributeError, NameError):
-			pass
+		fm.destroy()
 		if crash_traceback:
 			print("Ranger version: %s, executed with python %s" %
 					(ranger.__version__, sys.version.split()[0]))
@@ -81,31 +71,14 @@ def parse_arguments(args=None):
 				ranger.VERSION[2] % 2 and 'stable' or 'testing'))
 
 	# Define options
-	parser.add_option('-d', '--debug', action='store_true',
-		help="activate debug mode")
-	parser.add_option('-c', '--clean', action='store_true',
-		help="don't touch/require any config files. ")
 	parser.add_option('--copy-config', type='string', metavar='which',
 		help="copy the default configs to the local config directory."
 			" Possible values: all, apps, commands, keys, options, scope")
-	parser.add_option('--fail-unless-cd', action='store_true',
-		help="return the exit code 1 if ranger is used to run a "
-			"file (with `ranger filename`)")
-	parser.add_option('-r', '--confdir', type='string',
-		metavar='dir', default=ranger.CONFDIR,
-		help="the configuration directory. (%default)")
 	parser.add_option('-m', '--mode', type='int', default=ranger.RUNMODE,
 		metavar='n', help="if a filename is supplied, run it with this mode")
 	parser.add_option('-f', '--flags', type='string', default=ranger.RUNFLAGS,
 		metavar='string',
 		help="if a filename is supplied, run it with these flags.")
-	parser.add_option('--choosefile', type='string', metavar='TARGET',
-		help="Makes ranger act like a file chooser. When opening "
-		"a file, it will quit and write the name of the selected "
-		"file to TARGET.")
-	parser.add_option('--choosedir', type='string', metavar='TARGET',
-		help="Makes ranger act like a directory chooser. When ranger quits"
-		", it will write the name of the last visited directory to TARGET")
 
 	# Parsing and post processing
 	options, positional   = parser.parse_args(args=args)

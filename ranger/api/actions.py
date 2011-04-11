@@ -22,14 +22,14 @@ from os.path import join, isdir, realpath
 from os import link, symlink, getcwd
 from time import time
 
-from ranger.core import *
+from ranger import *
 
 import ranger
 from ranger.ext.direction import Direction
 from ranger.ext.relative_symlink import relative_symlink
 from ranger.ext.shell_escape import shell_quote
-from ranger.core.file import File
-from ranger.core.loader import CommandLoader
+from ranger.file import File
+from ranger.loader import CommandLoader
 
 class Actions(object):
 	search_method = 'ctime'
@@ -463,7 +463,7 @@ class Actions(object):
 	# --------------------------
 	# -- Bookmarks
 	# --------------------------
-	# Using ranger.core.bookmarks.
+	# Using ranger.bookmarks.
 
 	def enter_bookmark(self, key):
 		"""Enter the bookmark with the name <key>"""

@@ -21,7 +21,7 @@ import _curses
 import ranger
 from .displayable import DisplayableContainer
 from ranger.gui.curses_shortcuts import ascii_only
-from ranger.core.keymap import CommandArgs
+from ranger.keymap import CommandArgs
 from .mouse_event import MouseEvent
 from ranger.gui.widgets.browserview import BrowserView
 from ranger.gui.widgets.titlebar import TitleBar

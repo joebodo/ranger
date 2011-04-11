@@ -23,10 +23,10 @@ import re
 from collections import deque
 
 from . import Widget
-from ranger.core.keymap import CommandArgs
+from ranger.keymap import CommandArgs
 from ranger.ext.direction import Direction
 from ranger.ext.utfwidth import uwid, uchars, utf_char_width_
-from ranger.core.history import History, HistoryEmptyException
+from ranger.history import History, HistoryEmptyException
 import ranger
 
 class Console(Widget):

@@ -21,7 +21,7 @@ import re
 from . import Widget
 from ranger.gui import ansi
 from ranger.ext.direction import Direction
-from ranger.core.keymap import CommandArgs
+from ranger.keymap import CommandArgs
 
 BAR_REGEXP = re.compile(r'\|\d+\?\|')
 QUOTES_REGEXP = re.compile(r'"[^"]+?"')

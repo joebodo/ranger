@@ -14,9 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
-from ranger.core.fsobject import FileSystemObject
+from ranger.fsobject import FileSystemObject
 from subprocess import Popen, PIPE
-from ranger.core.loader import CommandLoader
+from ranger.loader import CommandLoader
 
 N_FIRST_BYTES = 256
 control_characters = set(chr(n) for n in
