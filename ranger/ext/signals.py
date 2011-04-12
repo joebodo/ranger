@@ -13,8 +13,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+A fast signal dispatcher class.
+
+Classes that inherit from SignalDispatcher can bind functions to a signal and
+it will be called whenever you emit the signal the function was bound to.
+
+You can bind multipe functions (with customizable priorities) to a signal and
+they will be executed sequentially.
+"""
+
+import types
 import weakref
-from types import MethodType
 
 class Signal(dict):
 	stopped = False
@@ -108,7 +118,7 @@ class SignalDispatcher(object):
 		for handler in tuple(handlers):
 			if handler.active:
 				if isinstance(handler.function, tuple):
-					fnc = MethodType(*handler.function)
+					fnc = types.MethodType(*handler.function)
 				else:
 					fnc = handler.function
 				try:

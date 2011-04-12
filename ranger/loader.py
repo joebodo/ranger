@@ -13,10 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+A mechanism that runs lengthy tasks with interruptions.
+
+The interruptions can be used to check for user input or do other things
+in parallel without the need for multithreading.
+
+Interruptions are implemented by adding yield keywords in the function
+that runs the task.  When a yield is reached and the loader has worked
+for at least Loader.seconds_of_work_time, the work() method will stop.
+"""
+
 from collections import deque
 from time import time, sleep
 from subprocess import Popen, PIPE
-from time import time
 from ranger.ext.signals import SignalDispatcher
 from ranger import DISPLAY, ERR
 import math

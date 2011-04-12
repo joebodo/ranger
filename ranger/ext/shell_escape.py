@@ -22,14 +22,27 @@ META_CHARS = (' ', "'", '"', '`', '&', '|', ';',
 META_DICT = dict([(mc, '\\' + mc) for mc in META_CHARS])
 
 def shell_quote(string):
-	"""Escapes by quoting"""
+	"""
+	Escapes by quoting.  This is usually faster.
+
+	>>> print(shell_quote('foo | $bar'))
+	'foo | $bar'
+	"""
 	return "'" + str(string).replace("'", "'\\''") + "'"
 
 
-def shell_escape(arg):
-	"""Escapes by adding backslashes"""
-	arg = str(arg)
-	arg = arg.replace('\\', '\\\\') # make sure this comes at the start
+def shell_escape(string):
+	r"""
+	Escapes by adding backslashes.  Slower but sometimes needed anyway.
+
+	>>> print(shell_escape('foo | $bar'))
+	foo\ \|\ \$bar
+	"""
+	string = str(string).replace('\\', '\\\\') # make sure this comes at the start
 	for k, v in META_DICT.items():
-		arg = arg.replace(k, v)
-	return arg
+		string = string.replace(k, v)
+	return string
+
+if __name__ == '__main__':
+	import doctest
+	doctest.testmod()

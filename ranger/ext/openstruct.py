@@ -13,11 +13,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# prepend __ to arguments because one might use "args"
-# or "keywords" as a keyword argument.
+"""
+An OpenStruct is a dict that lets you access its items like attributes.
+
+This means, ostruct['foo'] is equivalent to ostruct.foo.
+"""
 
 class OpenStruct(dict):
-	"""The fusion of dict and struct"""
+	"""
+	An OpenStruct is a dict that lets you access its items like attributes.
+
+	This means, ostruct['foo'] is equivalent to ostruct.foo.
+
+	>>> ostruct = OpenStruct(foo='hello', bar='world', **{'a':1, 'b':2})
+	>>> assert ostruct.a == 1
+	>>> assert ostruct.b == 2
+	>>> assert ostruct.foo == ostruct['foo']
+	>>> 'bar' in ostruct
+	True
+	"""
+
+	# prepend __ to arguments because one might use "args"
+	# or "keywords" as a keyword argument.
 	def __init__(self, *__args, **__keywords):
 		dict.__init__(self, *__args, **__keywords)
 		self.__dict__ = self
+
+if __name__ == '__main__':
+	import doctest
+	doctest.testmod()

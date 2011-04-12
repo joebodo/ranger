@@ -1,6 +1,6 @@
 """
-Files in this module contain helper functions used in
-configuration files.
-"""
+This package contains definitions that are useful for plugins, such
+as abstractions for common actions and interfaces to internal components.
 
-DELETE_WARNING = 'delete seriously? '
+An effort will be spent on keeping these interfaces constant between updates.
+"""

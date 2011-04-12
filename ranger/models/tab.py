@@ -17,7 +17,7 @@ import ranger
 
 import os
 from os.path import abspath, expanduser, normpath, join, isdir
-from ranger.history import History
+from ranger.models.history import History
 
 class Tab(object):
 	def __init__(self, path):

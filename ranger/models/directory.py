@@ -21,12 +21,11 @@ from os.path import join, isdir, basename
 from collections import deque
 from time import time
 
+from ranger.models.file import File
+from ranger.models.fsobject import FileSystemObject
 from ranger.loader import Loadable
 from ranger.ext.mount_path import mount_path
-from ranger.file import File
-from ranger.fsobject import FileSystemObject
 from ranger.ext.accumulator import Accumulator
-#import ranger.fsobject
 
 def sort_by_basename(path):
 	"""returns path.basename (for sorting)"""

@@ -31,7 +31,7 @@ from os.path import join as _join
 VERSION = (1, 5, 0, "")
 __license__ = 'GPL3'
 __version__ = '%d.%d.%d%s' % VERSION
-__author__ = __maintainer__ = 'Roman Zimbelmann (RomanZ@lavabit.com)'
+__maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 
 # -=- Runtime Information -=-

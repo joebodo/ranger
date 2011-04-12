@@ -14,7 +14,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-The File Manager, putting the pieces together
+The File Manager, putting the pieces together.
+
+See the code of ranger.main() for an example usage of this class.
+
+fm = FM() will create a basic instance without actually starting ranger.
+    This instance can be used for unit testing or similar things.
+fm.initialize() will start ranger and load up the user interface.
+fm.loop() will enter rangers main loop.
 """
 
 from time import time
@@ -31,12 +38,15 @@ import sys
 import curses
 
 import ranger
-from ranger.tab import Tab
 from ranger.api.actions import Actions
 from ranger.pluginsystem import PluginSystem
 from ranger.api.commands import CommandHandler
 from ranger.gui.ui import UI
-from ranger.directory import Directory
+from ranger.models.directory import Directory
+from ranger.models.history import History
+from ranger.models.keybuffer import KeyBuffer
+from ranger.models.keymap import KeyManager
+from ranger.models.tab import Tab
 from ranger.settings import DEFAULT_SETTINGS
 from ranger.ext.lazy_property import lazy_property
 from ranger.ext.signals import SignalDispatcher
@@ -44,9 +54,6 @@ from ranger.ext.shell_escape import shell_quote
 from ranger.ext.keybinding_parser import construct_keybinding
 from ranger.ext.openstruct import OpenStruct
 from ranger.settings import Settings
-from ranger.keybuffer import KeyBuffer
-from ranger.keymap import KeyManager
-from ranger.history import History
 
 TICKS_BEFORE_COLLECTING_GARBAGE = 100
 TIME_BEFORE_FILE_BECOMES_GARBAGE = 1200
@@ -117,9 +124,9 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		and initialize the curses user interface.
 		Call the method fm.loop() after this to enter the input loop.
 		"""
-		from ranger.bookmarks import Bookmarks
+		from ranger.models.bookmarks import Bookmarks
+		from ranger.models.directory import Directory
 		from ranger.runner import Runner
-		from ranger.directory import Directory
 		from ranger.loader import Loader
 		import sys
 		import ranger
@@ -175,7 +182,7 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 		if self.arg.clean:
 			self.tags = {}
 		else:
-			from ranger.tags import Tags
+			from ranger.models.tags import Tags
 			self.tags = Tags(self.confpath('tagged'))
 
 		self.signal_bind('setvar', self.settings._signal_handler)
@@ -254,48 +261,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 			self.bookmarks.remember(self.tab.cwd)
 			self.bookmarks.save()
 
-	# -=- Tabs -=-
-	def tab_open(self, name, path=None):
-		do_emit_signal = name != self.tab
-		self.tab = name
-		if path or (name in self.tabs):
-			self.fm.visual = None
-			self.enter_dir(path or self.tabs[name])
-		else:
-			self._update_current_tab()
-		if do_emit_signal:
-			self.signal_emit('tab.change')
-
-	def tab_close(self, name=None):
-		if name is None:
-			name = self.tab
-		if name == self.tab:
-			direction = -1 if name == self._get_tab_list()[-1] else 1
-			previous = self.tab
-			self.tab_move(direction)
-			if previous == self.tab:
-				return  # can't close last tab
-		if name in self.tabs:
-			del self.tabs[name]
-
-	def tab_move(self, offset):
-		assert isinstance(offset, int)
-		tablist = self._get_tab_list()
-		current_index = tablist.index(self.tab)
-		newtab = tablist[(current_index + offset) % len(tablist)]
-		if newtab != self.tab:
-			self.tab_open(newtab)
-
-	def tab_new(self, path=None):
-		for i in range(1, 10):
-			if not i in self.tabs:
-				self.tab_open(i, path)
-				break
-
-	def _get_tab_list(self):
-		assert len(self.tabs) > 0, "There must be >=1 tabs at all times"
-		return sorted(self.tabs)
-
 	def display(self, *msg):
 		if self.ui.runs:
 			self.ui.notify(*msg)
@@ -351,10 +316,6 @@ class FM(Actions, CommandHandler, PluginSystem, SignalDispatcher):
 	def relpath(self, *paths):
 		"""returns the path relative to rangers library directory"""
 		return os.path.join(ranger.RANGERDIR, *paths)
-
-	def get_free_space(self, path):
-		stat = os.statvfs(path)
-		return stat.f_bavail * stat.f_bsize
 
 	def key_append(self, key):
 		"""Append a key to the keybuffer"""

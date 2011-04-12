@@ -24,10 +24,10 @@ import sys
 from collections import deque
 
 from . import Widget
-from ranger.keymap import CommandArgs
+from ranger.models.history import History, HistoryEmptyException
+from ranger.models.keymap import CommandArgs
 from ranger.ext.direction import Direction
 from ranger.ext.utfwidth import uwid, uchars, utf_char_width_
-from ranger.history import History, HistoryEmptyException
 import ranger
 
 PY3 = sys.version_info >= (3, )

@@ -13,23 +13,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Bookmarks is a container which associates keys with bookmarks.
+
+A key is a string with: len(key) == 1 and key in ALLOWED_KEYS.
+
+A bookmark is an object that can be saved as a string and reproduced
+based on that string: bookmark == type(bookmark)(str(bookmark))
+which is true for str and FileSystemObject. This condition is required
+so bookmark-objects can be saved to and loaded from a file.
+
+Optionally, a bookmark.go() method is used for entering a bookmark.
+"""
+
 import string
 import re
 import os
 ALLOWED_KEYS = string.ascii_letters + string.digits + "`'"
 
 class Bookmarks(object):
-	"""Bookmarks is a container which associates keys with bookmarks.
-
-		A key is a string with: len(key) == 1 and key in ALLOWED_KEYS.
-
-		A bookmark is an object with: bookmark == bookmarktype(str(instance))
-		Which is true for str or FileSystemObject. This condition is required
-		so bookmark-objects can be saved to and loaded from a file.
-
-		Optionally, a bookmark.go() method is used for entering a bookmark.
-		"""
-
+	__doc__ = __doc__
 	last_mtime = None
 	autosave = True
 	load_pattern = re.compile(r"^[\d\w']:.")

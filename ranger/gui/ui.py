@@ -19,16 +19,16 @@ import curses
 import _curses
 
 import ranger
-from .displayable import DisplayableContainer
+from ranger.gui.displayable import DisplayableContainer
 from ranger.gui.curses_shortcuts import ascii_only
-from ranger.keymap import CommandArgs
-from .mouse_event import MouseEvent
+from ranger.gui.mouse_event import MouseEvent
 from ranger.gui.widgets.browserview import BrowserView
 from ranger.gui.widgets.titlebar import TitleBar
 from ranger.gui.widgets.console import Console
 from ranger.gui.widgets.statusbar import StatusBar
 from ranger.gui.widgets.taskview import TaskView
 from ranger.gui.widgets.pager import Pager
+from ranger.models.keymap import CommandArgs
 
 TERMINALS_WITH_TITLE = ("xterm", "xterm-256color", "rxvt",
 		"rxvt-256color", "rxvt-unicode", "aterm", "Eterm",

@@ -13,6 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+This module implements abstractions that can be used to interface with ranger.
+"""
+
 import os
 import re
 import shutil
@@ -23,13 +27,11 @@ from os.path import join, isdir, realpath
 from os import link, symlink, getcwd
 from time import time
 
-from ranger import *
-
 import ranger
 from ranger.ext.direction import Direction
 from ranger.ext.relative_symlink import relative_symlink
 from ranger.ext.shell_escape import shell_quote
-from ranger.file import File
+from ranger.models.file import File
 from ranger.loader import CommandLoader
 
 PY3 = sys.version_info >= (3, )
@@ -287,6 +289,11 @@ class Actions(object):
 		except:
 			pass
 
+	def get_free_space(self, path):
+		stat = os.statvfs(path)
+		return stat.f_bavail * stat.f_bsize
+
+
 	def mark(self, all=False, toggle=False, val=None, movedown=None, narg=1):
 		"""
 		A wrapper for the directory.mark_xyz functions.
@@ -449,7 +456,7 @@ class Actions(object):
 	# --------------------------
 	# -- Bookmarks
 	# --------------------------
-	# Using ranger.bookmarks.
+	# Using ranger.models.bookmarks.
 
 	def enter_bookmark(self, key):
 		"""Enter the bookmark with the name <key>"""
@@ -594,6 +601,52 @@ class Actions(object):
 				return open(path, 'r')
 			except:
 				return None
+
+	# --------------------------
+	# -- Tabs
+	# --------------------------
+
+	def tab_open(self, name, path=None):
+		do_emit_signal = name != self.tab
+		self.tab = name
+		if path or (name in self.tabs):
+			self.fm.visual = None
+			self.enter_dir(path or self.tabs[name])
+		else:
+			self._update_current_tab()
+		if do_emit_signal:
+			self.signal_emit('tab.change')
+
+	def tab_close(self, name=None):
+		if name is None:
+			name = self.tab
+		if name == self.tab:
+			direction = -1 if name == self._get_tab_list()[-1] else 1
+			previous = self.tab
+			self.tab_move(direction)
+			if previous == self.tab:
+				return  # can't close last tab
+		if name in self.tabs:
+			del self.tabs[name]
+
+	def tab_move(self, offset):
+		assert isinstance(offset, int)
+		tablist = self._get_tab_list()
+		current_index = tablist.index(self.tab)
+		newtab = tablist[(current_index + offset) % len(tablist)]
+		if newtab != self.tab:
+			self.tab_open(newtab)
+
+	def tab_new(self, path=None):
+		for i in range(1, 10):
+			if not i in self.tabs:
+				self.tab_open(i, path)
+				break
+
+	def _get_tab_list(self):
+		assert len(self.tabs) > 0, "There must be >=1 tabs at all times"
+		return sorted(self.tabs)
+
 
 	# --------------------------
 	# -- File System Operations

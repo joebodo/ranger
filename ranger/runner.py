@@ -28,6 +28,7 @@ List of allowed flags:
 s: silent mode. output will be discarded.
 d: detach the process.
 p: redirect output to the pager
+w: wait for an "Enter" press afterwards
 (An uppercase key ensures that a certain flag will not be used.)
 """
 

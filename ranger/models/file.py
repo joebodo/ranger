@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
-from ranger.fsobject import FileSystemObject
+from ranger.models.fsobject import FileSystemObject
 from subprocess import Popen, PIPE
 from ranger.loader import CommandLoader
 

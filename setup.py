@@ -23,7 +23,7 @@ if __name__ == '__main__':
 		description='Vim-like file manager',
 		long_description=ranger.__doc__,
 		version=ranger.__version__,
-		author=ranger.__author__,
+		author=ranger.__maintainer__,
 		author_email=ranger.__email__,
 		license=ranger.__license__,
 		url='http://savannah.nongnu.org/projects/ranger',

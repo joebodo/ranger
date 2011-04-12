@@ -18,7 +18,7 @@ from collections import deque
 from string import digits
 from ranger.ext.keybinding_parser import parse_keybinding, \
 		DIRKEY, ANYKEY, PASSIVE_ACTION
-from ranger.keymap import Binding, KeyMap # mainly for assertions
+from ranger.models.keymap import Binding, KeyMap # mainly for assertions
 
 MAX_ALIAS_RECURSION = 20
 digitlist = set(ord(n) for n in digits)

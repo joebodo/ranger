@@ -13,9 +13,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+This module faciliates interaction with ranger by implementing commands.
+
+The File Manager class directly inherits from CommandHandler.
+Ranger comes with no commands out of the box but they may be defined in plugins.
+
+A command should be a subclass of ranger.api.commands.Command.
+Override these methods in custom commands to interface with the console:
+	execute(): called when the command is executed.
+	tab(): called when tab is pressed.
+	quick(): called after each keypress.
+
+The return values for tab() can be either:
+	None: There is no tab completion
+	A string: Change the console to this string
+	A list/tuple/generator: cycle through every item in it
+The return value for quick() can be:
+	False: Nothing happens
+	True: Execute the command afterwards
+The return value for execute() doesn't matter.
+
+The name of the command is the name of the class, but you can override
+it by defining the "name" attribute.
+
+After a command is defined, it should be registered with:
+fm.register_command(MyCommandClass)
+"""
+
 import os
-from collections import deque
-from ranger.api import *
 import ranger
 from ranger.ext.shell_escape import shell_quote
 from ranger.ext.lazy_property import lazy_property
