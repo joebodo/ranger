@@ -63,14 +63,6 @@ from ranger.ext.get_executables import get_executables
 from ranger.runner import ALLOWED_FLAGS
 import re
 
-
-aliases = {
-	'e': 'edit',
-	'q': 'quit',
-	'q!': 'quitall',
-	'qall': 'quitall'
-}
-
 @fm.register_command
 class cd(Command):
 	"""
@@ -1097,3 +1089,12 @@ class grep(Command):
 			action.extend(['-e', self.rest(1), '-r'])
 			action.extend(f.path for f in self.fm.tab.get_selection())
 			self.fm.execute_command(action, flags='p')
+
+# Aliases:
+def alias(base, name):
+	fm.register_command(type(name, (base, ), {}))
+
+alias(edit, 'e')
+alias(quit, 'q')
+alias(quitall, 'qall')
+alias(quitall, 'q!')
