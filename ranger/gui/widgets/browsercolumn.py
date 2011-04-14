@@ -17,9 +17,12 @@
 """The BrowserColumn widget displays the contents of a directory or file."""
 import stat
 from time import time
+import _curses
 
 from . import Widget
 from .pager import Pager
+from ranger.gui.color import get_color
+from curses import color_pair
 
 class BrowserColumn(Pager):
 	main_column = False
@@ -238,7 +241,6 @@ class BrowserColumn(Pager):
 				this_color.append('selected')
 
 			if drawn.marked:
-				this_color.append('marked')
 				if self.main_column:
 					text = " " + text
 
@@ -246,11 +248,6 @@ class BrowserColumn(Pager):
 				this_color.append('tagged')
 				if self.main_column:
 					text = self.tagged_marker + text
-
-			if drawn.is_directory:
-				this_color.append('directory')
-			else:
-				this_color.append('file')
 
 			if drawn.stat:
 				mode = drawn.stat.st_mode
@@ -290,7 +287,15 @@ class BrowserColumn(Pager):
 				if x > 0:
 					self.addstr(line, x, infostring)
 
-			self.color_at(line, 0, self.wid, this_color)
+			colors = [-1, -1, 0]
+			self.fm.signal_emit('color', colors=colors, context=this_color,
+					target=self.target, file=drawn)
+			try:
+				self.win.chgat(line, 0, self.wid, colors[2] | \
+						color_pair(get_color(colors[0], colors[1])))
+			except _curses.error:
+				pass
+#			self.color_at(line, 0, self.wid, this_color)
 			if bad_info_color:
 				start, wid = bad_info_color
 				self.color_at(line, start, wid, this_color, 'badinfo')
