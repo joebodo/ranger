@@ -89,6 +89,13 @@ class FileSystemObject(object):
 		return "<{0} {1}>".format(self.__class__.__name__, self.path)
 
 	@lazy_property
+	def executable(self):
+		if not self.stat:
+			self.load()
+		import stat
+		return self.stat.st_mode & stat.S_IXUSR
+
+	@lazy_property
 	def shell_escaped_basename(self):
 		return shell_escape(self.basename)
 

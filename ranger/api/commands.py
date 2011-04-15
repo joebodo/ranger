@@ -108,7 +108,7 @@ class CommandHandler(object):
 		except KeyError:
 			if self.arg.debug:
 				raise Exception("Command `%s' not found!" % command_name)
-			elif self.ui_runs:
+			elif self.ui.runs:
 				self.err("Command `%s' not found! Press ? for help." \
 						% command_name)
 			else:

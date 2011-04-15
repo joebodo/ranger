@@ -212,97 +212,22 @@ class BrowserColumn(Pager):
 
 		selected_i = self.target.pointer
 		for line in range(self.hei):
-			i = line + self.scroll_begin
-
 			try:
-				drawn = self.target.files[i]
+				drawn = self.target.files[line + self.scroll_begin]
 			except IndexError:
 				break
 
-			if self.display_infostring and drawn.infostring \
-					and self.fm.settings.display_size_in_main_column:
-				infostring = str(drawn.infostring) + " "
-			else:
-				infostring = ""
+			data = [[drawn.basename, -1, -1, 0]]
+			self.fm.signal_emit('color.file', data=data,
+					target=self.target, file=drawn, column=self)
 
-			bad_info_color = None
-			this_color = base_color + list(drawn.mimetype_tuple)
-			text = drawn.basename
-			tagged = self.fm.tags and drawn.realpath in self.fm.tags
-
-			space = self.wid - len(infostring)
-			if self.main_column:
-				space -= 2
-
-#			if len(text) > space:
-#				text = text[:space-1] + self.ellipsis
-
-			if i == selected_i:
-				this_color.append('selected')
-
-			if drawn.marked:
-				if self.main_column:
-					text = " " + text
-
-			if tagged:
-				this_color.append('tagged')
-				if self.main_column:
-					text = self.tagged_marker + text
-
-			if drawn.stat:
-				mode = drawn.stat.st_mode
-				if mode & stat.S_IXUSR:
-					this_color.append('executable')
-				if stat.S_ISFIFO(mode):
-					this_color.append('fifo')
-				if stat.S_ISSOCK(mode):
-					this_color.append('socket')
-				if drawn.is_device:
-					this_color.append('device')
-
-			if drawn.path in copied:
-				this_color.append('cut' if self.fm.cut else 'copied')
-
-			if drawn.is_link:
-				this_color.append('link')
-				this_color.append(drawn.exists and 'good' or 'bad')
-
-			string = drawn.basename
-			from ranger.ext.widestring import WideString
-			wtext = WideString(text)
-			if len(wtext) > space:
-				wtext = wtext[:space - 1] + ellipsis
-			if self.main_column:
-				if tagged:
-					self.addstr(line, 0, str(wtext))
-				elif self.wid > 1:
-					self.addstr(line, 1, str(wtext))
-			else:
-				self.addstr(line, 0, str(wtext))
-
-			if infostring:
-				x = self.wid - 1 - len(infostring)
-				if infostring is '?':
-					bad_info_color = (x, len(infostring))
-				if x > 0:
-					self.addstr(line, x, infostring)
-
-			colors = [-1, -1, 0]
-			self.fm.signal_emit('color', colors=colors, context=this_color,
-					target=self.target, file=drawn)
 			try:
-				self.win.chgat(line, 0, self.wid, colors[2] | \
-						color_pair(get_color(colors[0], colors[1])))
+				self.win.move(line, 0)
+				for item in data:
+					self.addstr(item[0],
+							color_pair(get_color(item[1], item[2])) | item[3])
 			except _curses.error:
 				pass
-#			self.color_at(line, 0, self.wid, this_color)
-			if bad_info_color:
-				start, wid = bad_info_color
-				self.color_at(line, start, wid, this_color, 'badinfo')
-
-			if self.main_column and tagged and self.wid > 2:
-				this_color.append('tag_marker')
-				self.color_at(line, 0, len(self.tagged_marker), this_color)
 
 			self.color_reset()
 
