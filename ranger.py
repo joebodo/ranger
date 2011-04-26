@@ -23,16 +23,19 @@
 if [ ! -z "$1" ]; then
 	_ranger="$1"
 	_before="$(pwd)"
-	_bookmarksfile="${XDG_CONFIG_HOME:-"$HOME"/.config}"/ranger/bookmarks
+	_tmpfile=/tmp/ranger_chosen_file
 	shift
 	if [ -z "$@" ]; then
-		$_ranger "$_before" --fail-unless-cd || return 1
+		"$_ranger" "$_before" --choosedir="$_tmpfile"
 	else
-		$_ranger "$@" --fail-unless-cd || return 1
+		"$_ranger" "$@" --choosedir="$_tmpfile"
+	fi || return 1
+	if [ -f "$_tmpfile" ]; then
+		_after="$(cat "$_tmpfile")"
+		rm -f "$_tmpfile"
+		test "$_before" != "$_after" && cd "$_after"
+		return 0
 	fi
-	_after="$(/bin/grep \^\' "$_bookmarksfile")"
-	test "$_before" != "${_after:2}" && cd "${_after:2}"
-	return 0
 else
 	/bin/echo 'Usage: source path/to/ranger.py path/to/ranger.py'
 fi
