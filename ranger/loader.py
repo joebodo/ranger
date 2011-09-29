@@ -104,47 +104,27 @@ class CommandLoader(Loadable, SignalDispatcher):
 						rd = rd[0]
 						if rd == process.stderr:
 							read = rd.readline()
-<<<<<<< HEAD:ranger/loader.py
 							if PY3:
-								read = read.decode('utf-8')
-=======
-							if py3:
 								read = safeDecode(read)
->>>>>>> master:ranger/core/loader.py
 							if read:
 								ERR(read)
 						elif rd == process.stdout:
 							read = rd.read(512)
-<<<<<<< HEAD:ranger/loader.py
 							if PY3:
-								read = read.decode('utf-8')
-=======
-							if py3:
 								read = safeDecode(read)
->>>>>>> master:ranger/core/loader.py
 							if read:
 								self.stdout_buffer += read
 				except select.error:
 					sleep(0.03)
 			if not self.silent:
 				for l in process.stderr.readlines():
-<<<<<<< HEAD:ranger/loader.py
 					if PY3:
-						l = l.decode('utf-8')
-					ERR(l)
-			if self.read:
-				read = process.stdout.read()
-				if PY3:
-					read = read.decode('utf-8')
-=======
-					if py3:
 						l = safeDecode(l)
 					self.fm.notify(l, bad=True)
 			if self.read:
 				read = process.stdout.read()
-				if py3:
+				if PY3:
 					read = safeDecode(read)
->>>>>>> master:ranger/core/loader.py
 				self.stdout_buffer += read
 		null.close()
 		self.finished = True

@@ -42,12 +42,9 @@ from os.path import exists, normpath, abspath
 argv = sys.argv[1:sys.argv.index('--')] if '--' in sys.argv else sys.argv[1:]
 sys.dont_write_bytecode = '-c' in argv or '--clean' in argv
 
-# Avoid importing from ./ranger when running /usr/bin/ranger
-if os.path.isdir('./ranger'):
-	try:
-		sys.path.remove(os.path.abspath('.'))
-	except ValueError:
-		pass
+# Don't import ./ranger when running an installed binary at /usr/bin/ranger
+if exists('ranger') and '/' in normpath(__file__) and abspath('.') in sys.path:
+	sys.path.remove(abspath('.'))
 
 # Set the actual docstring
 __doc__ = """Ranger - file browser for the unix terminal"""
