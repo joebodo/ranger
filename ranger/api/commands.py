@@ -264,6 +264,9 @@ class Command(object):
 	def quick(self):
 		"""Override this"""
 
+	def cancel(self):
+		"""Override this"""
+
 	# Easy ways to get information
 	def arg(self, n):
 		"""Returns the nth space separated word"""
@@ -310,6 +313,7 @@ class Command(object):
 		return self.line[self.pos:]
 
 	# Tab stuff
+
 	# COMPAT: this is still used in old commands.py configs
 	def _tab_only_directories(self):
 		from os.path import dirname, basename, expanduser, join, isdir

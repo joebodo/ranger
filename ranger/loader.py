@@ -35,6 +35,11 @@ import sys
 import select
 
 PY3 = sys.version_info >= (3, )
+try:
+	import chardet
+	HAVE_CHARDET = True
+except:
+	HAVE_CHARDET = False
 
 class Loadable(object):
 	paused = False
@@ -77,8 +82,9 @@ class CommandLoader(Loadable, SignalDispatcher):
 		self.stdout_buffer = ""
 
 	def generate(self):
+		null = open(os.devnull, 'r')
 		self.process = process = Popen(self.args,
-				stdout=PIPE, stderr=PIPE)
+				stdout=PIPE, stderr=PIPE, stdin=null)
 		self.signal_emit('before', process=process, loader=self)
 		if self.silent and not self.read:
 			while process.poll() is None:
@@ -98,20 +104,31 @@ class CommandLoader(Loadable, SignalDispatcher):
 						rd = rd[0]
 						if rd == process.stderr:
 							read = rd.readline()
+<<<<<<< HEAD:ranger/loader.py
 							if PY3:
 								read = read.decode('utf-8')
+=======
+							if py3:
+								read = safeDecode(read)
+>>>>>>> master:ranger/core/loader.py
 							if read:
 								ERR(read)
 						elif rd == process.stdout:
 							read = rd.read(512)
+<<<<<<< HEAD:ranger/loader.py
 							if PY3:
 								read = read.decode('utf-8')
+=======
+							if py3:
+								read = safeDecode(read)
+>>>>>>> master:ranger/core/loader.py
 							if read:
 								self.stdout_buffer += read
 				except select.error:
 					sleep(0.03)
 			if not self.silent:
 				for l in process.stderr.readlines():
+<<<<<<< HEAD:ranger/loader.py
 					if PY3:
 						l = l.decode('utf-8')
 					ERR(l)
@@ -119,7 +136,17 @@ class CommandLoader(Loadable, SignalDispatcher):
 				read = process.stdout.read()
 				if PY3:
 					read = read.decode('utf-8')
+=======
+					if py3:
+						l = safeDecode(l)
+					self.fm.notify(l, bad=True)
+			if self.read:
+				read = process.stdout.read()
+				if py3:
+					read = safeDecode(read)
+>>>>>>> master:ranger/core/loader.py
 				self.stdout_buffer += read
+		null.close()
 		self.finished = True
 		self.signal_emit('after', process=process, loader=self)
 
@@ -147,7 +174,17 @@ class CommandLoader(Loadable, SignalDispatcher):
 			self.process.kill()
 
 
-class Loader(object):
+def safeDecode(string):
+	try:
+		return string.decode("utf-8")
+	except (UnicodeDecodeError):
+		if HAVE_CHARDET:
+			return string.decode(chardet.detect(str)["encoding"])
+		else:
+			return ""
+
+
+class Loader():
 	seconds_of_work_time = 0.03
 	throbber_chars = r'/-\|'
 

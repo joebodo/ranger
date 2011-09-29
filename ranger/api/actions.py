@@ -88,8 +88,7 @@ class Actions(object):
 			bad = True
 		text = str(text)
 		self.log.appendleft(text)
-		if hasattr(self.ui, 'notify'):
-			self.ui.notify(text, duration=duration, bad=bad)
+		self.ui.status.notify(text, duration=duration, bad=bad)
 
 	def redraw_window(self):
 		"""Redraw the window"""
@@ -165,7 +164,7 @@ class Actions(object):
 				self.visual = None
 				if not self.tab.enter_dir(cf) and selection:
 					pass
-			elif direction.vertical():
+			elif direction.vertical() and cwd.files:
 				oldpos = cwd.pointer
 				newpos = direction.move(
 						direction=direction.down(),
@@ -195,15 +194,18 @@ class Actions(object):
 						for f in new_selection - cur_selection:
 							cwd.mark_item(f, False)
 
-	def move_parent(self, n):
-		parent = self.tab.at_level(-1)
-		if parent.pointer + n < 0:
-			n = 0 - parent.pointer
-		try:
+	def move_parent(self, n, narg=None):
+		if narg is not None:
+			n *= narg
+		parent = self.env.at_level(-1)
+		if parent is not None:
+			if parent.pointer + n < 0:
+				n = 0 - parent.pointer
 			self.visual = None
-			self.tab.enter_dir(parent.files[parent.pointer+n])
-		except IndexError:
-			pass
+			try:
+				self.env.enter_dir(parent.files[parent.pointer+n])
+			except IndexError:
+				pass
 
 	def history_go(self, relative):
 		"""Move back and forth in the history"""
@@ -211,9 +213,9 @@ class Actions(object):
 
 	def scroll(self, relative):
 		"""Scroll down by <relative> lines"""
-		if hasattr(self.ui, 'scroll'):
-			self.ui.scroll(relative)
-			self.tab.cf = self.tab.cwd.pointed_obj
+		if self.ui.browser and self.ui.browser.main_column:
+			self.ui.browser.main_column.scroll(relative)
+			self.env.cf = self.tab.cwd.pointed_obj
 
 	def enter_dir(self, path, remember=False, history=True):
 		"""Enter the directory at the given path"""
@@ -398,7 +400,7 @@ class Actions(object):
 
 			return self.tab.cwd.search_fnc(fnc=fnc, offset=offset, forward=forward)
 
-		elif order in ('size', 'mimetype', 'ctime'):
+		elif order in ('size', 'mimetype', 'ctime', 'mtime', 'atime'):
 			cwd = self.tab.cwd
 			if original_order is not None or not cwd.cycle_list:
 				lst = list(cwd.files)
@@ -425,7 +427,7 @@ class Actions(object):
 	# Tags are saved in ~/.config/ranger/tagged and simply mark if a
 	# file is important to you in any context.
 
-	def tag_toggle(self, paths=None, value=None, movedown=None):
+	def tag_toggle(self, paths=None, value=None, movedown=None, tag=None):
 		if not self.tags:
 			return
 		if paths is None:
@@ -433,11 +435,11 @@ class Actions(object):
 		else:
 			tags = [realpath(path) for path in paths]
 		if value is True:
-			self.tags.add(*tags)
+			self.tags.add(*tags, tag=tag or self.tags.default_tag)
 		elif value is False:
 			self.tags.remove(*tags)
 		else:
-			self.tags.toggle(*tags)
+			self.tags.toggle(*tags, tag=tag or self.tags.default_tag)
 
 		if movedown is None:
 			movedown = len(tags) == 1 and paths is None
@@ -507,6 +509,16 @@ class Actions(object):
 		pager = self.ui.open_pager()
 		lines = cleandoc(command.__doc__).split('\n')
 		pager.set_source(lines)
+
+	def display_help(self, narg=None):
+		manualpath = self.relpath('../doc/ranger.1')
+		if os.path.exists(manualpath):
+			process = self.run(['man', manualpath])
+			if process.poll() != 16:
+				return
+		process = self.run(['man', 'ranger'])
+		if process.poll() == 16:
+			self.notify("Could not find manpage.", bad=True)
 
 	def display_log(self):
 		if not hasattr(self.ui, 'open_pager'):
@@ -786,6 +798,6 @@ class Actions(object):
 			src = src.path
 
 		try:
-			os.rename(src, dest)
+			os.renames(src, dest)
 		except OSError as err:
 			self.notify(err)

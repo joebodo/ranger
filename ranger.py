@@ -1,7 +1,5 @@
 #!/usr/bin/python -O
 # -*- coding: utf-8 -*-
-# Ranger: Explore your forest of files from inside your terminal
-#
 # Copyright (C) 2009, 2010  Roman Zimbelmann <romanz@lavabit.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,25 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Embed a bash script which allows you to change the directory of the parent
-# shell after you exit ranger.  Run it with the command: source ranger ranger
+# Embed a script which allows you to change the directory of the parent shell
+# after you exit ranger.  Run it with the command: source ranger ranger
 """":
 if [ ! -z "$1" ]; then
-	_ranger="$1"
-	_before="$(pwd)"
-	_tmpfile=/tmp/ranger_chosen_file
+	tempfile='/tmp/chosendir'
+	ranger="$1"
 	shift
-	if [ -z "$@" ]; then
-		"$_ranger" "$_before" --choosedir="$_tmpfile"
-	else
-		"$_ranger" "$@" --choosedir="$_tmpfile"
-	fi || return 1
-	if [ -f "$_tmpfile" ]; then
-		_after="$(cat "$_tmpfile")"
-		rm -f "$_tmpfile"
-		test "$_before" != "$_after" && cd "$_after"
-		return 0
-	fi
+	"$ranger" --choosedir="$tempfile" "${@:-$(pwd)}"
+	test -f "$tempfile" &&
+	if [ "$(cat -- "$tempfile")" != "$(echo -n `pwd`)" ]; then
+		cd "$(cat "$tempfile")"
+		rm -f -- "$tempfile"
+	fi && return 0
 else
 	/bin/echo 'Usage: source path/to/ranger.py path/to/ranger.py'
 fi
@@ -43,14 +35,11 @@ return 1
 """
 
 import sys
-import os.path
+from os.path import exists, normpath, abspath
 
-# Need to find out whether or not the flag --clean was used before importing
-# because --clean disables bytecode compilation
-try:
-	argv = sys.argv[0:sys.argv.index('--')]
-except:
-	argv = sys.argv
+# Need to find out whether or not the flag --clean was used ASAP,
+# because --clean is supposed to disable bytecode compilation
+argv = sys.argv[1:sys.argv.index('--')] if '--' in sys.argv else sys.argv[1:]
 sys.dont_write_bytecode = '-c' in argv or '--clean' in argv
 
 # Avoid importing from ./ranger when running /usr/bin/ranger
@@ -62,6 +51,10 @@ if os.path.isdir('./ranger'):
 
 # Set the actual docstring
 __doc__ = """Ranger - file browser for the unix terminal"""
+
+# Don't import ./ranger when running an installed binary at /usr/bin/ranger
+if exists('ranger') and '/' in normpath(__file__) and abspath('.') in sys.path:
+	sys.path.remove(abspath('.'))
 
 # Start ranger
 import ranger

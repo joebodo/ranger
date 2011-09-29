@@ -13,8 +13,10 @@
 audio/flac					flac
 audio/musepack					mpc mpp mp+
 audio/ogg					oga ogg spx
+audio/wavpack				wv wvc
 
 video/mkv					mkv
+video/webm					webm
 video/flash					flv
 video/ogg					ogv ogm
 video/divx					div divx

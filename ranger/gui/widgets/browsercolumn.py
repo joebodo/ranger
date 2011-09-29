@@ -29,7 +29,6 @@ class BrowserColumn(Pager):
 	display_infostring = False
 	scroll_begin = 0
 	target = None
-	tagged_marker = '*'
 	last_redraw_time = -1
 	ellipsis = { False: '~', True: '…' }
 

@@ -22,13 +22,7 @@ import ranger
 from ranger.gui.displayable import DisplayableContainer
 from ranger.gui.curses_shortcuts import ascii_only
 from ranger.gui.mouse_event import MouseEvent
-from ranger.gui.widgets.browserview import BrowserView
-from ranger.gui.widgets.titlebar import TitleBar
-from ranger.gui.widgets.console import Console
-from ranger.gui.widgets.statusbar import StatusBar
-from ranger.gui.widgets.taskview import TaskView
-from ranger.gui.widgets.pager import Pager
-from ranger.models.keymap import CommandArgs
+from ranger.ext.keybinding_parser import ALT_KEY
 
 TERMINALS_WITH_TITLE = ("xterm", "xterm-256color", "rxvt",
 		"rxvt-256color", "rxvt-unicode", "aterm", "Eterm",
@@ -202,9 +196,14 @@ class UI(DisplayableContainer):
 					keys.append(getkey)
 			if len(keys) == 1:
 				keys.append(-1)
+			elif keys[0] == 27:
+				keys[0] = ALT_KEY
 			if self.fm.settings.xterm_alt_key:
 				if len(keys) == 2 and keys[1] in range(127, 256):
-					keys = [27, keys[1] - 128]
+					if keys[0] == 195:
+						keys = [ALT_KEY, keys[1] - 64]
+					elif keys[0] == 194:
+						keys = [ALT_KEY, keys[1] - 128]
 			self.handle_keys(*keys)
 			self.set_load_mode(previous_load_mode)
 			if self.fm.settings.flushinput and not self.console.visible:
@@ -224,6 +223,13 @@ class UI(DisplayableContainer):
 
 	def setup(self):
 		"""Build up the UI by initializing widgets."""
+		from ranger.gui.widgets.browserview import BrowserView
+		from ranger.gui.widgets.titlebar import TitleBar
+		from ranger.gui.widgets.console import Console
+		from ranger.gui.widgets.statusbar import StatusBar
+		from ranger.gui.widgets.taskview import TaskView
+		from ranger.gui.widgets.pager import Pager
+
 		# Create a title bar
 		self.titlebar = TitleBar(self.win)
 		self.add_child(self.titlebar)
@@ -310,7 +316,6 @@ class UI(DisplayableContainer):
 		DisplayableContainer.finalize(self)
 		self.win.refresh()
 
-
 	def close_pager(self):
 		if self.console.visible:
 			self.console.focused = True
@@ -355,6 +360,7 @@ class UI(DisplayableContainer):
 		self.browser.visible = False
 		self.taskview.visible = True
 		self.taskview.focused = True
+		self.fm.hint('*tasks:* *dd*:remove *J*:move_down *H*:move_up')
 
 	def redraw_main_column(self):
 		self.browser.main_column.need_redraw = True
@@ -363,10 +369,6 @@ class UI(DisplayableContainer):
 		self.taskview.visible = False
 		self.browser.visible = True
 		self.taskview.focused = False
-
-	def scroll(self, relative):
-		if self.browser and self.browser.main_column:
-			self.browser.main_column.scroll(relative)
 
 	def throbber(self, string='.', remove=False):
 		if remove:

@@ -32,6 +32,7 @@ VERSION = (1, 5, 0, "")
 __license__ = 'GPL3'
 __version__ = '%d.%d.%d%s' % VERSION
 __maintainer__ = 'Roman Zimbelmann'
+__author__ = __maintainer__ = 'Roman Zimbelmann'
 __email__ = 'romanz@lavabit.com'
 
 # -=- Runtime Information -=-

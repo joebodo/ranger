@@ -3,8 +3,8 @@
 # Its output is used as the preview.  ANSI color codes are supported.
 
 # NOTES: This script is considered a configuration file.  If you upgrade
-# ranger, it will be left untouched. (You must update it yourself)
-# NEVER make this script interactive. (by starting mplayer or something)
+# ranger, it will be left untouched. (You must update it yourself.)
+# Also, ranger disables STDIN here, so interactive scripts won't work properly
 
 # Meanings of exit codes:
 # code | meaning    | action of ranger
@@ -30,19 +30,24 @@ extension=$(echo "$path" | grep '\.' | grep -o '[^.]\+$')
 # Functions:
 # "have $1" succeeds if $1 is an existing command/installed program
 function have { type -P "$1" > /dev/null; }
-# "sucess" returns the exit code of the first program in the last pipe chain
+# "success" returns the exit code of the first program in the last pipe chain
 function success { test ${PIPESTATUS[0]} = 0; }
 
 case "$extension" in
 	# Archive extensions:
 	7z|a|ace|alz|arc|arj|bz|bz2|cab|cpio|deb|gz|jar|lha|lz|lzh|lzma|lzo|\
 	rar|rpm|rz|t7z|tar|tbz|tbz2|tgz|tlz|txz|tZ|tzo|war|xpi|xz|Z|zip)
-		atool -l "$path" | head -n $maxln && exit 3
+		als "$path" | head -n $maxln
+		success && exit 0 || acat "$path" | head -n $maxln && exit 3
 		exit 1;;
 	# PDF documents:
 	pdf)
 		pdftotext -l 10 -nopgbrk -q "$path" - | head -n $maxln | fmt -s -w $width
 		success && exit 0 || exit 1;;
+	# BitTorrent Files
+	torrent)
+		transmission-show "$path" | head -n $maxln && exit 3
+		success && exit 5 || exit 1;;
 	# HTML Pages:
 	htm|html|xhtml)
 		have w3m    && w3m    -dump "$path" | head -n $maxln | fmt -s -w $width && exit 4

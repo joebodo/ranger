@@ -26,6 +26,7 @@ from ranger.models.fsobject import FileSystemObject
 from ranger.loader import Loadable
 from ranger.ext.mount_path import mount_path
 from ranger.ext.accumulator import Accumulator
+from ranger.ext.lazy_property import lazy_property
 
 def sort_by_basename(path):
 	"""returns path.basename (for sorting)"""
@@ -85,6 +86,8 @@ class Directory(FileSystemObject, Accumulator, Loadable):
 		'natural': sort_naturally,
 		'size': lambda path: -path.size,
 		'mtime': lambda path: -(path.stat and path.stat.st_mtime or 1),
+		'ctime': lambda path: -(path.stat and path.stat.st_ctime or 1),
+		'atime': lambda path: -(path.stat and path.stat.st_atime or 1),
 		'type': lambda path: path.mimetype or '',
 	}
 
@@ -318,6 +321,32 @@ class Directory(FileSystemObject, Accumulator, Loadable):
 			self.move_to_obj(old_pointed_obj)
 		else:
 			self.correct_pointer()
+
+	@lazy_property
+	def size(self):
+		try:
+			size = len(os.listdir(self.path))  # bite me
+		except OSError:
+			self.infostring = '?'
+			self.accessible = False
+			return 0
+		else:
+			self.infostring = ' %d' % size
+			self.accessible = True
+			self.runnable = True
+			return size
+
+	@lazy_property
+	def infostring(self):
+		self.size  # trigger the lazy property initializer
+		if self.is_link:
+			return '->' + self.infostring
+		return self.infostring
+
+	@lazy_property
+	def runnable(self):
+		self.size  # trigger the lazy property initializer
+		return self.runnable
 
 	def sort_if_outdated(self):
 		"""Sort the containing files if they are outdated"""
