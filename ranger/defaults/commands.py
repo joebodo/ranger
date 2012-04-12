@@ -92,7 +92,23 @@ class alias(Command):
 		else:
 			self.fm.commands.alias(self.arg(1), self.arg(2))
 
-class cd(Command):
+class CommandChooser(Command):
+	def get_partial_match(self, matches):
+		partial_match = matches[0]
+		plen = len(partial_match)
+		
+		for mn in matches:
+			if len(mn) < plen:
+				plen = len(mn)
+
+			while plen > 0:
+				if mn.startswith(partial_match[:plen]):
+					break
+				plen-=1
+
+		return matches[0][:plen]	
+
+class cd(CommandChooser):
 	"""
 	:cd [-r] <dirname>
 
@@ -153,8 +169,8 @@ class cd(Command):
 			pass
 		else:
 			dirnames.sort()
-			dirnames = bookmarks + dirnames
 
+			self.fm.ui.browser.draw_choices = False
 			# no results, return None
 			if len(dirnames) == 0:
 				return
@@ -163,9 +179,17 @@ class cd(Command):
 			if len(dirnames) == 1:
 				return self.start(1) + join(rel_dirname, dirnames[0]) + '/'
 
-			# more than one result. append no slash, so the user can
-			# manually type in the slash to advance into that directory
-			return (self.start(1) + join(rel_dirname, dirname) for dirname in dirnames)
+			partial_match = self.get_partial_match(dirnames)
+
+			self.fm.ui.browser.draw_choices = True
+			self.fm.ui.browser.choices = dirnames
+			self.fm.ui.browser.choices_title = 'directory'
+
+			if len(partial_match) > 0:
+				if len(rel_basename) < len(partial_match):
+					return (self.start(1) + join(rel_dirname, partial_match)) 
+
+			return
 
 
 class chain(Command):
@@ -203,6 +227,7 @@ class shell(Command):
 		if command:
 			if '%' in command:
 				command = self.fm.substitute_macros(command)
+				
 			self.fm.execute_command(command, flags=flags)
 
 	def tab(self):
@@ -372,8 +397,7 @@ class find(Command):
 
 		return self.count == 1
 
-
-class set_(Command):
+class set_(CommandChooser):
 	"""
 	:set <option name>=<python expression>
 
@@ -394,18 +418,26 @@ class set_(Command):
 	def tab(self):
 		name, value, name_done = self.parse_setting_line()
 		settings = self.fm.settings
-		if not name:
-			return (self.firstpart + setting for setting in settings)
-		if not value and not name_done:
-			return (self.firstpart + setting for setting in settings \
-					if setting.startswith(name))
-		if not value:
-			return self.firstpart + repr(settings[name])
-		if bool in settings.types_of(name):
-			if 'true'.startswith(value.lower()):
-				return self.firstpart + 'True'
-			if 'false'.startswith(value.lower()):
-				return self.firstpart + 'False'
+		self.fm.ui.browser.draw_choices = False
+
+		matches = [mn for mn in self.fm.settings \
+						if mn.startswith(name)]
+
+		if len(matches) == 0:
+			return
+		if len(matches) == 1:
+			return self.start(1) + matches[0] + " "
+
+		self.fm.ui.browser.choices_title = 'setting'
+		self.fm.ui.browser.choices = matches
+		self.fm.ui.browser.draw_choices = True
+
+		partial_match = self.get_partial_match(matches)
+		if len(partial_match) > 0:
+			if len(name) < len(partial_match):
+				return self.start(1) + partial_match
+
+		return
 
 
 class quit(Command):
@@ -938,7 +970,6 @@ class tunmap(unmap):
 	Remove the given "taskview" mappings
 	"""
 	context = 'taskview'
-
 
 class map_(Command):
 	"""

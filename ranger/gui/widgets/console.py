@@ -120,6 +120,7 @@ class Console(Widget):
 				pass
 			self.last_cursor_mode = None
 		self.fm.hide_console_info()
+		self.fm.ui.browser.draw_choices = False
 		self.add_to_history()
 		self.tab_deque = None
 		self.clear()
