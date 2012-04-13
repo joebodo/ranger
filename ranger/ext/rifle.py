@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -S
 # Copyright (C) 2012  Roman Zimbelmann <romanz@lavabit.com>
 # This software is distributed under the terms of the GNU GPL version 3.
 
@@ -7,9 +7,6 @@ rifle, the file executor/opener of ranger
 
 This can be used as a standalone program or can be embedded in python code.
 When used together with ranger, it doesn't have to be installed to $PATH.
-
-You can use this program without installing ranger by inlining the imported
-ranger functions. (shell_quote, spawn, ...)
 
 Example usage:
 
@@ -22,13 +19,50 @@ import os.path
 import re
 from subprocess import Popen, PIPE
 import sys
-import time
-from ranger.ext.shell_escape import shell_quote
-from ranger.ext.spawn import spawn
-from ranger.ext.get_executables import get_executables
 
 DEFAULT_PAGER = 'less'
 DEFAULT_EDITOR = 'nano'
+ENCODING = 'utf-8'
+
+try:
+	from ranger.ext.get_executables import get_executables
+except ImportError:
+	_cached_executables = None
+
+	def get_executables():
+		"""
+		Return all executable files in $PATH + Cache them.
+		"""
+		global _cached_executables
+		if _cached_executables is not None:
+			return _cached_executables
+
+		if 'PATH' in os.environ:
+			paths = os.environ['PATH'].split(':')
+		else:
+			paths = ['/usr/bin', '/bin']
+
+		from stat import S_IXOTH, S_IFREG
+		paths_seen = set()
+		_cached_executables = set()
+		for path in paths:
+			if path in paths_seen:
+				continue
+			paths_seen.add(path)
+			try:
+				content = listdir(path)
+			except:
+				continue
+			for item in content:
+				abspath = path + '/' + item
+				try:
+					filestat = stat(abspath)
+				except:
+					continue
+				if filestat.st_mode & (S_IXOTH | S_IFREG):
+					_cached_executables.add(item)
+		return _cached_executables
+
 
 def _is_terminal():
 	# Check if stdin (file descriptor 0), stdout (fd 1) and
@@ -101,7 +135,6 @@ class Rifle(object):
 				tests, command = line.split(self.delimiter1, 1)
 				tests = tests.split(self.delimiter2)
 				tests = tuple(tuple(f.strip().split(None, 1)) for f in tests)
-				tests = tuple(tests)
 				command = command.strip()
 				self.rules.append((command, tests))
 			except Exception as e:
@@ -125,48 +158,51 @@ class Rifle(object):
 		# This function evaluates the condition, after _eval_condition() handled
 		# negation of conditions starting with a "!".
 
-		function = rule[0]
-		argument = rule[1] if len(rule) > 1 else ''
 		if not files:
 			return False
 
+		function = rule[0]
+		argument = rule[1] if len(rule) > 1 else ''
+
 		if function == 'ext':
 			extension = os.path.basename(files[0]).rsplit('.', 1)[-1]
-			return bool(re.search('^' + argument + '$', extension))
-		if function == 'name':
+			return bool(re.search('^(' + argument + ')$', extension))
+		elif function == 'name':
 			return bool(re.search(argument, os.path.basename(files[0])))
-		if function == 'path':
+		elif function == 'path':
 			return bool(re.search(argument, os.path.abspath(files[0])))
-		if function == 'mime':
+		elif function == 'mime':
 			return bool(re.search(argument, self._get_mimetype(files[0])))
-		if function == 'has':
+		elif function == 'has':
 			return argument in get_executables()
-		if function == 'terminal':
+		elif function == 'terminal':
 			return _is_terminal()
-		if function == 'number':
+		elif function == 'number':
 			if argument.isdigit():
 				self._skip = int(argument)
 			return True
-		if function == 'label':
+		elif function == 'label':
 			self._app_label = argument
 			if label:
 				return argument == label
 			return True
-		if function == 'flag':
+		elif function == 'flag':
 			self._app_flags = argument
 			return True
-		if function == 'X':
+		elif function == 'X':
 			return 'DISPLAY' in os.environ
-		if function == 'else':
+		elif function == 'else':
 			return True
 
 	def _get_mimetype(self, fname):
 		# Spawn "file" to determine the mime-type of the given file.
 		if self._mimetype:
 			return self._mimetype
-		mimetype = spawn("file", "--mime-type", "-Lb", fname)
-		self._mimetype = mimetype
-		return mimetype
+		process = Popen(["file", "--mime-type", "-Lb", fname],
+				stdout=PIPE, stderr=PIPE)
+		mimetype, _ = process.communicate()
+		self._mimetype = mimetype.decode(ENCODING)
+		return self._mimetype
 
 	def _build_command(self, files, action, flags):
 		# Get the flags
@@ -214,7 +250,6 @@ class Rifle(object):
 		"""
 		self._mimetype = mimetype
 		count = -1
-		t = time.time()
 		for cmd, tests in self.rules:
 			self._skip = None
 			self._app_flags = ''
@@ -229,7 +264,7 @@ class Rifle(object):
 					count = self._skip
 				yield (count, cmd, self._app_label, self._app_flags)
 
-	def execute(self, files, number=0, label=None, flags=None, mimetype=None):
+	def execute(self, files, number=0, label=None, flags="", mimetype=None):
 		"""
 		Executes the given list of files.
 
@@ -249,16 +284,16 @@ class Rifle(object):
 		found_at_least_one = None
 
 		# Determine command
-		for count, cmd, lbl, flags in self.list_commands(files, mimetype):
+		for count, cmd, lbl, flgs in self.list_commands(files, mimetype):
 			if label and label == lbl or not label and count == number:
 				cmd = self.hook_command_preprocessing(cmd)
-				command = self._build_command(files, cmd, flags)
+				command = self._build_command(files, cmd, flags + flgs)
 				break
 			else:
 				found_at_least_one = True
 		else:
 			if label and label in get_executables():
-				cmd = '%s -- "$@"' % label
+				cmd = '%s "$@"' % label
 				command = self._build_command(files, cmd, flags)
 
 		# Execute command
@@ -300,7 +335,7 @@ def main():
 	# Evaluate arguments
 	from optparse import OptionParser
 	parser = OptionParser(usage="%prog [-fhlpw] [files]")
-	parser.add_option('-f', type="string", default=None, metavar="FLAGS",
+	parser.add_option('-f', type="string", default="", metavar="FLAGS",
 			help="use additional flags: f=fork, r=root, t=terminal. "
 			"Uppercase flag negates respective lowercase flags.")
 	parser.add_option('-l', action="store_true",
@@ -339,4 +374,8 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	if 'RANGER_DOCTEST' in os.environ:
+		import doctest
+		doctest.testmod()
+	else:
+		main()
