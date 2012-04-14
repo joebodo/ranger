@@ -1042,3 +1042,15 @@ class grep(Command):
 			action.extend(['-e', self.rest(1), '-r'])
 			action.extend(f.path for f in self.fm.env.get_selection())
 			self.fm.execute_command(action, flags='p')
+
+
+class prompt(Command):
+	"""
+	Prompt for {token} in command string
+	"""
+
+	context = 'browser'
+	resolve_macros = False
+	
+	def execute(self):
+		self.fm.open_console('', 'prompt: ', 0, self.rest(1))

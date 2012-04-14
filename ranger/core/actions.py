@@ -118,10 +118,10 @@ class Actions(FileManagerAware, EnvironmentAware, SettingsAware):
 		"""Redraw the window"""
 		self.ui.redraw_window()
 
-	def open_console(self, string='', prompt=None, position=None):
+	def open_console(self, string='', prompt=None, position=None, cmd_string=''):
 		"""Open the console"""
 		self.change_mode('normal')
-		self.ui.open_console(string, prompt=prompt, position=position)
+		self.ui.open_console(string, prompt=prompt, position=position, cmd_string=cmd_string)
 
 	def execute_console(self, string='', wildcards=[], quantifier=None):
 		"""Execute a command for the console"""

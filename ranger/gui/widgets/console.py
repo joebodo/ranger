@@ -78,7 +78,7 @@ class Console(Widget):
 		except:
 			pass
 
-	def open(self, string='', prompt=None, position=None):
+	def open(self, string='', prompt=None, position=None, cmd_string=''):
 		if prompt is not None:
 			assert isinstance(prompt, str)
 			self.prompt = prompt
@@ -96,6 +96,7 @@ class Console(Widget):
 		self.visible = True
 		self.unicode_buffer = ""
 		self.line = string
+		self.cmd_line = cmd_string
 		self.history_search_pattern = self.line
 		self.pos = len(string)
 		if position is not None:
@@ -284,6 +285,8 @@ class Console(Widget):
 
 	def execute(self, cmd=None):
 		self.allow_close = True
+		if self.cmd_line:
+			self.line = self.cmd_line.replace('{token}', self.line)
 		self.fm.execute_console(self.line)
 		if self.allow_close:
 			self.close(trigger_cancel_function=False)
